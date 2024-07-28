@@ -7,16 +7,26 @@ defmodule ApiFence.ConfigGenerator do
   alias ApiFence.Types.VHost
   alias ApiFence.ConfigCache
   require Logger
-  defstruct([:version, listeners: [], clusters: [], vhosts: [], routes: []])
+  defstruct([:version, listeners: [], clusters: [], vhosts: [], routes: [], downstream_auth: []])
 
   def from_oas3_specs(version) do
-    %__MODULE__{listeners: listeners, clusters: clusters, vhosts: vhosts, routes: routes} =
+    %__MODULE__{
+      listeners: listeners,
+      clusters: clusters,
+      vhosts: vhosts,
+      routes: routes,
+      downstream_auth: downstream_auth
+    } =
       ConfigCache.iterate_specs(%__MODULE__{version: version}, fn filename,
                                                                   api_id,
                                                                   spec,
                                                                   config ->
         try do
           {listener_unifier, _} = listener_tmpl = listener_template_fn(spec, config)
+
+          downstream_auth_tmpl =
+            downstream_auth_template_fn(api_id, listener_unifier, spec, config)
+
           {vhost_unifier, _} = vhost_tmpl = vhost_template_fn(listener_unifier, spec, config)
           route_tmpl = route_template_fn(api_id, vhost_unifier, spec, config)
           cluster_tmpl = cluster_template_fn(api_id, vhost_unifier, config)
@@ -26,7 +36,8 @@ defmodule ApiFence.ConfigGenerator do
             | listeners: [listener_tmpl | config.listeners],
               vhosts: [vhost_tmpl | config.vhosts],
               routes: [route_tmpl | config.routes],
-              clusters: [cluster_tmpl | config.clusters]
+              clusters: [cluster_tmpl | config.clusters],
+              downstream_auth: [downstream_auth_tmpl | config.downstream_auth]
           }
         rescue
           e ->
@@ -51,6 +62,12 @@ defmodule ApiFence.ConfigGenerator do
          Map.put(routes_acc, unifier, List.flatten(routes) |> Enum.uniq())}
       end)
 
+    downstream_auth =
+      Enum.group_by(downstream_auth, fn {unifier, _} -> unifier end, fn {_,
+                                                                         downstream_auth_config_fn} ->
+        downstream_auth_config_fn.()
+      end)
+
     vhosts =
       Enum.group_by(vhosts, fn {unifier, _} -> unifier.listener end, fn {unifier, vhost_tmpl_fn} ->
         vhost_tmpl_fn.(Map.fetch!(routes, unifier))
@@ -63,7 +80,9 @@ defmodule ApiFence.ConfigGenerator do
       Enum.group_by(
         listeners,
         fn {unifier, _} -> unifier end,
-        fn {unifier, listener_tmpl_fn} -> listener_tmpl_fn.(Map.fetch!(vhosts, unifier)) end
+        fn {unifier, listener_tmpl_fn} ->
+          listener_tmpl_fn.(Map.fetch!(vhosts, unifier), Map.fetch!(downstream_auth, unifier))
+        end
       )
       |> Enum.flat_map(fn {_, listeners} -> listeners end)
       |> Enum.uniq()
@@ -86,13 +105,15 @@ defmodule ApiFence.ConfigGenerator do
     listener_name = "#{address}:#{port}"
 
     {%{listener_name: listener_name},
-     fn vhosts ->
+     fn vhosts, downstream_auth ->
        %{
          listener_name: listener_name,
          address: address,
          port: port,
          virtual_hosts: vhosts,
-         auth_filters: []
+         lua_downstream_auth:
+           ApiFence.DownstreamAuth.to_lua(downstream_auth)
+           |> tap(fn v -> File.write("/tmp/apifence-downstream-auth.lua", v) end)
        }
        |> Listener.eval()
      end}
@@ -105,7 +126,22 @@ defmodule ApiFence.ConfigGenerator do
 
     {%{listener: listener_unifier, host: host},
      fn routes ->
-       %{name: host, domains: [host], routes: routes} |> VHost.eval()
+       %{
+         name: host,
+         domains: [host],
+         routes: routes
+       }
+       |> VHost.eval()
+     end}
+  end
+
+  @downstream_auth_extension_key "x-api-fence-downstream-auth"
+  defp downstream_auth_template_fn(api_id, listener_unifier, spec, _config) do
+    downstream_auth_config = ApiFence.DownstreamAuth.to_config(api_id, spec)
+
+    {listener_unifier,
+     fn ->
+       downstream_auth_config
      end}
   end
 
