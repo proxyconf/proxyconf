@@ -23,6 +23,7 @@ defmodule ApiFence.MixProject do
   defp deps do
     [
       {:envoy_xds, git: "https://github.com/apifence/envoy_xds_ex.git"},
+      {:json_xema, "~> 0.6.2"},
       {:jsonpatch, "~> 2.2"},
       {:elixir_map_to_xml, "~> 0.1.0"},
       {:plug, "~> 1.16"},

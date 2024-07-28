@@ -9,10 +9,16 @@ defmodule ApiFence.ConfigCache do
 
   @spec_table :config_cache_tbl_specs
   @valid_oas3_file_extensions [".json", ".yaml", ".yml"]
+  @oas3_0_schema File.read!("priv/schemas/oas3_0.json") |> Jason.decode!() |> JsonXema.new()
+  @oas3_1_schema File.read!("priv/schemas/oas3_1.json") |> Jason.decode!() |> JsonXema.new()
 
   def start_link(_args) do
     :ets.new(@spec_table, [:public, :named_table])
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
+  end
+
+  def load_external_parsed_spec(spec_name, spec) do
+    GenServer.call(__MODULE__, {:load_external_parsed_spec, spec_name, spec})
   end
 
   def init(_args) do
@@ -52,31 +58,114 @@ defmodule ApiFence.ConfigCache do
         File.ls!(directory) |> Enum.map(fn f -> Path.join(directory, f) end)
       end)
 
-    state =
-      Enum.reduce(config_files, state, fn filename, state_acc ->
+    changes =
+      Enum.reduce(config_files, %{}, fn filename, changes_acc ->
         update_result = maybe_update_spec_table(filename)
         # FIXME: remove below, this is here to always trigger a reload
         update_result = :changed
 
         case update_result do
+          :ignored ->
+            changes_acc
+
           :unchanged ->
-            state_acc
+            changes_acc
 
           :changed ->
-            new_version = state.version + 1
-            %{state_acc | version: new_version, resources: resources(new_version)}
+            Map.put(changes_acc, filename, :changed)
         end
       end)
 
-    reply_resources(Map.values(state.streams), state.resources)
-    {:noreply, %{state | tref: nil}}
+    if map_size(changes) > 0 do
+      resources = resources(changes)
+      streams = reply_resources(state.streams, resources)
+      {:noreply, %{state | tref: nil, streams: streams, resources: resources}}
+    else
+      {:noreply, state}
+    end
   end
 
-  def handle_call({:subscribe_stream, node_info, stream}, _from, state) do
-    # full sync first time discovery
-    reply_resources([stream], state.resources)
+  def handle_call({:load_external_parsed_spec, spec_name, spec}, _from, state)
+      when is_map(spec) do
+    case validate_spec(spec) do
+      {:ok, spec} ->
+        hash = spec_hash(Jason.encode!(spec))
+        api_id = insert_validated_spec(spec_name, spec, hash)
 
-    {:reply, :ok, %{state | streams: Map.put(state.streams, node_info, stream)}}
+        resources = resources(%{spec_name => :external})
+        streams = reply_resources(state.streams, resources)
+        {:reply, :ok, %{state | streams: streams, resources: resources}}
+
+      error ->
+        Logger.error("Can't load external spec #{spec_name} due to #{inspect(error)}")
+        {:reply, error, state}
+    end
+  end
+
+  def handle_call({:subscribe_stream, node_info, stream, type_url, version}, _from, state) do
+    streams =
+      case Map.get(state.streams, {node_info, type_url}) do
+        %{stream: ^stream, version: ^version} = stream_config ->
+          # nothing to do
+          Logger.debug(
+            "#{type_url} Acked version by #{node_info.cluster} node #{node_info.node_id} version #{version}"
+          )
+
+          state.streams
+
+        %{stream: ^stream} ->
+          Logger.info(
+            "#{type_url} Duplicated subscribe from #{node_info.cluster} node #{node_info.node_id} version #{version}"
+          )
+
+          state.streams
+
+        %{version: old_version} = stream_config when version == 0 ->
+          Logger.info(
+            "#{type_url} Reconnect #{node_info.cluster} node #{node_info.node_id} with previous version #{old_version}"
+          )
+
+          stream_config = %{stream: stream, version: 0}
+
+          Map.merge(
+            state.streams,
+            reply_resources(
+              %{{node_info, type_url} => stream_config},
+              state.resources
+            )
+          )
+
+        nil ->
+          # new node
+          Logger.info("#{type_url} Added #{node_info.cluster} node #{node_info.node_id}")
+          stream_config = %{stream: stream, version: 0}
+
+          Map.merge(
+            state.streams,
+            reply_resources(%{{node_info, type_url} => stream_config}, state.resources)
+          )
+      end
+
+    {:reply, :ok, %{state | streams: streams}}
+  end
+
+  defp insert_validated_spec(filename, spec, hash, no_delete \\ false) do
+    api_id = Map.get(spec, "x-api-fence-api-id", Path.rootname(filename) |> Path.basename())
+
+    spec = Map.put(spec, "x-api-fence-api-id", api_id)
+
+    :ets.insert(@spec_table, {filename, hash, api_id, spec, DateTime.utc_now(), no_delete})
+
+    Application.get_env(:api_fence, :external_spec_handlers, [])
+    |> Enum.each(fn {module, function} ->
+      apply(module, function, [filename, api_id, spec])
+    end)
+
+    api_id
+  end
+
+  defp spec_hash(data) when is_binary(data) do
+    :crypto.hash(:sha256, data) |> Base.encode64()
   end
 
   defp maybe_update_spec_table(filename) do
@@ -84,7 +173,7 @@ defmodule ApiFence.ConfigCache do
 
     with {:extname, true} <- {:extname, extname in @valid_oas3_file_extensions},
          {:ok, data} <- File.read(filename),
-         hash <- :crypto.hash(:sha256, data) |> Base.encode64(),
+         hash <- spec_hash(data),
          {:hash, _new_hash, ^hash, _data} <-
            {:hash, hash, compat_lookup_element(@spec_table, filename, 2, nil), data} do
       :unchanged
@@ -95,30 +184,34 @@ defmodule ApiFence.ConfigCache do
           |> validate_spec()
 
         case result do
-          {:ok, spec} ->
-            api_id =
-              Map.get(spec, "x-api-fence-api-id", Path.rootname(filename) |> Path.basename())
-
-            spec = Map.put(spec, "x-api-fence-api-id", api_id)
-
-            :ets.insert(@spec_table, {filename, new_hash, api_id, spec, DateTime.utc_now()})
-
-            Application.get_env(:api_fence, :external_spec_handlers, [])
-            |> Enum.each(fn {module, function} ->
-              apply(module, function, [filename, api_id, spec])
-            end)
-
+          {:ok, spec} when old_hash == nil ->
+            api_id = insert_validated_spec(filename, spec, new_hash)
+            Logger.info("Loaded new spec for API #{api_id} from #{filename}")
             :changed
 
-          {:error, _reason} = e ->
-            e
+          {:ok, spec} ->
+            api_id = insert_validated_spec(filename, spec, new_hash)
+            Logger.info("Loaded updated spec for API #{api_id} from #{filename}")
+            :changed
+
+          {:error, reason} ->
+            Logger.warning(
+              "Validation error when parsing spec #{filename} due to #{inspect(reason)}"
+            )
+
+            :ignored
         end
 
       {:extname, false} ->
-        {:error, {:unsupported, extname}}
+        Logger.info(
+          "Don't load file #{filename} only #{inspect(@valid_oas3_spec_extensions)} are allowed"
+        )
 
-      {:error, _reason} = error ->
-        error
+        :ignored
+
+      {:error, reason} ->
+        Logger.error("Loading error when loading spec #{filename} due to #{inspect(reason)}")
+        :ignored
     end
   end
 
@@ -135,45 +228,65 @@ defmodule ApiFence.ConfigCache do
       end
   end
 
-  def get_spec(filename) do
-    case :ets.lookup(@spec_table, filename) do
-      [] ->
-        {:error, :not_found}
-
-      [{_filename, _hash, _api_id, spec, _ts}] ->
-        {:ok, spec}
-    end
-  end
-
   defp parse_spec(".json", data), do: Jason.decode(data)
 
   defp parse_spec(yaml, data) when yaml in [".yaml", ".yml"],
     do: YamlElixir.read_from_string(data)
 
-  defp validate_spec({:ok, spec}), do: {:ok, spec}
+  defp validate_spec({:ok, spec}), do: validate_spec(spec)
   defp validate_spec({:error, reason}), do: {:error, reason}
 
-  def reply_resources(streams, all_resources) do
-    Enum.each(all_resources, fn {resource_type_url, resources} ->
-      {:ok, response} =
-        Protobuf.JSON.from_decoded(
-          %{
-            "version_info" => "123",
-            "type_url" => resource_type_url,
-            "control_plane" => %{
-              "identifier" => "#{node()}"
-            },
-            "resources" =>
-              Enum.map(resources, fn r -> %{"@type" => resource_type_url, "value" => r} end),
-            "nonce" => nonce()
-          },
-          Envoy.Service.Discovery.V3.DiscoveryResponse
-        )
+  defp validate_spec(%{"openapi" => "3.1" <> _} = spec) do
+    case JsonXema.validate(@oas3_1_schema, spec) do
+      :ok ->
+        {:ok, spec}
 
-      Enum.each(streams, fn stream ->
-        GRPC.Server.Stream.send_reply(stream, response, [])
-      end)
+      {:error, errors} ->
+        {:error, errors}
+    end
+  end
+
+  defp validate_spec(%{"openapi" => "3.0" <> _} = spec) do
+    case JsonXema.validate(@oas3_0_schema, spec) do
+      :ok ->
+        {:ok, spec}
+
+      {:error, errors} ->
+        {:error, errors}
+    end
+  end
+
+  def reply_resources(streams, all_resources) do
+    Enum.map(streams, fn {{node_info, type_url} = stream_config_key,
+                          %{stream: stream, version: version} = stream_config} ->
+      case Map.get(all_resources, type_url) do
+        nil ->
+          Logger.warning("Can't provide resources for type #{type_url}")
+          {stream_config_key, stream_config}
+
+        resources_for_type ->
+          new_version = version + 1
+
+          {:ok, response} =
+            Protobuf.JSON.from_decoded(
+              %{
+                "version_info" => "#{new_version}",
+                "type_url" => type_url,
+                "control_plane" => %{
+                  "identifier" => "#{node()}"
+                },
+                "resources" =>
+                  Enum.map(resources_for_type, fn r -> %{"@type" => type_url, "value" => r} end),
+                "nonce" => nonce()
+              },
+              Envoy.Service.Discovery.V3.DiscoveryResponse
+            )
+
+          GRPC.Server.Stream.send_reply(stream, response, [])
+          {stream_config_key, %{stream_config | version: new_version}}
+      end
     end)
+    |> Map.new()
   end
 
   def nonce do
@@ -186,24 +299,28 @@ defmodule ApiFence.ConfigCache do
     end
   end
 
-  def subscribe_stream(node_info, stream) do
-    GenServer.call(__MODULE__, {:subscribe_stream, node_info, stream}, :infinity)
+  def subscribe_stream(node_info, stream, type_url, version) do
+    GenServer.call(
+      __MODULE__,
+      {:subscribe_stream, node_info, stream, type_url, version},
+      :infinity
+    )
   end
 
-  def resources(version) do
-    config = ConfigGenerator.from_oas3_specs(version)
+  def resources(changes) do
+    config = ConfigGenerator.from_oas3_specs(changes)
 
     %{
       @listener => config.listeners,
       @cluster => config.clusters
     }
-    |> apply_config_extensions(version)
+    |> apply_config_extensions()
   end
 
-  defp apply_config_extensions(config, version) do
+  defp apply_config_extensions(config) do
     Application.get_env(:api_fence, :config_extensions, [])
     |> Enum.reduce(config, fn {module, function}, acc ->
-      patches = apply(module, function, [%{version: version}])
+      patches = apply(module, function, [])
 
       Enum.reduce(patches, acc, fn {type, patch}, accacc ->
         if Map.has_key?(accacc, type) do
@@ -226,7 +343,7 @@ defmodule ApiFence.ConfigCache do
 
   def iterate_specs(acc, iterator_fn) do
     :ets.foldl(
-      fn {filename, _hash, api_id, spec, _ts}, acc ->
+      fn {filename, _hash, api_id, spec, _ts, _nodelete}, acc ->
         iterator_fn.(filename, api_id, spec, acc)
       end,
       acc,
