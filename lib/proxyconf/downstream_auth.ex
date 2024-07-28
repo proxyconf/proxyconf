@@ -1,4 +1,5 @@
 defmodule ProxyConf.DownstreamAuth do
+  require Logger
   defstruct([:api_id, :auth_type, :auth_field_name, :hashes])
 
   @downstream_auth_extension_key "x-proxyconf-downstream-auth"
@@ -29,6 +30,12 @@ defmodule ProxyConf.DownstreamAuth do
         auth_field_name: query_field_name,
         hashes: hashes
       }
+
+  def to_config(_api_id, _spec) do
+    raise(
+      "API doesn't configure downstream authentication, which isn't allowed. To disable downstream authentication (not recommended) you can specify '#{@downstream_auth_extension_key}' to 'disabled'"
+    )
+  end
 
   def to_filter_metadata(api_id, spec) do
     config = to_config(api_id, spec)

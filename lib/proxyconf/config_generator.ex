@@ -3,13 +3,12 @@ defmodule ProxyConf.ConfigGenerator do
   alias ProxyConf.Types.ClusterLbEndpoint
   alias ProxyConf.Types.Listener
   alias ProxyConf.Types.Route
-  alias ProxyConf.Types.Upstream
   alias ProxyConf.Types.VHost
   alias ProxyConf.ConfigCache
   require Logger
   defstruct(listeners: [], clusters: [], vhosts: [], routes: [], downstream_auth: [])
 
-  def from_oas3_specs(_changes) do
+  def from_oas3_specs(cluster_id, _changes) do
     %__MODULE__{
       listeners: listeners,
       clusters: clusters,
@@ -17,7 +16,7 @@ defmodule ProxyConf.ConfigGenerator do
       routes: routes,
       downstream_auth: downstream_auth
     } =
-      ConfigCache.iterate_specs(%__MODULE__{}, fn filename, api_id, spec, config ->
+      ConfigCache.iterate_specs(cluster_id, %__MODULE__{}, fn filename, api_id, spec, config ->
         try do
           {listener_unifier, _} = listener_tmpl = listener_template_fn(spec, config)
 
@@ -132,7 +131,6 @@ defmodule ProxyConf.ConfigGenerator do
      end}
   end
 
-  @downstream_auth_extension_key "x-proxyconf-downstream-auth"
   defp downstream_auth_template_fn(api_id, listener_unifier, spec, _config) do
     downstream_auth_config = ProxyConf.DownstreamAuth.to_config(api_id, spec)
 
@@ -142,7 +140,7 @@ defmodule ProxyConf.ConfigGenerator do
      end}
   end
 
-  defp route_template_fn(api_id, vhost_unifier, spec, config) do
+  defp route_template_fn(api_id, vhost_unifier, spec, _config) do
     %URI{path: path} = Map.get(spec, @api_url_extension_key, @default_api_url) |> URI.parse()
 
     path_prefix = path || "/"
@@ -153,8 +151,7 @@ defmodule ProxyConf.ConfigGenerator do
      end}
   end
 
-  @schema_cache_cluster "schema_cache_cluster"
-  defp cluster_template_fn(api_id, vhost_unifier, _config) do
+  defp cluster_template_fn(_api_id, vhost_unifier, _config) do
     {vhost_unifier,
      fn clusters ->
        Enum.uniq(clusters)

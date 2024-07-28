@@ -1,16 +1,17 @@
 import Config
 
 config :proxyconf,
-  config_directories: System.get_env("PROXYCONF_CONFIG_DIRS", "./test/oas3") |> String.split(","),
+  config_directories:
+    System.get_env("PROXYCONF_CONFIG_DIRS", "test/oas3") |> String.split(",", trim: true),
   grpc_endpoint_port:
     System.get_env("PROXYCONF_GRPC_ENDPOINT_PORT", "18000") |> String.to_integer(),
   config_extensions:
     System.get_env("PROXYCONF_CONFIG_EXTENSIONS", "Elixir.ProxyConfValidator.Store")
-    |> String.split(",")
+    |> String.split(",", trim: true)
     |> Enum.map(fn module -> {String.to_atom(module), :config_extension} end),
   external_spec_handlers:
     System.get_env("PROXYCONF_EXTERNAL_SPEC_HANDLERS", "Elixir.ProxyConfValidator.Store")
-    |> String.split(",")
+    |> String.split(",", trim: true)
     |> Enum.map(fn module -> {String.to_atom(module), :handle_spec} end),
   ca_certificate: System.get_env("PROXYCONF_CA_CERTIFICATE", "/tmp/proxyconf/ca-cert.pem"),
   ca_private_key: System.get_env("PROXYCONF_CA_PRIVATE_KEY", "/tmp/proxyconf/ca-private-key.pem"),

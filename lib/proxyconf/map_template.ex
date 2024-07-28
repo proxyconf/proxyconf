@@ -138,15 +138,13 @@ defmodule ProxyConf.MapTemplate do
         %__MODULE__{
           template: template,
           markers: markers,
-          template_hash: template_hash,
+          template_hash: _template_hash,
           module: module,
           line: line
         },
         assigns,
         processed_templates
       ) do
-    assigns_hash = :crypto.hash(:sha256, :erlang.term_to_binary(assigns))
-
     Enum.reduce(markers, {template, processed_templates}, fn
       {marker, %__MODULE__{} = subtemplate}, {acc_template, acc_processed_templates} ->
         {replacement, acc_processed_templates} =
