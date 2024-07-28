@@ -7,9 +7,9 @@ defmodule ProxyConf.ConfigGenerator do
   alias ProxyConf.Types.VHost
   alias ProxyConf.ConfigCache
   require Logger
-  defstruct([:version, listeners: [], clusters: [], vhosts: [], routes: [], downstream_auth: []])
+  defstruct(listeners: [], clusters: [], vhosts: [], routes: [], downstream_auth: [])
 
-  def from_oas3_specs(version) do
+  def from_oas3_specs(_changes) do
     %__MODULE__{
       listeners: listeners,
       clusters: clusters,
@@ -17,10 +17,7 @@ defmodule ProxyConf.ConfigGenerator do
       routes: routes,
       downstream_auth: downstream_auth
     } =
-      ConfigCache.iterate_specs(%__MODULE__{version: version}, fn filename,
-                                                                  api_id,
-                                                                  spec,
-                                                                  config ->
+      ConfigCache.iterate_specs(%__MODULE__{}, fn filename, api_id, spec, config ->
         try do
           {listener_unifier, _} = listener_tmpl = listener_template_fn(spec, config)
 
@@ -152,7 +149,7 @@ defmodule ProxyConf.ConfigGenerator do
     # TODO: currently no template type for route available
     {vhost_unifier,
      fn ->
-       Route.from_oas3_spec(api_id, config.version, path_prefix, spec)
+       Route.from_oas3_spec(api_id, path_prefix, spec)
      end}
   end
 

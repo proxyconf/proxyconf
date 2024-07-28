@@ -1,4 +1,5 @@
 defmodule ProxyConf.AggregatedDiscoveryServiceServer do
+  require Logger
   use GRPC.Server, service: Envoy.Service.Discovery.V3.AggregatedDiscoveryService.Service
 
   alias ProxyConf.ConfigCache
@@ -17,18 +18,35 @@ defmodule ProxyConf.AggregatedDiscoveryServiceServer do
            version_info: version,
            error_detail: error,
            resource_names: [],
-           type_url: _type_url
+           type_url: type_url
          } = req,
          stream
        ) do
-    IO.inspect(error)
-    # empty resource names list means all resources are requested
     node_info = node_info(req)
 
-    if version == "" do
-      # first timeer
-      ConfigCache.subscribe_stream(node_info, stream)
+    if not is_nil(error) do
+      Logger.error("ADS discovery request error #{inspect(error)}")
     end
+
+    version =
+      if version == "" do
+        # first timeer
+        0
+      else
+        case Integer.parse(version) do
+          {version, ""} ->
+            version
+
+          _ ->
+            Logger.warning(
+              "Invalid ADS discovery request version #{inspect(version)} provided by node #{node_info.node_id}, reset to 0"
+            )
+
+            0
+        end
+      end
+
+    ConfigCache.subscribe_stream(node_info, stream, type_url, version)
   end
 
   def nonce do

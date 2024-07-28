@@ -21,7 +21,6 @@ defmodule ProxyConf.Types do
 
     def from_oas3_spec(
           api_id,
-          version,
           path_prefix,
           %{"paths" => paths_object, "servers" => servers} = oas3_spec
         ) do
@@ -37,7 +36,6 @@ defmodule ProxyConf.Types do
           |> Enum.map_reduce(clusters_acc, fn {operation, operation_object}, clusters_acc ->
             operation_to_route_match(
               api_id,
-              version,
               path_prefix,
               path,
               operation,
@@ -56,7 +54,6 @@ defmodule ProxyConf.Types do
           |> Enum.map_reduce(clusters_acc, fn {operation, operation_object}, clusters_acc ->
             operation_to_route_match(
               api_id,
-              version,
               path_prefix,
               path,
               operation,
@@ -83,7 +80,6 @@ defmodule ProxyConf.Types do
     @path_template_regex ~r/\{(.*?)\}/
     defp operation_to_route_match(
            api_id,
-           version,
            path_prefix,
            path,
            operation,
