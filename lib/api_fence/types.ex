@@ -1,7 +1,6 @@
 defmodule ApiFence.Types do
   defmodule VHost do
     use ApiFence.MapTemplate
-    alias ApiFence.Types.Route
 
     deftemplate(%{
       "name" => :name,
@@ -265,7 +264,7 @@ defmodule ApiFence.Types do
                      [path_template, @path_wildcard], {i, path_acc} ->
                        {i, String.replace(path_acc, path_template, "{#{@path_wildcard}=**}")}
 
-                     [path_template, path_variable], {i, path_acc} ->
+                     [path_template, _path_variable], {i, path_acc} ->
                        {i + 1, String.replace(path_acc, path_template, "{var#{i}}")}
                    end)
                    |> elem(1)
@@ -291,7 +290,7 @@ defmodule ApiFence.Types do
                        [path_template, @path_wildcard], {i, path_acc} ->
                          {i, String.replace(path_acc, path_template, "{#{@path_wildcard}}")}
 
-                       [path_template, path_variable], {i, path_acc} ->
+                       [path_template, _path_variable], {i, path_acc} ->
                          {i + 1, String.replace(path_acc, path_template, "{var#{i}}")}
                      end)
                      |> elem(1)
