@@ -233,6 +233,12 @@ defmodule ProxyConf.Types do
              "query_parameters" => required_query_matches,
              "path" => Path.join(path_prefix, path)
            },
+           "metadata" => %{
+             "filter_metadata" => %{
+               "envoy.filters.http.lua" =>
+                 ProxyConf.DownstreamAuth.to_filter_metadata(api_id, spec)
+             }
+           },
            "route" =>
              %{
                "prefix_rewrite" => path
@@ -269,6 +275,12 @@ defmodule ProxyConf.Types do
                    |> elem(1)
                    |> IO.inspect(label: "===> ")
                }
+             }
+           },
+           "metadata" => %{
+             "filter_metadata" => %{
+               "envoy.filters.http.lua" =>
+                 ProxyConf.DownstreamAuth.to_filter_metadata(api_id, spec)
              }
            },
            "route" =>
@@ -332,13 +344,21 @@ defmodule ProxyConf.Types do
                 },
                 "http_filters" => [
                   %{
+                    "name" => "envoy.filters.http.lua",
+                    "typed_config" => %{
+                      "@type" => "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
+                      "default_source_code" => %{
+                        "inline_string" => :lua_downstream_auth
+                      }
+                    }
+                  },
+                  %{
                     "name" => "envoy.filters.http.router",
                     "typed_config" => %{
                       "@type" =>
                         "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
                     }
-                  },
-                  :auth_filters
+                  }
                 ]
               }
             }
