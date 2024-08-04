@@ -2,7 +2,7 @@ import Config
 
 config :proxyconf,
   config_directories:
-    System.get_env("PROXYCONF_CONFIG_DIRS", "test/oas3") |> String.split(",", trim: true),
+    System.get_env("PROXYCONF_CONFIG_DIRS", "") |> String.split(",", trim: true),
   grpc_endpoint_port:
     System.get_env("PROXYCONF_GRPC_ENDPOINT_PORT", "18000") |> String.to_integer(),
   config_extensions:

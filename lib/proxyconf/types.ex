@@ -268,7 +268,6 @@ defmodule ProxyConf.Types do
                        {i + 1, String.replace(path_acc, path_template, "{var#{i}}")}
                    end)
                    |> elem(1)
-                   |> IO.inspect(label: "===> ")
                }
              }
            },
@@ -333,28 +332,23 @@ defmodule ProxyConf.Types do
                   "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
                 "stat_prefix" => "proxyconf",
                 "codec_type" => "AUTO",
+                "strip_matching_host_port" => true,
                 "route_config" => %{
                   "name" => "local_route",
                   "virtual_hosts" => :virtual_hosts
                 },
-                "http_filters" => [
-                  %{
-                    "name" => "envoy.filters.http.lua",
-                    "typed_config" => %{
-                      "@type" => "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
-                      "default_source_code" => %{
-                        "inline_string" => :lua_downstream_auth
+                "http_filters" =>
+                  [
+                    :downstream_auth,
+                    %{
+                      "name" => "envoy.filters.http.router",
+                      "typed_config" => %{
+                        "@type" =>
+                          "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
                       }
                     }
-                  },
-                  %{
-                    "name" => "envoy.filters.http.router",
-                    "typed_config" => %{
-                      "@type" =>
-                        "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
-                    }
-                  }
-                ]
+                  ]
+                  |> List.flatten()
               }
             }
           ]
@@ -397,7 +391,6 @@ defmodule ProxyConf.Types do
     })
 
     def cluster_uri_from_oas3_server(api_id, server) do
-      IO.inspect(server, label: "server for #{api_id}")
       url = Map.fetch!(server, "url")
 
       url =

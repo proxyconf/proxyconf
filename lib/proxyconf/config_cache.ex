@@ -31,7 +31,7 @@ defmodule ProxyConf.ConfigCache do
     {:ok,
      %{
        streams: %{},
-       version: 1,
+       version: 0,
        resources: %{},
        tref: nil,
        config_directories: config_directories
@@ -77,26 +77,40 @@ defmodule ProxyConf.ConfigCache do
         end
       end)
 
+    new_version =
+      if map_size(changes) > 0 do
+        state.version + 1
+      else
+        state.version
+      end
+
     state =
       Enum.reduce(changes, state, fn {cluster_id, changed_files}, state_acc ->
-        resources = resources(cluster_id, changed_files)
+        resources = resources(cluster_id, new_version, changed_files)
         streams = reply_resources(state.streams, cluster_id, resources)
         %{state_acc | streams: streams, resources: resources}
       end)
 
-    {:noreply, %{state | tref: nil}}
+    {:noreply, %{state | tref: nil, version: new_version}}
   end
 
   def handle_call({:load_external_spec, spec_name, spec}, _from, state)
       when is_map(spec) do
+    Logger.notice(
+      file_name: spec_name,
+      api_id: Map.get(spec, "x-proxyconf-id", "UNKNOWN"),
+      message: "loading external spec"
+    )
+
     case validate_spec(spec) do
       {:ok, spec} ->
         hash = spec_hash(Jason.encode!(spec))
         {cluster_id, _api_id} = insert_validated_spec(spec_name, spec, hash)
+        new_version = state.version + 1
 
-        resources = resources(cluster_id, %{spec_name => :external})
+        resources = resources(cluster_id, new_version, %{spec_name => :external})
         streams = reply_resources(state.streams, cluster_id, resources)
-        {:reply, :ok, %{state | streams: streams, resources: resources}}
+        {:reply, :ok, %{state | streams: streams, resources: resources, version: new_version}}
 
       error ->
         Logger.error("Can't load external spec #{spec_name} due to #{inspect(error)}")
@@ -173,9 +187,9 @@ defmodule ProxyConf.ConfigCache do
         Application.get_env(:proxyconf, :default_cluster_id, "proxyconf-cluster")
       )
 
-    api_id = Map.get(spec, "x-proxyconf-api-id", Path.rootname(filename) |> Path.basename())
+    api_id = Map.get(spec, "x-proxyconf-id", Path.rootname(filename) |> Path.basename())
 
-    spec = Map.put(spec, "x-proxyconf-api-id", api_id)
+    spec = Map.put(spec, "x-proxyconf-id", api_id)
 
     :ets.insert(
       @spec_table,
@@ -266,6 +280,19 @@ defmodule ProxyConf.ConfigCache do
       end
   end
 
+  def parse_spec_file(spec) do
+    with true <- File.exists?(spec),
+         ext <- Path.extname(spec),
+         {:ok, data} <- File.read(spec),
+         {:ok, parsed} <- parse_spec(ext, data),
+         {:ok, validated} <- validate_spec(parsed) do
+      {:ok, validated}
+    else
+      false -> {:error, :file_not_found}
+      e -> e
+    end
+  end
+
   defp parse_spec(".json", data), do: Jason.decode(data)
 
   defp parse_spec(yaml, data) when yaml in [".yaml", ".yml"],
@@ -323,6 +350,12 @@ defmodule ProxyConf.ConfigCache do
             )
 
           GRPC.Server.Stream.send_reply(stream, response, [])
+
+          Logger.debug(
+            cluster: node_info.cluster,
+            message: "#{type_url} Push new version #{new_version} to #{node_info.node_id}"
+          )
+
           {stream_config_key, %{stream_config | version: new_version}}
 
         _ ->
@@ -350,14 +383,24 @@ defmodule ProxyConf.ConfigCache do
     )
   end
 
-  def resources(cluster_id, changes) do
-    config = ConfigGenerator.from_oas3_specs(cluster_id, changes)
+  def resources(cluster_id, version, changes) do
+    config =
+      ConfigGenerator.from_oas3_specs(cluster_id, changes)
+      |> IO.inspect(label: "config for changes #{inspect(changes)}")
 
     %{
       @listener => config.listeners,
       @cluster => config.clusters
     }
     |> apply_config_extensions()
+    |> tap(fn config ->
+      File.mkdir_p!("/tmp/proxyconf")
+
+      File.write!(
+        "/tmp/proxyconf/#{cluster_id}-#{version}.config.json",
+        Jason.encode!(config, pretty: true)
+      )
+    end)
   end
 
   defp apply_config_extensions(config) do
@@ -378,9 +421,6 @@ defmodule ProxyConf.ConfigCache do
           acc
         end
       end)
-    end)
-    |> tap(fn config ->
-      File.write!("/tmp/proxyconf.config.json", Jason.encode!(config))
     end)
   end
 

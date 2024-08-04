@@ -28,7 +28,7 @@ defmodule ProxyConf.MapPatch do
 
   def patch(map, %{op: "update_in", path: path, value_fn: value_fn}) do
     path = to_path(path)
-    get_in(map, path) |> IO.inspect(label: "object to update")
+    get_in(map, path)
     update_in(map, path, value_fn)
   end
 

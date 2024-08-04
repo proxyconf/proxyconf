@@ -3,7 +3,7 @@ defmodule ProxyConf.DownstreamAuth do
   defstruct([:api_id, :auth_type, :auth_field_name, :hashes])
 
   @downstream_auth_extension_key "x-proxyconf-downstream-auth"
-  def to_config(api_id, %{@downstream_auth_extension_key => "disabled"}), do: []
+  def to_config(_api_id, %{@downstream_auth_extension_key => "disabled"}), do: :disabled
 
   def to_config(api_id, %{
         @downstream_auth_extension_key => %{
@@ -38,16 +38,20 @@ defmodule ProxyConf.DownstreamAuth do
   end
 
   def to_filter_metadata(api_id, spec) do
-    config = to_config(api_id, spec)
+    case to_config(api_id, spec) do
+      %__MODULE__{} = config ->
+        %{
+          "api_id" => api_id,
+          "auth_type" => config.auth_type,
+          "auth_field_name" => config.auth_field_name
+        }
 
-    %{
-      "api_id" => api_id,
-      "auth_type" => config.auth_type,
-      "auth_field_name" => config.auth_field_name
-    }
+      _ ->
+        %{}
+    end
   end
 
-  @external_resource "lua/vendor/md4/md5.lua"
+  @external_resource "lua/vendor/md5/md5.lua"
   @lua_includes Enum.reduce(["lua/vendor/md5/md5.lua"], [], fn f, code ->
                   module_name = Path.basename(f) |> String.replace_suffix(".lua", "")
                   module_code = File.read!(f)
@@ -60,13 +64,32 @@ defmodule ProxyConf.DownstreamAuth do
                 end)
                 |> :erlang.iolist_to_binary()
 
-  @external_resource "lib/proxyconf/downstream_auth.lua"
+  @external_resource "downstream_auth.lua"
   @lua_prelude [
     "package.path=\"\"\n\n",
     @lua_includes,
     File.read!("lib/proxyconf/downstream_auth.lua")
   ]
-  def to_lua(configs) do
+
+  def to_envoy_http_filter(configs) do
+    configs = Enum.reject(configs, fn c -> c == :disabled end)
+
+    if Enum.empty?(configs) do
+      []
+    else
+      %{
+        "name" => "envoy.filters.http.lua",
+        "typed_config" => %{
+          "@type" => "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
+          "default_source_code" => %{
+            "inline_string" => to_lua(configs)
+          }
+        }
+      }
+    end
+  end
+
+  defp to_lua(configs) do
     [
       @lua_prelude
       | Enum.map_join(

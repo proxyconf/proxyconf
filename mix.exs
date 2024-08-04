@@ -8,7 +8,11 @@ defmodule ProxyConf.MixProject do
       elixir: "~> 1.16",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      aliases: aliases()
+      aliases: aliases(),
+      elixirc_paths: elixirc_paths(Mix.env()),
+      test_coverage: [
+        ignore_modules: [Jason.Encoder.URI, Inspect.ProxyConf.MapTemplate, ~r/\.TestSupport\./]
+      ]
     ]
   end
 
@@ -35,7 +39,8 @@ defmodule ProxyConf.MixProject do
       {:file_system, "~> 1.0"},
       {:proxyconf_validator, path: "../proxyconf_validator"},
       {:x509, "~> 0.8.9"},
-      {:finch, "~> 0.18.0", only: :test}
+      {:finch, "~> 0.18.0", only: :test},
+      {:bypass, "~> 2.1", only: :test}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]
@@ -44,4 +49,7 @@ defmodule ProxyConf.MixProject do
   defp aliases do
     [test: "test --no-start"]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 end

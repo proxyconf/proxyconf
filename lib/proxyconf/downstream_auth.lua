@@ -39,8 +39,8 @@ function envoy_on_request(request_handle)
   local auth_field_name = metadata:get("auth_field_name")
 
   if api_id == nil or auth_type == nil or auth_field_name == nil then
+    request_handle:logInfo(string.format("Downstream authentication disabled for API %s", "disables-api"))
     request_handle:streamInfo():dynamicMetadata():set("proxyconf.downstream_auth", "status", "noauth")
-    print("No Downstream Auth Config found")
     return
   end
 
@@ -58,18 +58,42 @@ function envoy_on_request(request_handle)
     if client ~= nil then
       request_handle:streamInfo():dynamicMetadata():set("proxyconf.downstream_auth", "client_id", client.id)
       request_handle:streamInfo():dynamicMetadata():set("proxyconf.downstream_auth", "status", "success")
+      request_handle:logInfo(
+        string.format(
+          "Downstream authentication (%s:%s) success for API %s and client %s",
+          auth_type,
+          auth_field_name,
+          api_id,
+          client.id
+        )
+      )
       -- auth success
       return
     else
       -- auth failed
       request_handle:streamInfo():dynamicMetadata():set("proxyconf.downstream_auth", "status", "failed")
       request_handle:respond({ [":status"] = "403" }, "Forbidden")
+      request_handle:logInfo(
+        string.format(
+          "Downstream authentication (%s:%s) failed for API %s and client %s",
+          auth_type,
+          auth_field_name,
+          api_id
+        )
+      )
       return
     end
   end
   -- fall through
   request_handle:streamInfo():dynamicMetadata():set("proxyconf.downstream_auth", "status", "failed")
-  request_handle:respond({ [":status"] = "401" }, "Unauthorized")
+  request_handle:logInfo(
+    string.format(
+      "Downstream authentication (%s:%s) failed for API %s, due to no config found",
+      auth_type,
+      auth_field_name,
+      api_id
+    )
+  )
 end
 
 function envoy_on_response(response_handle) end

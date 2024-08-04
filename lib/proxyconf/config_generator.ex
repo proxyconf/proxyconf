@@ -38,10 +38,11 @@ defmodule ProxyConf.ConfigGenerator do
         rescue
           e ->
             Logger.error(
-              "Skipping OpenAPI spec #{filename} with API ID #{api_id} due to: #{Exception.message(e)}"
+              cluster: cluster_id,
+              api_id: api_id,
+              filename: filename,
+              message: "Skipping OpenAPI spec due to: #{Exception.message(e)}"
             )
-
-            Logger.debug(Exception.format_stacktrace(__STACKTRACE__))
 
             config
         end
@@ -92,7 +93,7 @@ defmodule ProxyConf.ConfigGenerator do
     %{clusters: clusters, listeners: listeners}
   end
 
-  @listener_extension_key "x-proxyconf-listeners"
+  @listener_extension_key "x-proxyconf-listener"
   @default_listener %{"address" => "127.0.0.1", "port" => 8080}
   defp listener_template_fn(spec, _config) do
     %{"address" => address, "port" => port} =
@@ -107,9 +108,7 @@ defmodule ProxyConf.ConfigGenerator do
          address: address,
          port: port,
          virtual_hosts: vhosts,
-         lua_downstream_auth:
-           ProxyConf.DownstreamAuth.to_lua(downstream_auth)
-           |> tap(fn v -> File.write("/tmp/proxyconf-downstream-auth.lua", v) end)
+         downstream_auth: ProxyConf.DownstreamAuth.to_envoy_http_filter(downstream_auth)
        }
        |> Listener.eval()
      end}
