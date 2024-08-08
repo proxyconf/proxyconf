@@ -189,7 +189,12 @@ defmodule ProxyConf.Types do
 
             defined_weights = Enum.map(cluster_with_weights, fn {_, weight} -> weight end)
 
-            min_weight = Enum.min(defined_weights)
+            min_weight =
+              if length(defined_weights) > 0 do
+                Enum.min(defined_weights)
+              else
+                0
+              end
 
             cluster_configs =
               Enum.reduce(cluster_without_weights, cluster_with_weights, fn {cluster_name, _},

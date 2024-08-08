@@ -6,13 +6,15 @@ defmodule ProxyConf.RoutingTest do
   oas3spec("test/oas3/basic-routing-with-query-auth.yaml", ctx)
 
   oas3spec("test/oas3/basic-routing-no-auth.yaml", ctx)
+  oas3spec("test/oas3/basic-routing-multiple-servers.yaml", ctx)
+  oas3spec("test/oas3/basic-routing-request-body.yaml", ctx)
 
   oas3spec(
     "test/oas3/error-missing-downstream-config.yaml",
     ctx
   ) do
     fn
-      %Finch.Response{status: 404, body: "no matching route found"}, prop ->
+      %Finch.Response{status: 404}, prop ->
         assert prop.status in ["404", "500"]
 
       %Mint.TransportError{} = _resp, prop ->

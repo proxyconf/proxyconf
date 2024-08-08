@@ -1,8 +1,6 @@
 defmodule ProxyConf.TestSupport.Envoy do
   @moduledoc false
 
-  import ProxyConf.TestSupport.Common
-
   def start_envoy(config) do
     File.mkdir_p!("/tmp/proxyconf-testing")
     config_file = "/tmp/proxyconf-testing/#{config.cluster_id}.json"
@@ -99,8 +97,8 @@ defmodule ProxyConf.TestSupport.Envoy do
           "-c",
           "#{config_file}",
           "-l",
-          "error",
-          "--log-path /tmp/envoy-test-#{config.cluster_id}.log",
+          "#{config.log_level}",
+          "--log-path #{config.log_path}",
           "--base-id",
           "#{config.admin_port}"
         ]

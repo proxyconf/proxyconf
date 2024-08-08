@@ -40,7 +40,8 @@ defmodule ProxyConf.MixProject do
       {:proxyconf_validator, path: "../proxyconf_validator"},
       {:x509, "~> 0.8.9"},
       {:finch, "~> 0.18.0", only: :test},
-      {:bypass, "~> 2.1", only: :test}
+      {:bypass, "~> 2.1", only: :test},
+      {:joken, "~> 2.6", only: :test}
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]

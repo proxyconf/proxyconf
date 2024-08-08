@@ -383,10 +383,8 @@ defmodule ProxyConf.ConfigCache do
     )
   end
 
-  def resources(cluster_id, version, changes) do
-    config =
-      ConfigGenerator.from_oas3_specs(cluster_id, changes)
-      |> IO.inspect(label: "config for changes #{inspect(changes)}")
+  def resources(cluster_id, version, changed_files) do
+    config = ConfigGenerator.from_oas3_specs(cluster_id, changed_files)
 
     %{
       @listener => config.listeners,

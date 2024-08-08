@@ -76,7 +76,8 @@ defmodule ProxyConf.TestSupport.Oas3Case do
             cluster_id: "proxyconf-exunit",
             admin_port: 9901,
             listener_port: 10888,
-            specs: @spec_files
+            log_level: :error,
+            log_path: "/tmp/envoy-test-proxyconf-exunit.log"
           })
 
         on_exit(fn ->
@@ -134,19 +135,34 @@ defmodule ProxyConf.TestSupport.Oas3Case do
         Process.sleep(1000)
         wait_until_listener_setup(ctx, spec, n - 1)
     end
+  rescue
+    Mint.TransportError ->
+      Process.sleep(1000)
+      wait_until_listener_setup(ctx, spec, n - 1)
   end
 
   def test_property_stream(ctx, spec_file, n, assert_fn) do
-    {:ok, %{"servers" => [%{"url" => url} | _]} = spec} =
-      ProxyConf.ConfigCache.parse_spec_file(spec_file)
+    {:ok, %{"servers" => servers} = spec} = ProxyConf.ConfigCache.parse_spec_file(spec_file)
 
     finch_name = String.to_atom("ProxyConfFinch#{:erlang.phash2(spec_file)}")
     {:ok, _pid} = Finch.start_link(name: finch_name, protocol: :http1, size: 1, count: 1)
 
-    %URI{port: port} = URI.parse(url)
+    bypasses =
+      Enum.map(servers, fn %{"url" => url} ->
+        %URI{port: port} = URI.parse(url)
+        Bypass.open(port: port)
+      end)
 
-    bypass = Bypass.open(port: port)
-    ctx = Map.put(ctx, :finch, finch_name) |> Map.put(:bypass, bypass)
+    ctx =
+      case TestSupport.Oidc.maybe_setup_jwt_auth(spec) do
+        {:ok, jwt, _} ->
+          Map.put(ctx, :jwt_auth, jwt)
+
+        {:error, :no_jwt_auth_defined} ->
+          ctx
+      end
+
+    ctx = Map.put(ctx, :finch, finch_name) |> Map.put(:bypasses, bypasses)
     ProxyConf.ConfigCache.load_external_spec(spec_file, spec)
     wait_until_listener_setup(ctx, spec)
 
@@ -226,7 +242,7 @@ defmodule ProxyConf.TestSupport.Oas3Case do
           path_parameters: Map.get(parameters, "path", %{}) |> shuffler(),
           query_parameters: Map.get(parameters, "query", %{}) |> shuffler(),
           request_headers: Map.get(parameters, "header", %{}) |> shuffler(),
-          request_body: request_body_samples_for_media_type,
+          request_body: request_body_samples_for_media_type |> shuffler(),
           status: status_code,
           response_body: response_body_samples_for_media_type |> shuffler(),
           response_headers: response_headers |> shuffler()
@@ -266,7 +282,7 @@ defmodule ProxyConf.TestSupport.Oas3Case do
   end
 
   defp test_property(prop, ctx, n, assert_fn) do
-    bypass = ctx.bypass
+    bypasses = ctx.bypasses
     finch = ctx.finch
     status = String.to_integer(prop.status)
 
@@ -286,18 +302,25 @@ defmodule ProxyConf.TestSupport.Oas3Case do
     prop = %{prop | path: path}
     uri = URI.new!(prop.api_url <> path <> querystring)
 
-    Bypass.stub(bypass, "#{prop.method}" |> String.upcase(), path, fn conn ->
-      response_headers = prop.response_headers || []
+    Enum.each(bypasses, fn bypass ->
+      Bypass.stub(bypass, "#{prop.method}" |> String.upcase(), path, fn conn ->
+        response_headers = prop.response_headers || []
 
-      Enum.reduce(response_headers, conn, fn {k, v}, acc ->
-        Plug.Conn.put_resp_header(acc, k, v)
+        Enum.reduce(response_headers, conn, fn {k, v}, acc ->
+          Plug.Conn.put_resp_header(acc, k, v)
+        end)
+        |> Plug.Conn.put_resp_header("Content-Type", prop.response_media_type)
+        |> Plug.Conn.resp(status, prop.response_body)
       end)
-      |> Plug.Conn.put_resp_header("Content-Type", prop.response_media_type)
-      |> Plug.Conn.resp(status, prop.response_body)
     end)
 
-    resp =
-      http_req(prop.method, uri, prop.request_body, prop.request_headers |> Enum.into([]), finch)
+    request_headers =
+      case Map.get(ctx, :jwt_auth) do
+        nil -> prop.request_headers
+        jwt -> Map.put(prop.request_headers, "Authorization", "Bearer " <> jwt)
+      end
+
+    resp = http_req(prop.method, uri, prop.request_body, request_headers |> Enum.into([]), finch)
 
     assert(assert_fn.(resp, prop))
     IO.write(".")
@@ -321,14 +344,19 @@ defmodule ProxyConf.TestSupport.Oas3Case do
         %Finch.Response{status: resp_status, body: response_body, headers: response_headers},
         prop
       ) do
-    assert("#{resp_status}" == prop.status)
+    # Generating a good looking AssertionError
+    assert(
+      %{response: response_body, status: "#{resp_status}"} == %{
+        response: prop.response_body,
+        status: prop.status
+      }
+    )
 
     assert(
       Enum.find_value(response_headers, fn {h, v} -> if h == "content-type", do: v end) ==
         prop.response_media_type
     )
 
-    assert(response_body == prop.response_body)
     true
   end
 

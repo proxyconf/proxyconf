@@ -37,7 +37,7 @@ defmodule ProxyConf.ConfigGenerator do
           }
         rescue
           e ->
-            Logger.error(
+            Logger.warning(
               cluster: cluster_id,
               api_id: api_id,
               filename: filename,
@@ -108,7 +108,9 @@ defmodule ProxyConf.ConfigGenerator do
          address: address,
          port: port,
          virtual_hosts: vhosts,
-         downstream_auth: ProxyConf.DownstreamAuth.to_envoy_http_filter(downstream_auth)
+         downstream_auth:
+           ProxyConf.DownstreamAuth.to_envoy_http_filter(downstream_auth)
+           |> IO.inspect(label: "downstream auth")
        }
        |> Listener.eval()
      end}

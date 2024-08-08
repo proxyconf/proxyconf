@@ -1,6 +1,6 @@
 defmodule ProxyConf.DownstreamAuth do
   require Logger
-  defstruct([:api_id, :auth_type, :auth_field_name, :hashes])
+  defstruct([:api_id, :auth_type, :auth_field_name, :hashes, :jwt_provider_config])
 
   @downstream_auth_extension_key "x-proxyconf-downstream-auth"
   def to_config(_api_id, %{@downstream_auth_extension_key => "disabled"}), do: :disabled
@@ -30,6 +30,16 @@ defmodule ProxyConf.DownstreamAuth do
         auth_field_name: query_field_name,
         hashes: hashes
       }
+
+  @jwt_provider_ext "extensions.filters.http.jwt_authn.v3.JwtProvider"
+
+  def to_config(api_id, %{
+        @downstream_auth_extension_key => %{
+          "auth_type" => "jwt",
+          "config" => jwt_provider_config
+        }
+      }),
+      do: %__MODULE__{api_id: api_id, auth_type: "jwt", jwt_provider_config: jwt_provider_config}
 
   def to_config(_api_id, _spec) do
     raise(
@@ -74,19 +84,59 @@ defmodule ProxyConf.DownstreamAuth do
   def to_envoy_http_filter(configs) do
     configs = Enum.reject(configs, fn c -> c == :disabled end)
 
-    if Enum.empty?(configs) do
-      []
-    else
-      %{
-        "name" => "envoy.filters.http.lua",
-        "typed_config" => %{
-          "@type" => "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
-          "default_source_code" => %{
-            "inline_string" => to_lua(configs)
+    {jwt_configs, other_configs} =
+      Enum.split_with(configs, fn config -> config.auth_type == "jwt" end)
+
+    {providers, rules} = to_envoy_jwt_config(jwt_configs)
+
+    if Enum.empty?(other_configs) do
+      [
+        %{
+          "name" => "envoy.filters.http.jwt_authn",
+          "typed_config" => %{
+            "@type" =>
+              "type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication",
+            "providers" => providers,
+            "rules" => rules
           }
         }
-      }
+      ]
+    else
+      [
+        %{
+          "name" => "envoy.filters.http.jwt_authn",
+          "typed_config" => %{
+            "@type" =>
+              "type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication",
+            "providers" => providers,
+            "rules" => rules
+          }
+        },
+        %{
+          "name" => "envoy.filters.http.lua",
+          "typed_config" => %{
+            "@type" => "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
+            "default_source_code" => %{
+              "inline_string" => to_lua(configs)
+            }
+          }
+        }
+      ]
     end
+  end
+
+  defp to_envoy_jwt_configs(configs) do
+    Enum.group_by(configs, fn config -> config.jwt_provider_config end, fn config ->
+      %{
+        api_id: config.api_id
+      }
+    end)
+    |> Enum.reduce({%{}, []}, fn {provider_config, api_id_and_rules},
+                                 {providers_acc, rules_acc} ->
+      provider_name =
+        "jwt-provider-#{:crypto.hash(:md5, :erlang.term_to_binary(provider_config)) |> Base.encode(16) |> String.slice(0, 10)}"
+  {Map.put(providers_acc, provider_name, provider_config), 
+    end)
   end
 
   defp to_lua(configs) do
