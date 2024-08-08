@@ -2,6 +2,7 @@ defmodule ProxyConf.ConfigCache do
   use GenServer
   alias ProxyConf.ConfigGenerator
   alias ProxyConf.MapPatch
+  alias ProxyConf.Types.Spec
   require Logger
 
   @cluster "type.googleapis.com/envoy.config.cluster.v3.Cluster"
@@ -102,14 +103,13 @@ defmodule ProxyConf.ConfigCache do
       message: "loading external spec"
     )
 
-    case validate_spec(spec) do
-      {:ok, spec} ->
-        hash = spec_hash(Jason.encode!(spec))
-        {cluster_id, _api_id} = insert_validated_spec(spec_name, spec, hash)
+    case validate_spec(spec_name, spec, :erlang.term_to_binary(spec)) do
+      {:ok, %Spec{} = spec} ->
+        insert_validated_spec(spec)
         new_version = state.version + 1
 
-        resources = resources(cluster_id, new_version, %{spec_name => :external})
-        streams = reply_resources(state.streams, cluster_id, resources)
+        resources = resources(spec.cluster_id, new_version, %{spec_name => :external})
+        streams = reply_resources(state.streams, spec.cluster_id, resources)
         {:reply, :ok, %{state | streams: streams, resources: resources, version: new_version}}
 
       error ->
@@ -179,33 +179,16 @@ defmodule ProxyConf.ConfigCache do
     {:reply, :ok, %{state | streams: streams}}
   end
 
-  defp insert_validated_spec(filename, spec, hash, no_delete \\ false) do
-    cluster_id =
-      Map.get(
-        spec,
-        "x-proxyconf-cluster-id",
-        Application.get_env(:proxyconf, :default_cluster_id, "proxyconf-cluster")
-      )
-
-    api_id = Map.get(spec, "x-proxyconf-id", Path.rootname(filename) |> Path.basename())
-
-    spec = Map.put(spec, "x-proxyconf-id", api_id)
-
+  defp insert_validated_spec(%Spec{} = spec, no_delete \\ false) do
     :ets.insert(
       @spec_table,
-      {filename, cluster_id, hash, api_id, spec, DateTime.utc_now(), no_delete}
+      {spec.filename, spec.hash, spec, DateTime.utc_now(), no_delete}
     )
 
     Application.get_env(:proxyconf, :external_spec_handlers, [])
     |> Enum.each(fn {module, function} ->
-      apply(module, function, [filename, api_id, spec])
+      apply(module, function, [spec])
     end)
-
-    {cluster_id, api_id}
-  end
-
-  defp spec_hash(data) when is_binary(data) do
-    :crypto.hash(:sha256, data) |> Base.encode64()
   end
 
   defp maybe_update_spec_table(filename) do
@@ -213,38 +196,37 @@ defmodule ProxyConf.ConfigCache do
 
     with {:extname, true} <- {:extname, extname in @valid_oas3_file_extensions},
          {:ok, data} <- File.read(filename),
-         hash <- spec_hash(data),
-         {:hash, _new_hash, ^hash, _data} <-
-           {:hash, hash, compat_lookup_element(@spec_table, filename, 3, nil), data} do
+         hash <- Spec.gen_hash(data),
+         {:hash, ^hash, _data} <-
+           {:hash, compat_lookup_element(@spec_table, filename, 2, nil), data} do
       :unchanged
     else
-      {:hash, new_hash, old_hash, data} when is_binary(old_hash) or is_nil(old_hash) ->
-        result =
-          parse_spec(extname, data)
-          |> validate_spec()
+      {:hash, old_hash, data} when is_binary(old_hash) or is_nil(old_hash) ->
+        parse_result = parse_spec(extname, data)
+        result = validate_spec(filename, parse_result, data)
 
         case result do
-          {:ok, spec} when old_hash == nil ->
-            {cluster_id, api_id} = insert_validated_spec(filename, spec, new_hash)
+          {:ok, %Spec{} = spec} when old_hash == nil ->
+            insert_validated_spec(spec)
 
             Logger.info(
-              cluster: cluster_id,
-              api: api_id,
-              message: "Loaded new spec from #{filename}"
+              cluster: spec.cluster_id,
+              api: spec.api_id,
+              message: "Loaded new spec from #{spec.filename}"
             )
 
-            {:changed, cluster_id}
+            {:changed, spec.cluster_id}
 
-          {:ok, spec} ->
-            {cluster_id, api_id} = insert_validated_spec(filename, spec, new_hash)
+          {:ok, %Spec{} = spec} ->
+            insert_validated_spec(spec)
 
             Logger.info(
-              cluster: cluster_id,
-              api: api_id,
-              message: "Loaded updated spec from #{filename}"
+              cluster: spec.cluster_id,
+              api: spec.api_id,
+              message: "Loaded updated spec from #{spec.filename}"
             )
 
-            {:changed, cluster_id}
+            {:changed, spec.cluster_id}
 
           {:error, reason} ->
             Logger.warning(
@@ -285,10 +267,11 @@ defmodule ProxyConf.ConfigCache do
          ext <- Path.extname(spec),
          {:ok, data} <- File.read(spec),
          {:ok, parsed} <- parse_spec(ext, data),
-         {:ok, validated} <- validate_spec(parsed) do
-      {:ok, validated}
+         {:ok, internal_spec} <- validate_spec(spec, parsed, data) do
+      {:ok, internal_spec}
     else
       false -> {:error, :file_not_found}
+      {error, false} -> {:error, error}
       e -> e
     end
   end
@@ -298,23 +281,23 @@ defmodule ProxyConf.ConfigCache do
   defp parse_spec(yaml, data) when yaml in [".yaml", ".yml"],
     do: YamlElixir.read_from_string(data)
 
-  defp validate_spec({:ok, spec}), do: validate_spec(spec)
-  defp validate_spec({:error, reason}), do: {:error, reason}
+  defp validate_spec(filename, {:ok, spec}, data), do: validate_spec(filename, spec, data)
+  defp validate_spec(_filename, {:error, reason}, _data), do: {:error, reason}
 
-  defp validate_spec(%{"openapi" => "3.1" <> _} = spec) do
+  defp validate_spec(filename, %{"openapi" => "3.1" <> _} = spec, data) do
     case JsonXema.validate(@oas3_1_schema, spec) do
       :ok ->
-        {:ok, spec}
+        Spec.from_oas3(filename, spec, data)
 
       {:error, errors} ->
         {:error, errors}
     end
   end
 
-  defp validate_spec(%{"openapi" => "3.0" <> _} = spec) do
+  defp validate_spec(filename, %{"openapi" => "3.0" <> _} = spec, data) do
     case JsonXema.validate(@oas3_0_schema, spec) do
       :ok ->
-        {:ok, spec}
+        Spec.from_oas3(filename, spec, data)
 
       {:error, errors} ->
         {:error, errors}
@@ -424,9 +407,9 @@ defmodule ProxyConf.ConfigCache do
 
   def iterate_specs(cluster_id, acc, iterator_fn) do
     :ets.foldl(
-      fn {filename, clstr_id, _hash, api_id, spec, _ts, _nodelete}, acc ->
-        if cluster_id == clstr_id do
-          iterator_fn.(filename, api_id, spec, acc)
+      fn {_filename, _hash, spec, _ts, _nodelete}, acc ->
+        if cluster_id == spec.cluster_id do
+          iterator_fn.(spec, acc)
         else
           acc
         end

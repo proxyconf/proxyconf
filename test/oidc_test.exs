@@ -1,4 +1,4 @@
-defmodule ProxyConf.RoutingTest do
+defmodule ProxyConf.OidcTest do
   use ExUnit.Case, async: false
   use ProxyConf.TestSupport.Oas3Case
 

@@ -1,4 +1,74 @@
 defmodule ProxyConf.Types do
+  defmodule Spec do
+    defstruct([
+      :filename,
+      :hash,
+      :cluster_id,
+      :api_url,
+      :api_id,
+      :listener_address,
+      :listener_port,
+      :downstream_auth,
+      :spec,
+      type: :oas3
+    ])
+
+    def from_oas3(filename, spec, data) do
+      with api_id <- Map.get(spec, "x-proxyconf-id", Path.rootname(filename) |> Path.basename()),
+           {_, true} <- {:invalid_api_id, is_binary(api_id)},
+           api_url <-
+             Map.get(
+               spec,
+               "x-proxyconf-api-url",
+               Application.get_env(
+                 :proxyconf,
+                 :default_api_host,
+                 "http://localhost:#{Application.get_env(:proxyconf, :default_api_port, 8080)}/#{api_id}"
+               )
+             ),
+           {_, true} <- {:invalid_api_url, is_binary(api_url)},
+           api_url <- URI.parse(api_url),
+           cluster_id <-
+             Map.get(
+               spec,
+               "x-proxyconf-cluster-id",
+               Application.get_env(:proxyconf, :default_cluster_id, "proxyconf-cluster")
+             ),
+           {_, true} <- {:invalid_cluster_id, is_binary(cluster_id)},
+           api_id <- Map.get(spec, "x-proxyconf-id", Path.rootname(filename) |> Path.basename()),
+           {_, true} <- {:invalid_api_id, is_binary(api_id)},
+           listener <- Map.get(spec, "x-proxyconf-listener", %{}),
+           {_, true} <- {:invalid_api_listener, is_map(listener)},
+           address <- Map.get(listener, "address", "127.0.0.1"),
+           {_, true} <- {:invalid_api_listener_address, is_binary(address)},
+           port <-
+             Map.get(listener, "port", Application.get_env(:proxyconf, :default_api_port, 8080)),
+           {_, true} <- {:invalid_api_listener_port, is_integer(port)},
+           # downstream auth is validated in it's own module
+           downstream_auth <- Map.get(spec, "x-proxyconf-downstream-auth") do
+        {:ok,
+         %Spec{
+           filename: filename,
+           hash: gen_hash(data),
+           cluster_id: cluster_id,
+           api_url: api_url,
+           api_id: api_id,
+           listener_address: address,
+           listener_port: port,
+           downstream_auth: downstream_auth,
+           spec: spec
+         }}
+      else
+        {error, false} ->
+          {:error, error}
+      end
+    end
+
+    def gen_hash(data) when is_binary(data) do
+      :crypto.hash(:sha256, data) |> Base.encode64()
+    end
+  end
+
   defmodule VHost do
     use ProxyConf.MapTemplate
 
@@ -7,21 +77,17 @@ defmodule ProxyConf.Types do
       "domains" => :domains,
       "routes" => :routes
     })
-
-    @default_api_url "http://localhost:8080/api"
-    @extension_key "x-proxyconf-api-url"
-    def api_url(spec) do
-      Map.get(spec, @extension_key, @default_api_url)
-    end
   end
 
   defmodule Route do
     @operations ~w/get put post delete options head patch trace/
 
     def from_oas3_spec(
-          api_id,
           path_prefix,
-          %{"paths" => paths_object, "servers" => servers} = oas3_spec
+          %Spec{
+            type: :oas3,
+            spec: %{"paths" => paths_object, "servers" => servers} = oas3_spec
+          } = spec
         ) do
       Enum.flat_map_reduce(paths_object, [], fn
         {path, %{"$ref" => ref_to_path_item_object}}, clusters_acc ->
@@ -34,13 +100,12 @@ defmodule ProxyConf.Types do
           Enum.filter(path_item_object, fn {k, _} -> k in @operations end)
           |> Enum.map_reduce(clusters_acc, fn {operation, operation_object}, clusters_acc ->
             operation_to_route_match(
-              api_id,
               path_prefix,
               path,
               operation,
               DeepMerge.deep_merge(inherited_config, operation_object),
               clusters_acc,
-              oas3_spec
+              spec
             )
           end)
 
@@ -52,22 +117,21 @@ defmodule ProxyConf.Types do
           Enum.filter(path_item_object, fn {k, _} -> k in @operations end)
           |> Enum.map_reduce(clusters_acc, fn {operation, operation_object}, clusters_acc ->
             operation_to_route_match(
-              api_id,
               path_prefix,
               path,
               operation,
               DeepMerge.deep_merge(inherited_config, operation_object),
               clusters_acc,
-              oas3_spec
+              spec
             )
           end)
       end)
     end
 
-    def route_id(operation, path, spec) do
+    def route_id(operation, path, %Spec{} = spec) do
       :crypto.hash(
         :sha256,
-        :erlang.term_to_binary([VHost.api_url(spec), String.upcase(operation), path])
+        :erlang.term_to_binary([spec.api_url, String.upcase(operation), path])
       )
       |> Base.encode32(padding: false)
     end
@@ -78,13 +142,12 @@ defmodule ProxyConf.Types do
     @path_wildcard "requestPath"
     @path_template_regex ~r/\{(.*?)\}/
     defp operation_to_route_match(
-           api_id,
            path_prefix,
            path,
            operation,
            path_item_object,
            clusters,
-           spec
+           %Spec{} = spec
          ) do
       servers = Map.fetch!(path_item_object, "servers")
       fail_fast = Map.get(path_item_object, "x-proxyconf-fail-fast-on-wrong-request", true)
@@ -110,7 +173,7 @@ defmodule ProxyConf.Types do
 
           %{"$ref" => ref} ->
             ["#" | ref_path] = String.split(ref, "/")
-            %{"in" => loc} = get_in(spec, ref_path)
+            %{"in" => loc} = get_in(spec.spec, ref_path)
             loc
         end)
 
@@ -169,14 +232,14 @@ defmodule ProxyConf.Types do
         case servers do
           [server] ->
             {cluster_name, _uri} =
-              cluster = ProxyConf.Types.Cluster.cluster_uri_from_oas3_server(api_id, server)
+              cluster = ProxyConf.Types.Cluster.cluster_uri_from_oas3_server(spec.api_id, server)
 
             {%{"cluster" => cluster_name}, [cluster | clusters]}
 
           servers when length(servers) > 1 ->
             clusters_for_path =
               Enum.map(servers, fn server ->
-                {ProxyConf.Types.Cluster.cluster_uri_from_oas3_server(api_id, server),
+                {ProxyConf.Types.Cluster.cluster_uri_from_oas3_server(spec.api_id, server),
                  Map.get(server, "x-proxyconf-server-weight")}
               end)
 
@@ -235,8 +298,7 @@ defmodule ProxyConf.Types do
            },
            "metadata" => %{
              "filter_metadata" => %{
-               "envoy.filters.http.lua" =>
-                 ProxyConf.DownstreamAuth.to_filter_metadata(api_id, spec)
+               "envoy.filters.http.lua" => ProxyConf.DownstreamAuth.to_filter_metadata(spec)
              }
            },
            "route" =>
@@ -278,8 +340,7 @@ defmodule ProxyConf.Types do
            },
            "metadata" => %{
              "filter_metadata" => %{
-               "envoy.filters.http.lua" =>
-                 ProxyConf.DownstreamAuth.to_filter_metadata(api_id, spec)
+               "envoy.filters.http.lua" => ProxyConf.DownstreamAuth.to_filter_metadata(spec)
              }
            },
            "route" =>
@@ -306,10 +367,10 @@ defmodule ProxyConf.Types do
       end
     end
 
-    defp resolve_ref(ref, spec) do
+    defp resolve_ref(ref, oas3spec) do
       ["#" | ref_path] = Path.split(ref)
 
-      case get_in(spec, ref_path) do
+      case get_in(oas3spec, ref_path) do
         nil -> %{}
         value -> value
       end

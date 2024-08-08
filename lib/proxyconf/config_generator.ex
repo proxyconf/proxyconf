@@ -4,6 +4,7 @@ defmodule ProxyConf.ConfigGenerator do
   alias ProxyConf.Types.Listener
   alias ProxyConf.Types.Route
   alias ProxyConf.Types.VHost
+  alias ProxyConf.Types.Spec
   alias ProxyConf.ConfigCache
   require Logger
   defstruct(listeners: [], clusters: [], vhosts: [], routes: [], downstream_auth: [])
@@ -16,16 +17,15 @@ defmodule ProxyConf.ConfigGenerator do
       routes: routes,
       downstream_auth: downstream_auth
     } =
-      ConfigCache.iterate_specs(cluster_id, %__MODULE__{}, fn filename, api_id, spec, config ->
+      ConfigCache.iterate_specs(cluster_id, %__MODULE__{}, fn %Spec{} = spec, config ->
         try do
           {listener_unifier, _} = listener_tmpl = listener_template_fn(spec, config)
 
-          downstream_auth_tmpl =
-            downstream_auth_template_fn(api_id, listener_unifier, spec, config)
+          downstream_auth_tmpl = downstream_auth_template_fn(listener_unifier, spec, config)
 
           {vhost_unifier, _} = vhost_tmpl = vhost_template_fn(listener_unifier, spec, config)
-          route_tmpl = route_template_fn(api_id, vhost_unifier, spec, config)
-          cluster_tmpl = cluster_template_fn(api_id, vhost_unifier, config)
+          route_tmpl = route_template_fn(vhost_unifier, spec, config)
+          cluster_tmpl = cluster_template_fn(vhost_unifier, spec, config)
 
           %__MODULE__{
             config
@@ -39,8 +39,8 @@ defmodule ProxyConf.ConfigGenerator do
           e ->
             Logger.warning(
               cluster: cluster_id,
-              api_id: api_id,
-              filename: filename,
+              api_id: spec.api_id,
+              filename: spec.filename,
               message: "Skipping OpenAPI spec due to: #{Exception.message(e)}"
             )
 
@@ -93,20 +93,15 @@ defmodule ProxyConf.ConfigGenerator do
     %{clusters: clusters, listeners: listeners}
   end
 
-  @listener_extension_key "x-proxyconf-listener"
-  @default_listener %{"address" => "127.0.0.1", "port" => 8080}
-  defp listener_template_fn(spec, _config) do
-    %{"address" => address, "port" => port} =
-      Map.merge(@default_listener, Map.get(spec, @listener_extension_key, %{}))
-
-    listener_name = "#{address}:#{port}"
+  defp listener_template_fn(%Spec{} = spec, _config) do
+    listener_name = "#{spec.listener_address}:#{spec.listener_port}"
 
     {%{listener_name: listener_name},
      fn vhosts, downstream_auth ->
        %{
          listener_name: listener_name,
-         address: address,
-         port: port,
+         address: spec.listener_address,
+         port: spec.listener_port,
          virtual_hosts: vhosts,
          downstream_auth:
            ProxyConf.DownstreamAuth.to_envoy_http_filter(downstream_auth)
@@ -116,10 +111,8 @@ defmodule ProxyConf.ConfigGenerator do
      end}
   end
 
-  @default_api_url "http://localhost:8080/api"
-  @api_url_extension_key "x-proxyconf-api-url"
-  defp vhost_template_fn(listener_unifier, spec, _config) do
-    %URI{host: host} = Map.get(spec, @api_url_extension_key, @default_api_url) |> URI.parse()
+  defp vhost_template_fn(listener_unifier, %Spec{} = spec, _config) do
+    host = spec.api_url.host
 
     {%{listener: listener_unifier, host: host},
      fn routes ->
@@ -132,8 +125,8 @@ defmodule ProxyConf.ConfigGenerator do
      end}
   end
 
-  defp downstream_auth_template_fn(api_id, listener_unifier, spec, _config) do
-    downstream_auth_config = ProxyConf.DownstreamAuth.to_config(api_id, spec)
+  defp downstream_auth_template_fn(listener_unifier, %Spec{} = spec, _config) do
+    downstream_auth_config = ProxyConf.DownstreamAuth.to_config(spec)
 
     {listener_unifier,
      fn ->
@@ -141,18 +134,16 @@ defmodule ProxyConf.ConfigGenerator do
      end}
   end
 
-  defp route_template_fn(api_id, vhost_unifier, spec, _config) do
-    %URI{path: path} = Map.get(spec, @api_url_extension_key, @default_api_url) |> URI.parse()
-
-    path_prefix = path || "/"
+  defp route_template_fn(vhost_unifier, %Spec{} = spec, _config) do
+    path_prefix = spec.api_url.path || "/"
     # TODO: currently no template type for route available
     {vhost_unifier,
      fn ->
-       Route.from_oas3_spec(api_id, path_prefix, spec)
+       Route.from_oas3_spec(path_prefix, spec)
      end}
   end
 
-  defp cluster_template_fn(_api_id, vhost_unifier, _config) do
+  defp cluster_template_fn(vhost_unifier, %Spec{} = _spec, _config) do
     {vhost_unifier,
      fn clusters ->
        Enum.uniq(clusters)

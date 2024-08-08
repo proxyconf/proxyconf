@@ -1,31 +1,35 @@
 defmodule ProxyConf.DownstreamAuth do
   require Logger
-  defstruct([:api_id, :auth_type, :auth_field_name, :hashes, :jwt_provider_config])
+  alias ProxyConf.Types.Spec
+  defstruct([:api_id, :api_uri, :auth_type, :auth_field_name, :hashes, :jwt_provider_config])
 
-  @downstream_auth_extension_key "x-proxyconf-downstream-auth"
-  def to_config(_api_id, %{@downstream_auth_extension_key => "disabled"}), do: :disabled
+  def to_config(%Spec{downstream_auth: "disabled"}), do: :disabled
 
-  def to_config(api_id, %{
-        @downstream_auth_extension_key => %{
-          "auth_type" => "header",
-          "config" => %{"name" => header_name, "hashes" => hashes}
-        }
-      }),
+  def to_config(
+        %Spec{
+          downstream_auth: %{
+            "auth_type" => "header",
+            "config" => %{"name" => header_name, "hashes" => hashes}
+          }
+        } = spec
+      ),
       do: %__MODULE__{
-        api_id: api_id,
+        api_id: spec.api_id,
         auth_type: "header",
         auth_field_name: header_name,
         hashes: hashes
       }
 
-  def to_config(api_id, %{
-        @downstream_auth_extension_key => %{
-          "auth_type" => "query",
-          "config" => %{"name" => query_field_name, "hashes" => hashes}
-        }
-      }),
+  def to_config(
+        %Spec{
+          downstream_auth: %{
+            "auth_type" => "query",
+            "config" => %{"name" => query_field_name, "hashes" => hashes}
+          }
+        } = spec
+      ),
       do: %__MODULE__{
-        api_id: api_id,
+        api_id: spec.api_id,
         auth_type: "query",
         auth_field_name: query_field_name,
         hashes: hashes
@@ -33,25 +37,31 @@ defmodule ProxyConf.DownstreamAuth do
 
   @jwt_provider_ext "extensions.filters.http.jwt_authn.v3.JwtProvider"
 
-  def to_config(api_id, %{
-        @downstream_auth_extension_key => %{
-          "auth_type" => "jwt",
-          "config" => jwt_provider_config
-        }
-      }),
-      do: %__MODULE__{api_id: api_id, auth_type: "jwt", jwt_provider_config: jwt_provider_config}
+  def to_config(
+        %Spec{
+          downstream_auth: %{
+            "auth_type" => "jwt",
+            "config" => jwt_provider_config
+          }
+        } = spec
+      ),
+      do: %__MODULE__{
+        api_id: spec.api_id,
+        auth_type: "jwt",
+        jwt_provider_config: jwt_provider_config
+      }
 
-  def to_config(_api_id, _spec) do
+  def to_config(_spec) do
     raise(
-      "API doesn't configure downstream authentication, which isn't allowed. To disable downstream authentication (not recommended) you can specify '#{@downstream_auth_extension_key}' to 'disabled'"
+      "API doesn't configure downstream authentication, which isn't allowed. To disable downstream authentication (not recommended) you can specify 'x-proxyconf-downstream-auth' to 'disabled'"
     )
   end
 
-  def to_filter_metadata(api_id, spec) do
-    case to_config(api_id, spec) do
+  def to_filter_metadata(spec) do
+    case to_config(spec) do
       %__MODULE__{} = config ->
         %{
-          "api_id" => api_id,
+          "api_id" => spec.api_id,
           "auth_type" => config.auth_type,
           "auth_field_name" => config.auth_field_name
         }
@@ -125,7 +135,7 @@ defmodule ProxyConf.DownstreamAuth do
     end
   end
 
-  defp to_envoy_jwt_configs(configs) do
+  defp to_envoy_jwt_config(configs) do
     Enum.group_by(configs, fn config -> config.jwt_provider_config end, fn config ->
       %{
         api_id: config.api_id
@@ -134,8 +144,9 @@ defmodule ProxyConf.DownstreamAuth do
     |> Enum.reduce({%{}, []}, fn {provider_config, api_id_and_rules},
                                  {providers_acc, rules_acc} ->
       provider_name =
-        "jwt-provider-#{:crypto.hash(:md5, :erlang.term_to_binary(provider_config)) |> Base.encode(16) |> String.slice(0, 10)}"
-  {Map.put(providers_acc, provider_name, provider_config), 
+        "jwt-provider-#{:crypto.hash(:md5, :erlang.term_to_binary(provider_config)) |> Base.encode16() |> String.slice(0, 10)}"
+
+      {Map.put(providers_acc, provider_name, provider_config), rules_acc}
     end)
   end
 

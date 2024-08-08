@@ -142,7 +142,8 @@ defmodule ProxyConf.TestSupport.Oas3Case do
   end
 
   def test_property_stream(ctx, spec_file, n, assert_fn) do
-    {:ok, %{"servers" => servers} = spec} = ProxyConf.ConfigCache.parse_spec_file(spec_file)
+    {:ok, %ProxyConf.Types.Spec{spec: %{"servers" => servers} = spec}} =
+      ProxyConf.ConfigCache.parse_spec_file(spec_file)
 
     finch_name = String.to_atom("ProxyConfFinch#{:erlang.phash2(spec_file)}")
     {:ok, _pid} = Finch.start_link(name: finch_name, protocol: :http1, size: 1, count: 1)
