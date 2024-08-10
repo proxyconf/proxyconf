@@ -3,4 +3,5 @@ defmodule ProxyConf.OidcTest do
   use ProxyConf.TestSupport.Oas3Case
 
   oas3spec("test/oas3/basic-routing-with-jwt-auth.yaml", ctx)
+  oas3spec("test/oas3/basic-routing-with-wrong-jwt-auth.yaml", ctx)
 end

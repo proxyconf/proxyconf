@@ -1,0 +1,33 @@
+x-proxyconf-api-url: http://localhost:8080/downstream-wrong-jwt-auth
+x-proxyconf-cluster-id: proxyconf-exunit
+x-proxyconf-downstream-auth:
+  auth_type: jwt
+  config:
+    issuer: proxyconf-invalid-exunit
+    audiences: 
+      - exunit
+    remote_jwks:
+      http_uri:
+        uri: http://127.0.0.1:18888/.well-known/jwks.json
+        timeout: 1s
+      cache_duration:
+        seconds: 300
+  
+x-proxyconf-id: downstream-jwt-auth
+x-proxyconf-listener:
+  address: 127.0.0.1
+  port: 8080
+servers:
+  - url: http://127.0.0.1:8088
+openapi: 3.1.0
+paths:
+  /test:
+    get:
+      responses:
+        '401':
+          content:
+            text/plain:
+              examples:
+                - 'Jwt issuer is not configured'
+
+

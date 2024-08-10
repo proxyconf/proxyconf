@@ -9,11 +9,12 @@ defmodule ProxyConf.TestSupport.Oidc do
   -----END RSA PRIVATE KEY-----
   """
 
+  @issuer "proxyconf-exunit"
   def maybe_setup_jwt_auth(%{
         "x-proxyconf-downstream-auth" => %{
           "auth_type" => "jwt",
           "config" => %{
-            "issuer" => issuer,
+            "issuer" => _issuer,
             "audiences" => audiences,
             "remote_jwks" => %{"http_uri" => %{"uri" => jwks_uri}}
           }
@@ -39,7 +40,7 @@ defmodule ProxyConf.TestSupport.Oidc do
     end)
 
     JWT.generate_and_sign(
-      %{"iss" => issuer, "aud" => List.first(audiences)},
+      %{"iss" => @issuer, "aud" => List.first(audiences)},
       signer
     )
   end

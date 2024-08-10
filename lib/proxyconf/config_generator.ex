@@ -73,7 +73,7 @@ defmodule ProxyConf.ConfigGenerator do
         Map.put(acc, unifier, List.flatten(vhosts) |> Enum.uniq())
       end)
 
-    listeners =
+    {listeners, downstream_auth_clusters} =
       Enum.group_by(
         listeners,
         fn {unifier, _} -> unifier end,
@@ -83,6 +83,9 @@ defmodule ProxyConf.ConfigGenerator do
       )
       |> Enum.flat_map(fn {_, listeners} -> listeners end)
       |> Enum.uniq()
+      |> Enum.unzip()
+
+    downstream_auth_clusters = List.flatten(downstream_auth_clusters)
 
     clusters =
       Enum.group_by(clusters, fn {unifier, _} -> unifier end, fn {unifier, cluster_tmpl_fn} ->
@@ -90,7 +93,7 @@ defmodule ProxyConf.ConfigGenerator do
       end)
       |> Enum.flat_map(fn {_, clusters} -> List.flatten(clusters) |> Enum.uniq() end)
 
-    %{clusters: clusters, listeners: listeners}
+    %{clusters: clusters ++ downstream_auth_clusters, listeners: listeners}
   end
 
   defp listener_template_fn(%Spec{} = spec, _config) do
@@ -98,16 +101,17 @@ defmodule ProxyConf.ConfigGenerator do
 
     {%{listener_name: listener_name},
      fn vhosts, downstream_auth ->
-       %{
-         listener_name: listener_name,
-         address: spec.listener_address,
-         port: spec.listener_port,
-         virtual_hosts: vhosts,
-         downstream_auth:
-           ProxyConf.DownstreamAuth.to_envoy_http_filter(downstream_auth)
-           |> IO.inspect(label: "downstream auth")
-       }
-       |> Listener.eval()
+       {downstream_auth_listener_config, downstream_auth_cluster_config} =
+         ProxyConf.DownstreamAuth.to_envoy_http_filter(downstream_auth)
+
+       {%{
+          listener_name: listener_name,
+          address: spec.listener_address,
+          port: spec.listener_port,
+          virtual_hosts: vhosts,
+          downstream_auth: downstream_auth_listener_config
+        }
+        |> Listener.eval(), downstream_auth_cluster_config}
      end}
   end
 

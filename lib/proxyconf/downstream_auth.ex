@@ -1,7 +1,9 @@
 defmodule ProxyConf.DownstreamAuth do
   require Logger
   alias ProxyConf.Types.Spec
-  defstruct([:api_id, :api_uri, :auth_type, :auth_field_name, :hashes, :jwt_provider_config])
+  alias ProxyConf.Types.Cluster
+  alias ProxyConf.Types.ClusterLbEndpoint
+  defstruct([:api_id, :api_url, :auth_type, :auth_field_name, :hashes, :jwt_provider_config])
 
   def to_config(%Spec{downstream_auth: "disabled"}), do: :disabled
 
@@ -15,6 +17,7 @@ defmodule ProxyConf.DownstreamAuth do
       ),
       do: %__MODULE__{
         api_id: spec.api_id,
+        api_url: spec.api_url,
         auth_type: "header",
         auth_field_name: header_name,
         hashes: hashes
@@ -30,6 +33,7 @@ defmodule ProxyConf.DownstreamAuth do
       ),
       do: %__MODULE__{
         api_id: spec.api_id,
+        api_url: spec.api_url,
         auth_type: "query",
         auth_field_name: query_field_name,
         hashes: hashes
@@ -47,6 +51,7 @@ defmodule ProxyConf.DownstreamAuth do
       ),
       do: %__MODULE__{
         api_id: spec.api_id,
+        api_url: spec.api_url,
         auth_type: "jwt",
         jwt_provider_config: jwt_provider_config
       }
@@ -94,59 +99,92 @@ defmodule ProxyConf.DownstreamAuth do
   def to_envoy_http_filter(configs) do
     configs = Enum.reject(configs, fn c -> c == :disabled end)
 
-    {jwt_configs, other_configs} =
+    {jwt_configs, static_configs} =
       Enum.split_with(configs, fn config -> config.auth_type == "jwt" end)
 
-    {providers, rules} = to_envoy_jwt_config(jwt_configs)
+    {providers, rules, remote_jwks_clusters} = to_envoy_jwt_config(jwt_configs)
 
-    if Enum.empty?(other_configs) do
-      [
-        %{
-          "name" => "envoy.filters.http.jwt_authn",
-          "typed_config" => %{
-            "@type" =>
-              "type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication",
-            "providers" => providers,
-            "rules" => rules
-          }
-        }
-      ]
+    remote_jwks_clusters = Enum.uniq(remote_jwks_clusters)
+
+    if Enum.empty?(static_configs) do
+      {[
+         %{
+           "name" => "envoy.filters.http.jwt_authn",
+           "typed_config" => %{
+             "@type" =>
+               "type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication",
+             "providers" => providers,
+             "rules" => rules
+           }
+         }
+       ], remote_jwks_clusters}
     else
-      [
-        %{
-          "name" => "envoy.filters.http.jwt_authn",
-          "typed_config" => %{
-            "@type" =>
-              "type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication",
-            "providers" => providers,
-            "rules" => rules
-          }
-        },
-        %{
-          "name" => "envoy.filters.http.lua",
-          "typed_config" => %{
-            "@type" => "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
-            "default_source_code" => %{
-              "inline_string" => to_lua(configs)
-            }
-          }
-        }
-      ]
+      {[
+         %{
+           "name" => "envoy.filters.http.jwt_authn",
+           "typed_config" => %{
+             "@type" =>
+               "type.googleapis.com/envoy.extensions.filters.http.jwt_authn.v3.JwtAuthentication",
+             "providers" => providers,
+             "rules" => rules
+           }
+         },
+         %{
+           "name" => "envoy.filters.http.lua",
+           "typed_config" => %{
+             "@type" => "type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua",
+             "default_source_code" => %{
+               "inline_string" => to_lua(static_configs)
+             }
+           }
+         }
+       ], remote_jwks_clusters}
     end
   end
 
   defp to_envoy_jwt_config(configs) do
     Enum.group_by(configs, fn config -> config.jwt_provider_config end, fn config ->
-      %{
-        api_id: config.api_id
-      }
+      config.api_url.path
     end)
-    |> Enum.reduce({%{}, []}, fn {provider_config, api_id_and_rules},
-                                 {providers_acc, rules_acc} ->
+    |> Enum.reduce({%{}, [], []}, fn {provider_config, paths},
+                                     {providers_acc, rules_acc, remote_jwks_acc} ->
       provider_name =
         "jwt-provider-#{:crypto.hash(:md5, :erlang.term_to_binary(provider_config)) |> Base.encode16() |> String.slice(0, 10)}"
 
-      {Map.put(providers_acc, provider_name, provider_config), rules_acc}
+      rules_acc =
+        Enum.uniq(paths)
+        |> Enum.reduce(rules_acc, fn path, rules_acc ->
+          [
+            %{"match" => %{"prefix" => path}, "requires" => %{"provider_name" => provider_name}}
+            | rules_acc
+          ]
+        end)
+
+      http_uri = get_in(provider_config, ["remote_jwks", "http_uri", "uri"])
+
+      provider_config =
+        Map.put(provider_config, "failed_status_in_metadata", "proxyconf.downstream_auth")
+
+      {provider_config, remote_jwks_acc} =
+        if not is_nil(http_uri) do
+          {cluster_name, cluster_uri} =
+            Cluster.cluster_uri_from_oas3_server("internal-jwks", %{"url" => http_uri})
+
+          {put_in(provider_config, ["remote_jwks", "http_uri", "cluster"], cluster_name),
+           [
+             Cluster.eval(%{
+               name: cluster_name,
+               endpoints: [
+                 ClusterLbEndpoint.eval(%{host: cluster_uri.host, port: cluster_uri.port})
+               ]
+             })
+             | remote_jwks_acc
+           ]}
+        else
+          {provider_config, remote_jwks_acc}
+        end
+
+      {Map.put(providers_acc, provider_name, provider_config), rules_acc, remote_jwks_acc}
     end)
   end
 

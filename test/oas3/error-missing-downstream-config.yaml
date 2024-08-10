@@ -16,5 +16,3 @@ paths:
           # text/plain is the default content type used by envoy 404
           'text/plain': {}
         }
-        # 500 is returned if no listener has been setup 
-        '500': {}

@@ -74,8 +74,8 @@ defmodule ProxyConf.TestSupport.Oas3Case do
         ctx =
           TestSupport.Envoy.start_envoy(%{
             cluster_id: "proxyconf-exunit",
-            admin_port: 9901,
-            listener_port: 10888,
+            admin_port: Enum.random(30000..40000),
+            listener_port: Enum.random(40001..50000),
             log_level: :error,
             log_path: "/tmp/envoy-test-proxyconf-exunit.log"
           })
