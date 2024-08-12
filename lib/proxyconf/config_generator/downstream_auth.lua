@@ -3,6 +3,35 @@ local md5 = require("md5")
 -- Config gets filled by elixir
 Config = {}
 
+-- Function to decode Base64 string
+local function base64_decode(input)
+  local b = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+  input = string.gsub(input, "[^" .. b .. "=]", "")
+  return (
+    input
+      :gsub(".", function(x)
+        if x == "=" then
+          return ""
+        end
+        local r, f = "", (b:find(x) - 1)
+        for i = 6, 1, -1 do
+          r = r .. (f % 2 ^ i - f % 2 ^ (i - 1) > 0 and "1" or "0")
+        end
+        return r
+      end)
+      :gsub("%d%d%d?%d?%d?%d?%d?%d?", function(x)
+        if #x ~= 8 then
+          return ""
+        end
+        local c = 0
+        for i = 1, 8 do
+          c = c + (x:sub(i, i) == "1" and 2 ^ (8 - i) or 0)
+        end
+        return string.char(c)
+      end)
+  )
+end
+
 local function validate_hash(value, hashes)
   if type(value) == "string" then
     local hash = md5.sumhexa(value)
@@ -54,6 +83,13 @@ function envoy_on_request(request_handle)
       local path = request_handle:headers():get(":path")
       local query_param = get_query_parameter(path, auth_field_name)
       client = validate_hash(query_param, hashes)
+    elseif auth_type == "basic" then
+      local header = request_handle:headers():get(auth_field_name)
+      local auth_scheme, encoded_credentials = header:match("^%s*(%S+)%s+(%S+)$")
+      if auth_scheme == "Basic" or auth_scheme == "basic" then
+        local basic_auth_credentials = base64_decode(encoded_credentials)
+        client = validate_hash(basic_auth_credentials, hashes)
+      end
     end
     if client ~= nil then
       request_handle:streamInfo():dynamicMetadata():set("proxyconf.downstream_auth", "client_id", client.id)

@@ -1,13 +1,28 @@
-defmodule ProxyConf.DownstreamAuth do
+defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
   require Logger
-  alias ProxyConf.Types.Spec
-  alias ProxyConf.Types.Cluster
-  alias ProxyConf.Types.ClusterLbEndpoint
+  alias ProxyConf.Spec
+  alias ProxyConf.ConfigGenerator.Cluster
+  alias ProxyConf.ConfigGenerator.ClusterLbEndpoint
   defstruct([:api_id, :api_url, :auth_type, :auth_field_name, :hashes, :jwt_provider_config])
 
-  def to_config(%Spec{downstream_auth: "disabled"}), do: :disabled
+  def from_spec_gen(%Spec{downstream_auth: "disabled"}), do: :disabled |> wrap_gen()
 
-  def to_config(
+  def from_spec_gen(
+        %Spec{downstream_auth: %{"auth_type" => "basic", "config" => %{"hashes" => hashes}}} =
+          spec
+      ),
+      # the official basic_auth support in envoy is configured either on a listener level or a route level, both are suboptimal, therefore we use the downstream Lua auth 
+      do:
+        %__MODULE__{
+          api_id: spec.api_id,
+          api_url: spec.api_url,
+          auth_type: "basic",
+          auth_field_name: "authorization",
+          hashes: hashes
+        }
+        |> wrap_gen()
+
+  def from_spec_gen(
         %Spec{
           downstream_auth: %{
             "auth_type" => "header",
@@ -15,15 +30,17 @@ defmodule ProxyConf.DownstreamAuth do
           }
         } = spec
       ),
-      do: %__MODULE__{
-        api_id: spec.api_id,
-        api_url: spec.api_url,
-        auth_type: "header",
-        auth_field_name: header_name,
-        hashes: hashes
-      }
+      do:
+        %__MODULE__{
+          api_id: spec.api_id,
+          api_url: spec.api_url,
+          auth_type: "header",
+          auth_field_name: header_name,
+          hashes: hashes
+        }
+        |> wrap_gen()
 
-  def to_config(
+  def from_spec_gen(
         %Spec{
           downstream_auth: %{
             "auth_type" => "query",
@@ -31,17 +48,19 @@ defmodule ProxyConf.DownstreamAuth do
           }
         } = spec
       ),
-      do: %__MODULE__{
-        api_id: spec.api_id,
-        api_url: spec.api_url,
-        auth_type: "query",
-        auth_field_name: query_field_name,
-        hashes: hashes
-      }
+      do:
+        %__MODULE__{
+          api_id: spec.api_id,
+          api_url: spec.api_url,
+          auth_type: "query",
+          auth_field_name: query_field_name,
+          hashes: hashes
+        }
+        |> wrap_gen()
 
   @jwt_provider_ext "extensions.filters.http.jwt_authn.v3.JwtProvider"
 
-  def to_config(
+  def from_spec_gen(
         %Spec{
           downstream_auth: %{
             "auth_type" => "jwt",
@@ -49,21 +68,25 @@ defmodule ProxyConf.DownstreamAuth do
           }
         } = spec
       ),
-      do: %__MODULE__{
-        api_id: spec.api_id,
-        api_url: spec.api_url,
-        auth_type: "jwt",
-        jwt_provider_config: jwt_provider_config
-      }
+      do:
+        %__MODULE__{
+          api_id: spec.api_id,
+          api_url: spec.api_url,
+          auth_type: "jwt",
+          jwt_provider_config: jwt_provider_config
+        }
+        |> wrap_gen()
 
-  def to_config(_spec) do
+  def from_spec_gen(_spec) do
     raise(
       "API doesn't configure downstream authentication, which isn't allowed. To disable downstream authentication (not recommended) you can specify 'x-proxyconf-downstream-auth' to 'disabled'"
     )
   end
 
+  defp wrap_gen(res), do: fn -> res end
+
   def to_filter_metadata(spec) do
-    case to_config(spec) do
+    case from_spec_gen(spec).() do
       %__MODULE__{} = config ->
         %{
           "api_id" => spec.api_id,
@@ -89,11 +112,11 @@ defmodule ProxyConf.DownstreamAuth do
                 end)
                 |> :erlang.iolist_to_binary()
 
-  @external_resource "downstream_auth.lua"
+  # @external_resource "lib/proxyconf/config_generator/downstream_auth.lua"
   @lua_prelude [
     "package.path=\"\"\n\n",
     @lua_includes,
-    File.read!("lib/proxyconf/downstream_auth.lua")
+    File.read!("lib/proxyconf/config_generator/downstream_auth.lua")
   ]
 
   def to_envoy_http_filter(configs) do

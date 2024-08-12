@@ -3,6 +3,8 @@ defmodule ProxyConf.RoutingTest do
   use ProxyConf.TestSupport.Oas3Case
 
   oas3spec("test/oas3/basic-routing-with-auth.yaml", ctx)
+  @tag :wip
+  oas3spec("test/oas3/basic-routing-with-basic-auth.yaml", ctx)
   oas3spec("test/oas3/basic-routing-with-query-auth.yaml", ctx)
 
   oas3spec("test/oas3/basic-routing-no-auth.yaml", ctx)

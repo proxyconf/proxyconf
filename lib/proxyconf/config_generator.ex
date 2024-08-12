@@ -1,13 +1,15 @@
 defmodule ProxyConf.ConfigGenerator do
-  alias ProxyConf.Types.Cluster
-  alias ProxyConf.Types.ClusterLbEndpoint
-  alias ProxyConf.Types.Listener
-  alias ProxyConf.Types.Route
-  alias ProxyConf.Types.VHost
-  alias ProxyConf.Types.Spec
+  alias ProxyConf.ConfigGenerator.Cluster
+  alias ProxyConf.ConfigGenerator.Listener
+  alias ProxyConf.ConfigGenerator.Route
+  alias ProxyConf.ConfigGenerator.VHost
+  alias ProxyConf.ConfigGenerator.DownstreamAuth
+  alias ProxyConf.Spec
   alias ProxyConf.ConfigCache
   require Logger
   defstruct(listeners: [], clusters: [], vhosts: [], routes: [], downstream_auth: [])
+
+  defp add_unifier(tmpl, unifier), do: {unifier, tmpl}
 
   def from_oas3_specs(cluster_id, _changes) do
     %__MODULE__{
@@ -19,13 +21,15 @@ defmodule ProxyConf.ConfigGenerator do
     } =
       ConfigCache.iterate_specs(cluster_id, %__MODULE__{}, fn %Spec{} = spec, config ->
         try do
-          {listener_unifier, _} = listener_tmpl = listener_template_fn(spec, config)
+          listener_name = Listener.name(spec)
+          listener_tmpl = Listener.from_spec_gen(spec) |> add_unifier(listener_name)
+          downstream_auth_tmpl = DownstreamAuth.from_spec_gen(spec) |> add_unifier(listener_name)
 
-          downstream_auth_tmpl = downstream_auth_template_fn(listener_unifier, spec, config)
+          vhost_unifier = %{listener: listener_name, host: spec.api_url.host}
+          vhost_tmpl = VHost.from_spec_gen(spec) |> add_unifier(vhost_unifier)
 
-          {vhost_unifier, _} = vhost_tmpl = vhost_template_fn(listener_unifier, spec, config)
-          route_tmpl = route_template_fn(vhost_unifier, spec, config)
-          cluster_tmpl = cluster_template_fn(vhost_unifier, spec, config)
+          route_tmpl = Route.from_spec_gen(spec) |> add_unifier(vhost_unifier)
+          cluster_tmpl = Cluster.from_spec_gen(spec) |> add_unifier(vhost_unifier)
 
           %__MODULE__{
             config
@@ -94,69 +98,5 @@ defmodule ProxyConf.ConfigGenerator do
       |> Enum.flat_map(fn {_, clusters} -> List.flatten(clusters) |> Enum.uniq() end)
 
     %{clusters: clusters ++ downstream_auth_clusters, listeners: listeners}
-  end
-
-  defp listener_template_fn(%Spec{} = spec, _config) do
-    listener_name = "#{spec.listener_address}:#{spec.listener_port}"
-
-    {%{listener_name: listener_name},
-     fn vhosts, downstream_auth ->
-       {downstream_auth_listener_config, downstream_auth_cluster_config} =
-         ProxyConf.DownstreamAuth.to_envoy_http_filter(downstream_auth)
-
-       {%{
-          listener_name: listener_name,
-          address: spec.listener_address,
-          port: spec.listener_port,
-          virtual_hosts: vhosts,
-          downstream_auth: downstream_auth_listener_config
-        }
-        |> Listener.eval(), downstream_auth_cluster_config}
-     end}
-  end
-
-  defp vhost_template_fn(listener_unifier, %Spec{} = spec, _config) do
-    host = spec.api_url.host
-
-    {%{listener: listener_unifier, host: host},
-     fn routes ->
-       %{
-         name: host,
-         domains: [host],
-         routes: routes
-       }
-       |> VHost.eval()
-     end}
-  end
-
-  defp downstream_auth_template_fn(listener_unifier, %Spec{} = spec, _config) do
-    downstream_auth_config = ProxyConf.DownstreamAuth.to_config(spec)
-
-    {listener_unifier,
-     fn ->
-       downstream_auth_config
-     end}
-  end
-
-  defp route_template_fn(vhost_unifier, %Spec{} = spec, _config) do
-    path_prefix = spec.api_url.path || "/"
-    # TODO: currently no template type for route available
-    {vhost_unifier,
-     fn ->
-       Route.from_oas3_spec(path_prefix, spec)
-     end}
-  end
-
-  defp cluster_template_fn(vhost_unifier, %Spec{} = _spec, _config) do
-    {vhost_unifier,
-     fn clusters ->
-       Enum.uniq(clusters)
-       |> Enum.map(fn {cluster_name, cluster_uri} ->
-         Cluster.eval(%{
-           name: cluster_name,
-           endpoints: [ClusterLbEndpoint.eval(%{host: cluster_uri.host, port: cluster_uri.port})]
-         })
-       end)
-     end}
   end
 end

@@ -2,7 +2,7 @@ defmodule ProxyConf.ConfigCache do
   use GenServer
   alias ProxyConf.ConfigGenerator
   alias ProxyConf.MapPatch
-  alias ProxyConf.Types.Spec
+  alias ProxyConf.Spec
   require Logger
 
   @cluster "type.googleapis.com/envoy.config.cluster.v3.Cluster"
@@ -146,7 +146,7 @@ defmodule ProxyConf.ConfigCache do
               "#{type_url} Reconnect #{node_info.node_id} with previous version #{old_version}"
           )
 
-          stream_config = %{stream: stream, version: 0}
+          stream_config = %{stream: stream, version: old_version}
 
           Map.merge(
             state.streams,
@@ -390,16 +390,20 @@ defmodule ProxyConf.ConfigCache do
       patches = apply(module, function, [])
 
       Enum.reduce(patches, acc, fn {type, patch}, accacc ->
+        IO.inspect({type, patch, accacc})
+
         if Map.has_key?(accacc, type) do
           config_for_type =
-            Map.fetch!(acc, type)
+            Map.fetch!(accacc, type)
             |> MapPatch.patch(patch)
 
-          Map.put(acc, type, config_for_type)
+          IO.inspect("==================>")
+
+          Map.put(accacc, type, config_for_type)
         else
           Logger.warning("Invalid extension type #{type} in #{module}")
 
-          acc
+          accacc
         end
       end)
     end)
