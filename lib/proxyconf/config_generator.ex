@@ -2,56 +2,77 @@ defmodule ProxyConf.ConfigGenerator do
   alias ProxyConf.ConfigGenerator.Cluster
   alias ProxyConf.ConfigGenerator.Listener
   alias ProxyConf.ConfigGenerator.Route
+  alias ProxyConf.ConfigGenerator.RouteConfiguration
   alias ProxyConf.ConfigGenerator.VHost
   alias ProxyConf.ConfigGenerator.DownstreamAuth
   alias ProxyConf.Spec
   alias ProxyConf.ConfigCache
   require Logger
-  defstruct(listeners: [], clusters: [], vhosts: [], routes: [], downstream_auth: [])
+
+  defstruct(
+    skip_errors: true,
+    listeners: [],
+    clusters: [],
+    vhosts: [],
+    routes: [],
+    route_configurations: [],
+    downstream_auth: [],
+    errors: []
+  )
 
   defp add_unifier(tmpl, unifier), do: {unifier, tmpl}
 
   def from_oas3_specs(cluster_id, _changes) do
-    %__MODULE__{
-      listeners: listeners,
-      clusters: clusters,
-      vhosts: vhosts,
-      routes: routes,
-      downstream_auth: downstream_auth
-    } =
-      ConfigCache.iterate_specs(cluster_id, %__MODULE__{}, fn %Spec{} = spec, config ->
-        try do
-          listener_name = Listener.name(spec)
-          listener_tmpl = Listener.from_spec_gen(spec) |> add_unifier(listener_name)
-          downstream_auth_tmpl = DownstreamAuth.from_spec_gen(spec) |> add_unifier(listener_name)
+    ConfigCache.iterate_specs(cluster_id, %__MODULE__{}, fn %Spec{} = spec, config ->
+      try do
+        listener_name = Listener.name(spec)
+        listener_tmpl = Listener.from_spec_gen(spec) |> add_unifier(listener_name)
+        downstream_auth_tmpl = DownstreamAuth.from_spec_gen(spec) |> add_unifier(listener_name)
 
-          vhost_unifier = %{listener: listener_name, host: spec.api_url.host}
-          vhost_tmpl = VHost.from_spec_gen(spec) |> add_unifier(vhost_unifier)
+        vhost_unifier = %{listener: listener_name, host: spec.api_url.host}
+        vhost_tmpl = VHost.from_spec_gen(spec) |> add_unifier(vhost_unifier)
 
-          route_tmpl = Route.from_spec_gen(spec) |> add_unifier(vhost_unifier)
-          cluster_tmpl = Cluster.from_spec_gen(spec) |> add_unifier(vhost_unifier)
+        route_tmpl = Route.from_spec_gen(spec) |> add_unifier(vhost_unifier)
 
-          %__MODULE__{
-            config
-            | listeners: [listener_tmpl | config.listeners],
-              vhosts: [vhost_tmpl | config.vhosts],
-              routes: [route_tmpl | config.routes],
-              clusters: [cluster_tmpl | config.clusters],
-              downstream_auth: [downstream_auth_tmpl | config.downstream_auth]
-          }
-        rescue
-          e ->
-            Logger.warning(
-              cluster: cluster_id,
-              api_id: spec.api_id,
-              filename: spec.filename,
-              message: "Skipping OpenAPI spec due to: #{Exception.message(e)}"
-            )
+        route_configuration_tmpl =
+          RouteConfiguration.from_spec_gen(spec) |> add_unifier(vhost_unifier)
 
-            config
-        end
-      end)
+        cluster_tmpl = Cluster.from_spec_gen(spec) |> add_unifier(vhost_unifier)
 
+        %__MODULE__{
+          config
+          | listeners: [listener_tmpl | config.listeners],
+            vhosts: [vhost_tmpl | config.vhosts],
+            routes: [route_tmpl | config.routes],
+            route_configurations: [route_configuration_tmpl | config.route_configurations],
+            clusters: [cluster_tmpl | config.clusters],
+            downstream_auth: [downstream_auth_tmpl | config.downstream_auth]
+        }
+      rescue
+        e ->
+          Logger.warning(
+            cluster: cluster_id,
+            api_id: spec.api_id,
+            filename: spec.filename,
+            message: "Skipping OpenAPI spec due to: #{Exception.message(e)}"
+          )
+
+          %__MODULE__{config | errors: [spec.filename | config.errors]}
+      end
+    end)
+    |> generate()
+  end
+
+  defp generate(%__MODULE__{skip_errors: false, errors: [_ | _] = errors}), do: {:error, errors}
+
+  defp generate(%__MODULE__{
+         listeners: listeners,
+         clusters: clusters,
+         vhosts: vhosts,
+         routes: routes,
+         route_configurations: route_configurations,
+         downstream_auth: downstream_auth
+       }) do
     {all_clusters, routes} =
       Enum.group_by(routes, fn {unifier, _} -> unifier end, fn {_unifier, route_tmpl_fn} ->
         route_tmpl_fn.()
@@ -77,6 +98,15 @@ defmodule ProxyConf.ConfigGenerator do
         Map.put(acc, unifier, List.flatten(vhosts) |> Enum.uniq())
       end)
 
+    route_configurations =
+      Enum.group_by(route_configurations, fn {unifier, _} -> unifier.listener end, fn
+        {unifier, route_configuration_tmpl_fn} ->
+          route_configuration_tmpl_fn.(Map.fetch!(vhosts, unifier.listener))
+      end)
+      |> Enum.flat_map(fn {_, route_configurations} ->
+        List.flatten(route_configurations) |> Enum.uniq()
+      end)
+
     {listeners, downstream_auth_clusters} =
       Enum.group_by(
         listeners,
@@ -97,6 +127,11 @@ defmodule ProxyConf.ConfigGenerator do
       end)
       |> Enum.flat_map(fn {_, clusters} -> List.flatten(clusters) |> Enum.uniq() end)
 
-    %{clusters: clusters ++ downstream_auth_clusters, listeners: listeners}
+    {:ok,
+     %{
+       clusters: clusters ++ downstream_auth_clusters,
+       listeners: listeners,
+       route_configurations: route_configurations
+     }}
   end
 end

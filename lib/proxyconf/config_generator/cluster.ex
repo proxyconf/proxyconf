@@ -41,13 +41,13 @@ defmodule ProxyConf.ConfigGenerator.Cluster do
     # - url: "{protocol}://{hostname}"
     case URI.parse(url) do
       %URI{host: nil} ->
-        raise("invalid upstream server hostname in server url '#{server}'")
+        raise("invalid upstream server hostname in server url '#{url}'")
 
       %URI{port: nil} ->
-        raise("invalid upstream server port in server url '#{server}'")
+        raise("invalid upstream server port in server url '#{url}'")
 
       %URI{} = uri ->
-        {"#{api_id}::#{uri.host}:#{uri.port}", uri}
+        {"#{uri.host}:#{uri.port}", uri}
     end
   end
 end

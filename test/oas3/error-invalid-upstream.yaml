@@ -1,0 +1,10 @@
+x-proxyconf-downstream-auth: disabled
+servers:
+  # invalid upstream url
+  - url: "/"
+openapi: 3.1.0
+paths:
+  /test:
+    get:
+      responses:
+        '404': {}

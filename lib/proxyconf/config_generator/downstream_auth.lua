@@ -110,12 +110,7 @@ function envoy_on_request(request_handle)
       request_handle:streamInfo():dynamicMetadata():set("proxyconf.downstream_auth", "status", "failed")
       request_handle:respond({ [":status"] = "403" }, "Forbidden")
       request_handle:logInfo(
-        string.format(
-          "Downstream authentication (%s:%s) failed for API %s and client %s",
-          auth_type,
-          auth_field_name,
-          api_id
-        )
+        string.format("Downstream authentication (%s:%s) failed for API %s", auth_type, auth_field_name, api_id)
       )
       return
     end

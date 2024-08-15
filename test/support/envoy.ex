@@ -90,6 +90,7 @@ defmodule ProxyConf.TestSupport.Envoy do
       |> Jason.encode!()
 
     File.write!(config_file, envoy_config)
+    base_id = config.admin_port
 
     port =
       Port.open({:spawn_executable, "envoy-contrib"},
@@ -99,8 +100,7 @@ defmodule ProxyConf.TestSupport.Envoy do
           "-l",
           "#{config.log_level}",
           "--log-path #{config.log_path}",
-          "--base-id",
-          "#{config.admin_port}"
+          "--base-id #{base_id}"
         ]
       )
 

@@ -1,10 +1,9 @@
 x-proxyconf-downstream-auth:
-  auth_type: query
+  auth_type: basic
   config:
-    name: my-api-key
     hashes:
-      # md5sum of supersecret
-      - 9a618248b64db62d15b300a07b00580b
+      # echo "myuser:mysecret" | md5sum
+      - c1380f318aa8d769323574b15d84986d
   
 servers:
   - url: http://127.0.0.1:8088
@@ -13,9 +12,10 @@ paths:
   /test:
     get:
       parameters:
-        - name: my-api-key
-          in: query
-          example: supersecret
+        - name: Authorization
+          in: header
+          # echo "myuser:mysecret" | base64
+          example: "Basic bXl1c2VyOm15c2VjcmV0Cg=="
       responses:
         '200':
           content:

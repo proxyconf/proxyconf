@@ -112,7 +112,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
                 end)
                 |> :erlang.iolist_to_binary()
 
-  # @external_resource "lib/proxyconf/config_generator/downstream_auth.lua"
+  @external_resource Path.join(__DIR__, "downstream_auth.lua")
   @lua_prelude [
     "package.path=\"\"\n\n",
     @lua_includes,

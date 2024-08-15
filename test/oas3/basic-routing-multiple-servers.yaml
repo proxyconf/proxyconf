@@ -1,10 +1,4 @@
-x-proxyconf-api-url: http://localhost:8080/multiple-servers
 x-proxyconf-downstream-auth: disabled
-x-proxyconf-id: multiple-servers
-x-proxyconf-cluster-id: proxyconf-exunit
-x-proxyconf-listener:
-  address: 127.0.0.1
-  port: 8080
 servers:
   - url: http://127.0.0.1:8089
     x-proxyconf-server-weight: 10

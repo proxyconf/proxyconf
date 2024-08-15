@@ -71,13 +71,16 @@ defmodule ProxyConf.TestSupport.Oas3Case do
       import unquote(__MODULE__)
 
       setup_all do
+        listener_port = Enum.random(40001..50000)
+        cluster_id = "proxyconf-exunit-#{__MODULE__}"
+
         ctx =
           TestSupport.Envoy.start_envoy(%{
-            cluster_id: "proxyconf-exunit",
+            cluster_id: cluster_id,
             admin_port: Enum.random(30000..40000),
-            listener_port: Enum.random(40001..50000),
-            log_level: :error,
-            log_path: "/tmp/envoy-test-proxyconf-exunit.log"
+            listener_port: listener_port,
+            log_level: :info,
+            log_path: "/tmp/envoy-#{cluster_id}.log"
           })
 
         on_exit(fn ->
@@ -88,20 +91,12 @@ defmodule ProxyConf.TestSupport.Oas3Case do
           end
         end)
 
-        {:ok, ctx}
-      end
-
-      setup do
-        # Application.ensure_all_started(:finch)
-
-        on_exit(fn ->
-          # for unknown reason having an IO.inspect here helps to prevent the race condition
-          IO.inspect("on exit")
-          # Application.stop(:mint)
-          # Application.stop(:finch)
-        end)
-
-        {:ok, []}
+        {:ok,
+         ctx
+         |> Map.merge(%{
+           listener_port: listener_port,
+           cluster_id: cluster_id
+         })}
       end
     end
   end
@@ -142,16 +137,32 @@ defmodule ProxyConf.TestSupport.Oas3Case do
   end
 
   def test_property_stream(ctx, spec_file, n, assert_fn) do
+    api_id = "api-#{:erlang.phash2(spec_file)}"
+
+    overrides = %{
+      "x-proxyconf-api-url" => "http://localhost:#{ctx.listener_port}/#{api_id}",
+      "x-proxyconf-id" => api_id,
+      "x-proxyconf-cluster-id" => ctx.cluster_id,
+      "x-proxyconf-listener" => %{"address" => "127.0.0.1", "port" => ctx.listener_port}
+    }
+
     {:ok, %ProxyConf.Spec{spec: %{"servers" => servers} = spec}} =
-      ProxyConf.ConfigCache.parse_spec_file(spec_file)
+      ProxyConf.ConfigCache.parse_spec_file(spec_file, overrides)
 
     finch_name = String.to_atom("ProxyConfFinch#{:erlang.phash2(spec_file)}")
     {:ok, _pid} = Finch.start_link(name: finch_name, protocol: :http1, size: 1, count: 1)
+    ProxyConf.ConfigCache.load_external_spec(spec_file, spec)
 
     bypasses =
-      Enum.map(servers, fn %{"url" => url} ->
-        %URI{port: port} = URI.parse(url)
-        Bypass.open(port: port)
+      Enum.flat_map(servers, fn %{"url" => url} ->
+        case URI.parse(url) do
+          %URI{port: nil} ->
+            # in some test cases we want to provide invalid urls
+            []
+
+          %URI{port: port} ->
+            [Bypass.open(port: port)]
+        end
       end)
 
     ctx =
@@ -164,7 +175,6 @@ defmodule ProxyConf.TestSupport.Oas3Case do
       end
 
     ctx = Map.put(ctx, :finch, finch_name) |> Map.put(:bypasses, bypasses)
-    ProxyConf.ConfigCache.load_external_spec(spec_file, spec)
     wait_until_listener_setup(ctx, spec)
 
     property_stream(spec)

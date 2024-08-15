@@ -21,10 +21,17 @@ defmodule ProxyConf.ConfigGenerator.Listener do
               "stat_prefix" => "proxyconf",
               "codec_type" => "AUTO",
               "strip_matching_host_port" => true,
-              "route_config" => %{
-                "name" => "local_route",
-                "virtual_hosts" => :virtual_hosts
+              "rds" => %{
+                "config_source" => %{
+                  "ads" => %{},
+                  "resource_api_version" => "V3"
+                },
+                "route_config_name" => :listener_name
               },
+              # "route_config" => %{
+              #  "name" => "local_route",
+              #  "virtual_hosts" => :virtual_hosts
+              # },
               "http_filters" =>
                 [
                   :downstream_auth,

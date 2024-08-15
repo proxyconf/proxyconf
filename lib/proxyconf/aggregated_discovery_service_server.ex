@@ -4,6 +4,7 @@ defmodule ProxyConf.AggregatedDiscoveryServiceServer do
 
   alias ProxyConf.ConfigCache
   alias Envoy.Service.Discovery.V3.DiscoveryRequest
+  alias Envoy.Service.Discovery.V3.DeltaDiscoveryRequest
   alias Envoy.Config.Core.V3.Node
 
   def stream_aggregated_resources(request, stream) do
@@ -16,7 +17,7 @@ defmodule ProxyConf.AggregatedDiscoveryServiceServer do
          %DiscoveryRequest{
            version_info: version,
            error_detail: error,
-           resource_names: [],
+           resource_names: _,
            type_url: type_url
          } = req,
          stream
