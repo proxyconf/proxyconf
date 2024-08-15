@@ -20,3 +20,18 @@
   - **Request and Response Validation:** Advanced validation mechanisms for API requests and responses, ensuring data integrity and compliance with specifications.
   - **SOAP/WSDL Support:**  Support for SOAP-based APIs and WSDL specifications, enabling seamless integration with legacy systems.
 
+## Contributing
+
+We welcome contributions! Please see our CONTRIBUTING.md for details on how to get started with development and submit pull requests.
+
+## License
+
+ProxyConf is licensed under the Apache2 License.
+
+## Contact
+
+For any questions or support, please reach out via GitHub Discussions or open an issue.
+
+---
+
+ProxyConf helps you take control of your API operations, providing the tools needed to secure, optimize, and scale your API infrastructure efficiently. With optional paid extensions for request/response validation and SOAP/WSDL support, ProxyConf can meet the needs of both modern and legacy systems.
