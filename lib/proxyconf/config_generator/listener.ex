@@ -1,6 +1,7 @@
 defmodule ProxyConf.ConfigGenerator.Listener do
   use ProxyConf.MapTemplate
   alias ProxyConf.ConfigGenerator.DownstreamAuth
+  alias ProxyConf.ConfigGenerator.DownstreamTls
 
   deftemplate(%{
     "name" => :listener_name,
@@ -12,6 +13,7 @@ defmodule ProxyConf.ConfigGenerator.Listener do
     },
     "filter_chains" => [
       %{
+        "transport_socket" => :transport_socket,
         "filters" => [
           %{
             "name" => "envoy.filters.network.http_connection_manager",
@@ -58,18 +60,34 @@ defmodule ProxyConf.ConfigGenerator.Listener do
   def from_spec_gen(spec) do
     listener_name = name(spec)
 
-    fn vhosts, downstream_auth ->
+    fn vhosts, downstream_auth, downstream_tls ->
       {downstream_auth_listener_config, downstream_auth_cluster_config} =
         DownstreamAuth.to_envoy_http_filter(downstream_auth)
 
-      {%{
-         listener_name: listener_name,
-         address: spec.listener_address,
-         port: spec.listener_port,
-         virtual_hosts: vhosts,
-         downstream_auth: downstream_auth_listener_config
-       }
-       |> eval(), downstream_auth_cluster_config}
+      transport_socket = DownstreamTls.to_envoy_transport_socket(downstream_tls)
+
+      %{"filter_chains" => filter_chains} =
+        listener =
+        %{
+          listener_name: listener_name,
+          address: spec.listener_address,
+          port: spec.listener_port,
+          virtual_hosts: vhosts,
+          transport_socket: transport_socket,
+          downstream_auth: downstream_auth_listener_config
+        }
+        |> eval()
+
+      filter_chains =
+        Enum.map(filter_chains, fn %{"transport_socket" => transport_socket} = filter_chain ->
+          if is_nil(transport_socket) do
+            Map.delete(filter_chain, "transport_socket")
+          else
+            filter_chain
+          end
+        end)
+
+      {Map.put(listener, "filter_chains", filter_chains), downstream_auth_cluster_config}
     end
   end
 end

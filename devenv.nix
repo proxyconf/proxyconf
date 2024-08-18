@@ -5,7 +5,7 @@
   env.GREET = "devenv";
 
   # https://devenv.sh/packages/
-  packages = [ pkgs.git pkgs.erlang pkgs.yq pkgs.elixir pkgs.protobuf_23];
+  packages = [ pkgs.neovim pkgs.git pkgs.erlang pkgs.yq pkgs.elixir_1_17 pkgs.protobuf_23];
 
   # https://devenv.sh/scripts/
   scripts.hello.exec = "echo hello from $GREET";

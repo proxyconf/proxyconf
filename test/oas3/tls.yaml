@@ -1,0 +1,93 @@
+x-proxyconf-downstream-auth: disabled
+x-proxyconf-api-url: "https://localhost:44444/tls"
+x-proxyconf-listener:
+  address: "127.0.0.1"
+  port: 44444
+servers:
+  - url: http://127.0.0.1:8089
+openapi: 3.1.0
+paths:
+  /test:
+    get:
+      parameters:
+        - example: soso
+          examples:
+            - lala
+            - nana
+            - baba
+          in: header
+          name: test
+        - $ref: "#/components/parameters/versionParam"
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                - '{"hello":"world"}'
+              schema:
+                type: object
+  /test/{param}:
+    $ref: "#/components/path-items/test"
+  /test/{param}/{requestPath}:
+    $ref: "#/components/path-items/testWildcard"
+components:
+  parameters:
+    versionParam:
+      name: version
+      in: query
+      required: true
+      examples:
+        - v1
+        - v2
+        - v0.1
+
+  path-items:
+    test:
+      post:
+        parameters:
+          - name: param
+            in: path
+            required: true
+            examples:
+              - hello
+              - world
+              - 123
+              - 1.0
+              - true
+              - false
+        responses:
+          '200':
+            content:
+              text/plain:
+                examples:
+                  - hello
+                  - world
+
+    testWildcard:
+      get:
+        parameters:
+          - name: param
+            in: path
+            required: true
+            examples:
+              - hello
+              - world
+              - 123
+              - 1.0
+              - true
+              - false
+          - name: requestPath
+            in: path
+            required: true
+            examples:
+              - hello/world
+              - good/bye
+        responses:
+          '200':
+            content:
+              text/plain:
+                examples:
+                  - hello
+                  - world
+
+

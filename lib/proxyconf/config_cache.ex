@@ -7,6 +7,7 @@ defmodule ProxyConf.ConfigCache do
 
   @cluster "type.googleapis.com/envoy.config.cluster.v3.Cluster"
   @listener "type.googleapis.com/envoy.config.listener.v3.Listener"
+  @tls_secret "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.Secret"
   @route_configuration "type.googleapis.com/envoy.config.route.v3.RouteConfiguration"
 
   @spec_table :config_cache_tbl_specs
@@ -471,7 +472,8 @@ defmodule ProxyConf.ConfigCache do
           %{
             @listener => config.listeners,
             @cluster => config.clusters,
-            @route_configuration => config.route_configurations
+            @route_configuration => config.route_configurations,
+            @tls_secret => config.downstream_tls
           }
           |> apply_config_extensions()
           |> tap(fn config ->

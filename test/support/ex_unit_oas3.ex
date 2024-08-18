@@ -66,7 +66,7 @@ defmodule ProxyConf.TestSupport.Oas3Case do
     end
   end
 
-  defmacro __using__(_opts) do
+  defmacro __using__(opts) do
     quote do
       import unquote(__MODULE__)
 
@@ -91,12 +91,16 @@ defmodule ProxyConf.TestSupport.Oas3Case do
           end
         end)
 
+        opts = Enum.into(unquote(opts), %{})
+
         {:ok,
          ctx
          |> Map.merge(%{
+           http_schema: "http",
            listener_port: listener_port,
            cluster_id: cluster_id
-         })}
+         })
+         |> Map.merge(opts)}
       end
     end
   end
@@ -140,7 +144,7 @@ defmodule ProxyConf.TestSupport.Oas3Case do
     api_id = "api-#{:erlang.phash2(spec_file)}"
 
     overrides = %{
-      "x-proxyconf-api-url" => "http://localhost:#{ctx.listener_port}/#{api_id}",
+      "x-proxyconf-api-url" => "#{ctx.http_schema}://localhost:#{ctx.listener_port}/#{api_id}",
       "x-proxyconf-id" => api_id,
       "x-proxyconf-cluster-id" => ctx.cluster_id,
       "x-proxyconf-listener" => %{"address" => "127.0.0.1", "port" => ctx.listener_port}
@@ -150,7 +154,23 @@ defmodule ProxyConf.TestSupport.Oas3Case do
       ProxyConf.ConfigCache.parse_spec_file(spec_file, overrides)
 
     finch_name = String.to_atom("ProxyConfFinch#{:erlang.phash2(spec_file)}")
-    {:ok, _pid} = Finch.start_link(name: finch_name, protocol: :http1, size: 1, count: 1)
+
+    {:ok, _pid} =
+      Finch.start_link(
+        name: finch_name,
+        protocol: :http1,
+        size: 1,
+        pools: %{
+          default: [
+            conn_opts: [
+              transport_opts: [
+                cacertfile: Application.fetch_env!(:proxyconf, :ca_certificate)
+              ]
+            ]
+          ]
+        }
+      )
+
     ProxyConf.ConfigCache.load_external_spec(spec_file, spec)
 
     bypasses =

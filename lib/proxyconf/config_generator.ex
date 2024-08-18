@@ -5,6 +5,7 @@ defmodule ProxyConf.ConfigGenerator do
   alias ProxyConf.ConfigGenerator.RouteConfiguration
   alias ProxyConf.ConfigGenerator.VHost
   alias ProxyConf.ConfigGenerator.DownstreamAuth
+  alias ProxyConf.ConfigGenerator.DownstreamTls
   alias ProxyConf.Spec
   alias ProxyConf.ConfigCache
   require Logger
@@ -16,6 +17,7 @@ defmodule ProxyConf.ConfigGenerator do
     vhosts: [],
     routes: [],
     route_configurations: [],
+    downstream_tls: [],
     downstream_auth: [],
     errors: []
   )
@@ -27,6 +29,7 @@ defmodule ProxyConf.ConfigGenerator do
       try do
         listener_name = Listener.name(spec)
         listener_tmpl = Listener.from_spec_gen(spec) |> add_unifier(listener_name)
+        downstream_tls_tmpl = DownstreamTls.from_spec_gen(spec) |> add_unifier(listener_name)
         downstream_auth_tmpl = DownstreamAuth.from_spec_gen(spec) |> add_unifier(listener_name)
 
         vhost_unifier = %{listener: listener_name, host: spec.api_url.host}
@@ -46,6 +49,7 @@ defmodule ProxyConf.ConfigGenerator do
             routes: [route_tmpl | config.routes],
             route_configurations: [route_configuration_tmpl | config.route_configurations],
             clusters: [cluster_tmpl | config.clusters],
+            downstream_tls: [downstream_tls_tmpl | config.downstream_tls],
             downstream_auth: [downstream_auth_tmpl | config.downstream_auth]
         }
       rescue
@@ -71,6 +75,7 @@ defmodule ProxyConf.ConfigGenerator do
          vhosts: vhosts,
          routes: routes,
          route_configurations: route_configurations,
+         downstream_tls: downstream_tls,
          downstream_auth: downstream_auth
        }) do
     {all_clusters, routes} =
@@ -83,6 +88,27 @@ defmodule ProxyConf.ConfigGenerator do
         {Map.put(clusters_acc, unifier, List.flatten(clusters) |> Enum.uniq()),
          Map.put(routes_acc, unifier, List.flatten(routes) |> Enum.uniq())}
       end)
+
+    downstream_tls_by_listener =
+      Enum.group_by(downstream_tls, fn {unifier, _} -> unifier end, fn {_,
+                                                                        downstream_tls_config_fn} ->
+        downstream_tls_config_fn.()
+      end)
+      |> Enum.reduce(%{}, fn {unifier, downstream_tls}, acc ->
+        Map.put(
+          acc,
+          unifier,
+          List.flatten(downstream_tls) |> Enum.uniq_by(fn %{"name" => name} -> name end)
+        )
+      end)
+
+    downstream_tls =
+      Enum.reduce(downstream_tls_by_listener, %{}, fn {_, tls_certs}, acc ->
+        Enum.reduce(tls_certs, acc, fn %{"name" => name} = tls_cert, acc ->
+          Map.put(acc, name, tls_cert)
+        end)
+      end)
+      |> Map.values()
 
     downstream_auth =
       Enum.group_by(downstream_auth, fn {unifier, _} -> unifier end, fn {_,
@@ -104,15 +130,20 @@ defmodule ProxyConf.ConfigGenerator do
           route_configuration_tmpl_fn.(Map.fetch!(vhosts, unifier.listener))
       end)
       |> Enum.flat_map(fn {_, route_configurations} ->
-        List.flatten(route_configurations) |> Enum.uniq()
+        List.flatten(route_configurations)
       end)
+      |> Enum.uniq()
 
     {listeners, downstream_auth_clusters} =
       Enum.group_by(
         listeners,
         fn {unifier, _} -> unifier end,
         fn {unifier, listener_tmpl_fn} ->
-          listener_tmpl_fn.(Map.fetch!(vhosts, unifier), Map.fetch!(downstream_auth, unifier))
+          listener_tmpl_fn.(
+            Map.fetch!(vhosts, unifier),
+            Map.fetch!(downstream_auth, unifier),
+            Map.fetch!(downstream_tls_by_listener, unifier)
+          )
         end
       )
       |> Enum.flat_map(fn {_, listeners} -> listeners end)
@@ -125,13 +156,15 @@ defmodule ProxyConf.ConfigGenerator do
       Enum.group_by(clusters, fn {unifier, _} -> unifier end, fn {unifier, cluster_tmpl_fn} ->
         cluster_tmpl_fn.(Map.fetch!(all_clusters, unifier))
       end)
-      |> Enum.flat_map(fn {_, clusters} -> List.flatten(clusters) |> Enum.uniq() end)
+      |> Enum.flat_map(fn {_, clusters} -> List.flatten(clusters) end)
+      |> Enum.uniq()
 
     {:ok,
      %{
        clusters: clusters ++ downstream_auth_clusters,
        listeners: listeners,
-       route_configurations: route_configurations
+       route_configurations: route_configurations,
+       downstream_tls: downstream_tls
      }}
   end
 end
