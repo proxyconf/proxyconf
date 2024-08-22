@@ -1,4 +1,6 @@
 defmodule ProxyConf.Spec do
+  require Logger
+
   defstruct([
     :filename,
     :hash,
@@ -7,6 +9,7 @@ defmodule ProxyConf.Spec do
     :api_id,
     :listener_address,
     :listener_port,
+    :listener_allowed_subnets,
     :downstream_auth,
     :spec,
     type: :oas3
@@ -43,6 +46,10 @@ defmodule ProxyConf.Spec do
          port <-
            Map.get(listener, "port", Application.get_env(:proxyconf, :default_api_port, 8080)),
          {_, true} <- {:invalid_api_listener_port, is_integer(port)},
+         {_, true} <- {:listener_port_does_not_match_api_url, port == api_url.port},
+         {allowed_subnets, parse_result} <-
+           Map.get(listener, "allowed_subnets", ["127.0.0.1/32"]) |> to_cidrs(),
+         {_, true} <- {:invalid_allowed_subnets, parse_result},
          # downstream auth is validated in it's own module
          downstream_auth <- Map.get(spec, "x-proxyconf-downstream-auth") do
       {:ok,
@@ -54,6 +61,7 @@ defmodule ProxyConf.Spec do
          api_id: api_id,
          listener_address: address,
          listener_port: port,
+         listener_allowed_subnets: allowed_subnets,
          downstream_auth: downstream_auth,
          spec: spec
        }}
@@ -65,5 +73,22 @@ defmodule ProxyConf.Spec do
 
   def gen_hash(data) when is_binary(data) do
     :crypto.hash(:sha256, data) |> Base.encode64()
+  end
+
+  defp to_cidrs(subnets) do
+    Enum.map_reduce(subnets, true, fn
+      _, false ->
+        {nil, false}
+
+      subnet, true ->
+        with [address_prefix, prefix_length] <- String.split(subnet, "/"),
+             {prefix_length, ""} <- Integer.parse(prefix_length) do
+          {%{"address_prefix" => address_prefix, "prefix_len" => prefix_length}, true}
+        else
+          _ ->
+            Logger.warning("Invalid CIDR range in 'allowed_subnets' configuration #{subnet}")
+            {nil, false}
+        end
+    end)
   end
 end

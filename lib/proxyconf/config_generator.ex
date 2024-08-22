@@ -1,5 +1,6 @@
 defmodule ProxyConf.ConfigGenerator do
   alias ProxyConf.ConfigGenerator.Cluster
+  alias ProxyConf.ConfigGenerator.FilterChain
   alias ProxyConf.ConfigGenerator.Listener
   alias ProxyConf.ConfigGenerator.Route
   alias ProxyConf.ConfigGenerator.RouteConfiguration
@@ -13,10 +14,12 @@ defmodule ProxyConf.ConfigGenerator do
   defstruct(
     skip_errors: true,
     listeners: [],
+    filter_chains: [],
     clusters: [],
     vhosts: [],
     routes: [],
     route_configurations: [],
+    source_ip_ranges: [],
     downstream_tls: [],
     downstream_auth: [],
     errors: []
@@ -29,12 +32,13 @@ defmodule ProxyConf.ConfigGenerator do
       try do
         listener_name = Listener.name(spec)
         listener_tmpl = Listener.from_spec_gen(spec) |> add_unifier(listener_name)
-        downstream_tls_tmpl = DownstreamTls.from_spec_gen(spec) |> add_unifier(listener_name)
-        downstream_auth_tmpl = DownstreamAuth.from_spec_gen(spec) |> add_unifier(listener_name)
 
         vhost_unifier = %{listener: listener_name, host: spec.api_url.host}
+        filter_chain_tmpl = FilterChain.from_spec_gen(spec) |> add_unifier(vhost_unifier)
+        downstream_tls_tmpl = DownstreamTls.from_spec_gen(spec) |> add_unifier(vhost_unifier)
+        downstream_auth_tmpl = DownstreamAuth.from_spec_gen(spec) |> add_unifier(vhost_unifier)
         vhost_tmpl = VHost.from_spec_gen(spec) |> add_unifier(vhost_unifier)
-
+        source_ip_ranges = spec.listener_allowed_subnets |> add_unifier(vhost_unifier)
         route_tmpl = Route.from_spec_gen(spec) |> add_unifier(vhost_unifier)
 
         route_configuration_tmpl =
@@ -45,6 +49,8 @@ defmodule ProxyConf.ConfigGenerator do
         %__MODULE__{
           config
           | listeners: [listener_tmpl | config.listeners],
+            filter_chains: [filter_chain_tmpl | config.filter_chains],
+            source_ip_ranges: [source_ip_ranges | config.source_ip_ranges],
             vhosts: [vhost_tmpl | config.vhosts],
             routes: [route_tmpl | config.routes],
             route_configurations: [route_configuration_tmpl | config.route_configurations],
@@ -71,6 +77,8 @@ defmodule ProxyConf.ConfigGenerator do
 
   defp generate(%__MODULE__{
          listeners: listeners,
+         filter_chains: filter_chains,
+         source_ip_ranges: source_ip_ranges,
          clusters: clusters,
          vhosts: vhosts,
          routes: routes,
@@ -89,11 +97,14 @@ defmodule ProxyConf.ConfigGenerator do
          Map.put(routes_acc, unifier, List.flatten(routes) |> Enum.uniq())}
       end)
 
-    downstream_tls_by_listener =
-      Enum.group_by(downstream_tls, fn {unifier, _} -> unifier end, fn {_,
-                                                                        downstream_tls_config_fn} ->
-        downstream_tls_config_fn.()
-      end)
+    downstream_tls_by_vhost =
+      Enum.group_by(
+        downstream_tls,
+        fn {unifier, _} -> unifier end,
+        fn {_, downstream_tls_config_fn} ->
+          downstream_tls_config_fn.()
+        end
+      )
       |> Enum.reduce(%{}, fn {unifier, downstream_tls}, acc ->
         Map.put(
           acc,
@@ -102,55 +113,92 @@ defmodule ProxyConf.ConfigGenerator do
         )
       end)
 
-    downstream_tls =
-      Enum.reduce(downstream_tls_by_listener, %{}, fn {_, tls_certs}, acc ->
-        Enum.reduce(tls_certs, acc, fn %{"name" => name} = tls_cert, acc ->
-          Map.put(acc, name, tls_cert)
-        end)
-      end)
-      |> Map.values()
-
     downstream_auth =
-      Enum.group_by(downstream_auth, fn {unifier, _} -> unifier end, fn {_,
-                                                                         downstream_auth_config_fn} ->
-        downstream_auth_config_fn.()
-      end)
+      Enum.group_by(
+        downstream_auth,
+        fn {unifier, _} -> unifier end,
+        fn {_, downstream_auth_config_fn} ->
+          downstream_auth_config_fn.()
+        end
+      )
 
     vhosts =
-      Enum.group_by(vhosts, fn {unifier, _} -> unifier.listener end, fn {unifier, vhost_tmpl_fn} ->
-        vhost_tmpl_fn.(Map.fetch!(routes, unifier))
+      Map.new(vhosts, fn {unifier, vhost_tmpl_fn} ->
+        {unifier, vhost_tmpl_fn.(Map.fetch!(routes, unifier))}
       end)
-      |> Enum.reduce(%{}, fn {unifier, vhosts}, acc ->
-        Map.put(acc, unifier, List.flatten(vhosts) |> Enum.uniq())
+
+    vhosts_for_listeners =
+      Enum.group_by(vhosts, fn {unifier, _} -> unifier.listener end, fn {_, vhost} -> vhost end)
+      |> Enum.reduce(%{}, fn {listener_unifier, vhosts}, acc ->
+        Map.put(acc, listener_unifier, List.flatten(vhosts) |> Enum.uniq())
       end)
 
     route_configurations =
       Enum.group_by(route_configurations, fn {unifier, _} -> unifier.listener end, fn
         {unifier, route_configuration_tmpl_fn} ->
-          route_configuration_tmpl_fn.(Map.fetch!(vhosts, unifier.listener))
+          route_configuration_tmpl_fn.(
+            unifier.host,
+            unifier.listener,
+            Map.fetch!(vhosts, unifier)
+          )
       end)
       |> Enum.flat_map(fn {_, route_configurations} ->
-        List.flatten(route_configurations)
+        route_configurations
       end)
       |> Enum.uniq()
 
-    {listeners, downstream_auth_clusters} =
+    source_ip_ranges =
+      Enum.group_by(source_ip_ranges, fn {unifier, _} -> unifier end, fn {_, source_ip_ranges} ->
+        source_ip_ranges
+      end)
+      |> Map.new(fn {unifier, source_ip_ranges} ->
+        {unifier, List.flatten(source_ip_ranges) |> Enum.uniq()}
+      end)
+
+    {filter_chains_by_listener, downstream_auth_clusters} =
+      Enum.group_by(
+        filter_chains,
+        fn {unifier, _} -> unifier end,
+        fn {unifier, filter_chain_tmpl_fn} ->
+          Map.fetch!(vhosts_for_listeners, unifier.listener)
+          |> Enum.map(fn vhost ->
+            filter_chain_tmpl_fn.(
+              vhost,
+              Map.fetch!(source_ip_ranges, unifier),
+              Map.fetch!(downstream_auth, unifier),
+              Map.fetch!(downstream_tls_by_vhost, unifier)
+            )
+          end)
+        end
+      )
+      |> Enum.reduce({%{}, []}, fn {unifier, filter_chains},
+                                   {acc_filter_chains, acc_downstream_auth_clusters} ->
+        {filter_chains, downstream_auth_clusters} =
+          List.flatten(filter_chains) |> Enum.uniq() |> Enum.unzip()
+
+        {Map.update(acc_filter_chains, unifier.listener, filter_chains, fn v ->
+           [v | filter_chains]
+         end), [downstream_auth_clusters | acc_downstream_auth_clusters]}
+      end)
+
+    listeners =
       Enum.group_by(
         listeners,
         fn {unifier, _} -> unifier end,
         fn {unifier, listener_tmpl_fn} ->
           listener_tmpl_fn.(
-            Map.fetch!(vhosts, unifier),
-            Map.fetch!(downstream_auth, unifier),
-            Map.fetch!(downstream_tls_by_listener, unifier)
+            Map.fetch!(filter_chains_by_listener, unifier)
+            |> List.flatten()
+            |> Enum.uniq_by(fn %{"filter_chain_match" => m} -> m end)
           )
         end
       )
-      |> Enum.flat_map(fn {_, listeners} -> listeners end)
+      |> Enum.flat_map(fn {_, listeners} ->
+        List.flatten(listeners)
+      end)
       |> Enum.uniq()
-      |> Enum.unzip()
 
-    downstream_auth_clusters = List.flatten(downstream_auth_clusters)
+    downstream_auth_clusters = List.flatten(downstream_auth_clusters) |> Enum.uniq()
 
     clusters =
       Enum.group_by(clusters, fn {unifier, _} -> unifier end, fn {unifier, cluster_tmpl_fn} ->
@@ -164,7 +212,7 @@ defmodule ProxyConf.ConfigGenerator do
        clusters: clusters ++ downstream_auth_clusters,
        listeners: listeners,
        route_configurations: route_configurations,
-       downstream_tls: downstream_tls
+       downstream_tls: Map.values(downstream_tls_by_vhost) |> List.flatten() |> Enum.uniq()
      }}
   end
 end

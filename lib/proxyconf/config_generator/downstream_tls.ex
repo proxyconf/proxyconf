@@ -3,37 +3,24 @@ defmodule ProxyConf.ConfigGenerator.DownstreamTls do
   alias ProxyConf.LocalCA
 
   def from_spec_gen(%Spec{
-        api_url: %URI{scheme: "https"} = api_url
+        api_url: %URI{scheme: "https", host: host} = api_url
       }) do
-    splitted_host = String.split(api_url.host, ".")
-
-    {hostnames, _} =
-      Enum.map_reduce(splitted_host, splitted_host, fn
-        _, [_ | host_acc] = host when length(host_acc) > 1 ->
-          {Enum.join(host, "."), host_acc}
-
-        _, host ->
-          {Enum.join(host, "."), []}
-      end)
-
     fn ->
-      Enum.flat_map(hostnames, fn hostname ->
-        {crt, key} = LocalCA.server_cert(hostname).()
+      {crt, key} = LocalCA.server_cert(host).()
 
-        [
-          %{
-            "name" => hostname,
-            "tls_certificate" => %{
-              "private_key" => %{
-                "inline_string" => key
-              },
-              "certificate_chain" => %{
-                "inline_string" => crt
-              }
+      [
+        %{
+          "name" => host,
+          "tls_certificate" => %{
+            "private_key" => %{
+              "inline_string" => key
+            },
+            "certificate_chain" => %{
+              "inline_string" => crt
             }
           }
-        ]
-      end)
+        }
+      ]
     end
   end
 

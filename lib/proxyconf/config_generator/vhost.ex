@@ -8,15 +8,23 @@ defmodule ProxyConf.ConfigGenerator.VHost do
   })
 
   def from_spec_gen(spec) do
-    host = spec.api_url.host
+    [host | _] = server_names = to_server_names(spec.api_url)
 
     fn routes ->
       %{
         name: host,
-        domains: [host],
+        domains: server_names,
         routes: routes
       }
       |> eval()
     end
+  end
+
+  def server_names(%{"domains" => domains}) do
+    domains
+  end
+
+  defp to_server_names(%URI{host: host, port: port}) do
+    [host, "#{host}:#{port}"]
   end
 end
