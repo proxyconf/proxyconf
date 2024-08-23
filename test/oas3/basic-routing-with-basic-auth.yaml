@@ -1,9 +1,10 @@
 x-proxyconf-downstream-auth:
   auth_type: basic
   config:
-    hashes:
-      # echo "myuser:mysecret" | md5sum
-      - c1380f318aa8d769323574b15d84986d
+    clients:
+      myUser:
+        # echo "myuser:mysecret" | md5sum
+        - c1380f318aa8d769323574b15d84986d
   
 servers:
   - url: http://127.0.0.1:8088

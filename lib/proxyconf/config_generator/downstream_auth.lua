@@ -36,9 +36,9 @@ local function validate_hash(value, hashes)
   if type(value) == "string" then
     local hash = md5.sumhexa(value)
     print("hash", hash)
-    local client = hashes[hash]
-    if client ~= nil and client.allow then
-      return client
+    local entry = hashes[hash]
+    if entry ~= nil and entry.client_id then
+      return entry.client_id
     end
     return nil
   end
@@ -75,24 +75,24 @@ function envoy_on_request(request_handle)
 
   local hashes = Config[to_key(api_id, auth_type, auth_field_name)]
   if hashes then
-    local client = nil
+    local client_id = nil
     if auth_type == "header" then
       local header = request_handle:headers():get(auth_field_name)
-      client = validate_hash(header, hashes)
+      client_id = validate_hash(header, hashes)
     elseif auth_type == "query" then
       local path = request_handle:headers():get(":path")
       local query_param = get_query_parameter(path, auth_field_name)
-      client = validate_hash(query_param, hashes)
+      client_id = validate_hash(query_param, hashes)
     elseif auth_type == "basic" then
       local header = request_handle:headers():get(auth_field_name)
       local auth_scheme, encoded_credentials = header:match("^%s*(%S+)%s+(%S+)$")
       if auth_scheme == "Basic" or auth_scheme == "basic" then
         local basic_auth_credentials = base64_decode(encoded_credentials)
-        client = validate_hash(basic_auth_credentials, hashes)
+        client_id = validate_hash(basic_auth_credentials, hashes)
       end
     end
-    if client ~= nil then
-      request_handle:streamInfo():dynamicMetadata():set("proxyconf.downstream_auth", "client_id", client.id)
+    if client_id ~= nil then
+      request_handle:streamInfo():dynamicMetadata():set("proxyconf.downstream_auth", "client_id", client_id)
       request_handle:streamInfo():dynamicMetadata():set("proxyconf.downstream_auth", "status", "success")
       request_handle:logInfo(
         string.format(
@@ -100,7 +100,7 @@ function envoy_on_request(request_handle)
           auth_type,
           auth_field_name,
           api_id,
-          client.id
+          client_id
         )
       )
       -- auth success
@@ -108,7 +108,8 @@ function envoy_on_request(request_handle)
     else
       -- auth failed
       request_handle:streamInfo():dynamicMetadata():set("proxyconf.downstream_auth", "status", "failed")
-      request_handle:respond({ [":status"] = "403" }, "Forbidden")
+      -- no local response, let rbac do it
+      --request_handle:respond({ [":status"] = "403" }, "Forbidden")
       request_handle:logInfo(
         string.format("Downstream authentication (%s:%s) failed for API %s", auth_type, auth_field_name, api_id)
       )

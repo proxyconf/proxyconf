@@ -14,6 +14,7 @@ defmodule ProxyConf.TestSupport.Oidc do
         "x-proxyconf-downstream-auth" => %{
           "auth_type" => "jwt",
           "config" => %{
+            # issuer is ignored, this allows to check wrong issuer validation failure
             "issuer" => _issuer,
             "audiences" => audiences,
             "remote_jwks" => %{"http_uri" => %{"uri" => jwks_uri}}
@@ -38,6 +39,12 @@ defmodule ProxyConf.TestSupport.Oidc do
       Plug.Conn.put_resp_header(conn, "Content-Type", "application/json")
       |> Plug.Conn.resp(200, Jason.encode!(jwks))
     end)
+
+    # audiences with a -wrong suffix are used by the tests to check wrong audiences
+    audiences =
+      Enum.map(audiences, fn aud ->
+        String.replace_suffix(aud, "-wrong", "")
+      end)
 
     JWT.generate_and_sign(
       %{"iss" => @issuer, "aud" => List.first(audiences)},

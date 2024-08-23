@@ -1,9 +1,9 @@
 x-proxyconf-downstream-auth:
   auth_type: jwt
   config:
-    issuer: proxyconf-exunit
+    issuer: proxyconf-invalid-exunit
     audiences: 
-      - exunit-wrong
+      - exunit
     remote_jwks:
       http_uri:
         uri: http://127.0.0.1:18888/.well-known/jwks.json
@@ -18,10 +18,11 @@ paths:
   /test:
     get:
       responses:
-        '403':
+        '401':
           content:
             text/plain:
               examples:
-                - 'Audiences in Jwt are not allowed'
+                - 'Jwt issuer is not configured'
+
 
 

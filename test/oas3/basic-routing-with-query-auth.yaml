@@ -2,9 +2,10 @@ x-proxyconf-downstream-auth:
   auth_type: query
   config:
     name: my-api-key
-    hashes:
-      # md5sum of supersecret
-      - 9a618248b64db62d15b300a07b00580b
+    clients:
+      testUser:
+        # md5sum of supersecret
+        - 9a618248b64db62d15b300a07b00580b
   
 servers:
   - url: http://127.0.0.1:8088

@@ -16,8 +16,8 @@ defmodule ProxyConf.RoutingTest do
         # can happen if it is the first test
         assert true
 
-      %Finch.Response{status: 404}, prop ->
-        assert prop.status in ["404"]
+      %Finch.Response{status: 403}, prop ->
+        assert prop.status in ["403"]
     end
   end
 
@@ -30,8 +30,8 @@ defmodule ProxyConf.RoutingTest do
         # can happen if it is the first test
         assert true
 
-      %Finch.Response{status: 404}, prop ->
-        assert prop.status in ["404"]
+      %Finch.Response{status: 403}, prop ->
+        assert prop.status in ["403"]
     end
   end
 end
