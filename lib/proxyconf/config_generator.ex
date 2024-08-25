@@ -38,7 +38,7 @@ defmodule ProxyConf.ConfigGenerator do
         downstream_tls_tmpl = DownstreamTls.from_spec_gen(spec) |> add_unifier(vhost_unifier)
         downstream_auth_tmpl = DownstreamAuth.from_spec_gen(spec) |> add_unifier(vhost_unifier)
         vhost_tmpl = VHost.from_spec_gen(spec) |> add_unifier(vhost_unifier)
-        source_ip_ranges = spec.listener_allowed_subnets |> add_unifier(vhost_unifier)
+        source_ip_ranges = spec.allowed_source_ips |> add_unifier(vhost_unifier)
         route_tmpl = Route.from_spec_gen(spec) |> add_unifier(vhost_unifier)
 
         route_configuration_tmpl =

@@ -38,7 +38,7 @@ defmodule ProxyConf.MixProject do
       {:yaml_elixir, "~> 2.9"},
       {:deep_merge, "~> 1.0"},
       {:file_system, "~> 1.0"},
-      {:proxyconf_validator, path: "../proxyconf_validator", optional: true},
+      #      {:proxyconf_validator, path: "../proxyconf_validator", optional: true},
       {:x509, "~> 0.8.9"},
       {:finch, "~> 0.18.0", only: :test},
       {:bypass, "~> 2.1", only: :test},

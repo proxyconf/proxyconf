@@ -11,27 +11,34 @@ defmodule ProxyConf.ConfigCache do
   @route_configuration "type.googleapis.com/envoy.config.route.v3.RouteConfiguration"
 
   @spec_table :config_cache_tbl_specs
+  @resources_table :config_cache_tbl_resources
   @valid_oas3_file_extensions [".json", ".yaml", ".yml"]
   @oas3_0_schema File.read!("priv/schemas/oas3_0.json") |> Jason.decode!() |> JsonXema.new()
   @oas3_1_schema File.read!("priv/schemas/oas3_1.json") |> Jason.decode!() |> JsonXema.new()
 
   def start_link(_args) do
     :ets.new(@spec_table, [:public, :named_table])
+    :ets.new(@resources_table, [:public, :named_table])
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
   # only used for testing
   def load_external_spec(spec_name, spec) do
-    GenServer.call(__MODULE__, {:load_external_spec, spec_name, spec})
-    wait_until_in_sync()
+    case GenServer.call(__MODULE__, {:load_external_spec, spec_name, spec}) do
+      {:ok, cluster_id} ->
+        wait_until_in_sync(cluster_id)
+
+      error ->
+        error
+    end
   end
 
-  def wait_until_in_sync do
-    if GenServer.call(__MODULE__, :in_sync?) do
+  defp wait_until_in_sync(cluster_id) do
+    if ProxyConf.Stream.in_sync(cluster_id) do
       :ok
     else
       Process.sleep(100)
-      wait_until_in_sync()
+      wait_until_in_sync(cluster_id)
     end
   end
 
@@ -44,9 +51,6 @@ defmodule ProxyConf.ConfigCache do
     {:ok,
      %{
        streams: %{},
-       version: 0,
-       resources: %{},
-       waiting_acks: %{},
        tref: nil,
        config_directories: config_directories
      }}
@@ -96,40 +100,11 @@ defmodule ProxyConf.ConfigCache do
         cluster: cluster_id,
         message: "Changed specs #{Enum.join(changed_files, ", ")}"
       )
+
+      cache_notify_resources(cluster_id, changed_files)
     end)
 
-    new_version =
-      if map_size(changes) > 0 do
-        state.version + 1
-      else
-        state.version
-      end
-
-    state =
-      Enum.reduce(changes, state, fn {cluster_id, changed_files}, state_acc ->
-        case resources(cluster_id, new_version, changed_files) do
-          {:ok, resources_for_cluster} ->
-            {streams, waiting_acks} =
-              reply_resources(
-                state.streams,
-                cluster_id,
-                Map.get(state_acc.resources, cluster_id, %{}),
-                resources_for_cluster
-              )
-
-            %{
-              state_acc
-              | streams: streams,
-                resources: Map.put(state_acc.resources, cluster_id, resources_for_cluster),
-                waiting_acks: Map.merge(state.waiting_acks, waiting_acks)
-            }
-
-          :error ->
-            state_acc
-        end
-      end)
-
-    {:noreply, %{state | tref: nil, version: new_version}}
+    {:noreply, %{state | tref: nil}}
   end
 
   def handle_call({:load_external_spec, spec_name, spec}, _from, state)
@@ -143,26 +118,10 @@ defmodule ProxyConf.ConfigCache do
     case validate_spec(spec_name, spec, :erlang.term_to_binary(spec)) do
       {:ok, %Spec{} = spec} ->
         insert_validated_spec(spec)
-        new_version = state.version + 1
 
-        case resources(spec.cluster_id, new_version, %{spec_name => :external}) do
-          {:ok, resources_for_cluster} ->
-            {streams, waiting_acks} =
-              reply_resources(
-                state.streams,
-                spec.cluster_id,
-                Map.get(state.resources, spec.cluster_id, %{}),
-                resources_for_cluster
-              )
-
-            {:reply, :ok,
-             %{
-               state
-               | streams: streams,
-                 resources: Map.put(state.resources, spec.cluster_id, resources_for_cluster),
-                 waiting_acks: Map.merge(state.waiting_acks, waiting_acks),
-                 version: new_version
-             }}
+        case cache_notify_resources(spec.cluster_id, %{spec_name => :external}) do
+          :ok ->
+            {:reply, {:ok, spec.cluster_id}, state}
 
           :error ->
             {:reply, :cant_load_spec, state}
@@ -172,94 +131,6 @@ defmodule ProxyConf.ConfigCache do
         Logger.error("Can't load external spec #{spec_name} due to #{inspect(error)}")
         {:reply, error, state}
     end
-  end
-
-  def handle_call(:in_sync?, _from, state) do
-    {:reply, map_size(state.waiting_acks), state}
-  end
-
-  def handle_call({:subscribe_stream, node_info, stream, type_url, version}, _from, state) do
-    stream_config_key = {node_info, type_url}
-
-    state =
-      case Map.get(state.streams, stream_config_key) do
-        %{stream: ^stream, version: ^version} ->
-          # nothing to do
-          Logger.debug(
-            cluster: node_info.cluster,
-            message: "#{type_url} Acked version by #{node_info.node_id} version #{version}"
-          )
-
-          waiting_acks =
-            case Map.get(state.waiting_acks, stream_config_key, version) do
-              other when other > version -> state.waiting_acks
-              _ -> Map.delete(state.waiting_acks, stream_config_key)
-            end
-
-          %{state | waiting_acks: waiting_acks}
-
-        %{stream: ^stream} ->
-          Logger.info(
-            cluster: node_info.cluster,
-            message:
-              "#{type_url} Duplicated subscribe from #{node_info.node_id} version #{version}"
-          )
-
-          state
-
-        %{version: old_version} when version == 0 ->
-          Logger.info(
-            cluster: node_info.cluster,
-            message:
-              "#{type_url} Reconnect #{node_info.node_id} with previous version #{old_version}"
-          )
-
-          stream_config = %{stream: stream, version: old_version}
-
-          {streams, waiting_acks} =
-            reply_resources(
-              %{{node_info, type_url} => stream_config},
-              node_info.cluster,
-              %{},
-              Map.get(state.resources, node_info.cluster, %{})
-            )
-
-          %{
-            state
-            | streams: Map.merge(state.streams, streams),
-              waiting_acks: Map.merge(state.waiting_acks, waiting_acks)
-          }
-
-        nil ->
-          # new node
-
-          Logger.info(
-            cluster: node_info.cluster,
-            message: "#{type_url} Added node #{node_info.node_id}"
-          )
-
-          stream_config = %{stream: stream, version: 0}
-
-          if map_size(state.resources) > 0 do
-            {streams, waiting_acks} =
-              reply_resources(
-                %{{node_info, type_url} => stream_config},
-                node_info.cluster,
-                %{},
-                Map.get(state.resources, node_info.cluster, %{})
-              )
-
-            %{
-              state
-              | streams: Map.merge(state.streams, streams),
-                waiting_acks: Map.merge(state.waiting_acks, waiting_acks)
-            }
-          else
-            %{state | streams: Map.put(state.streams, {node_info, type_url}, stream_config)}
-          end
-      end
-
-    {:reply, :ok, state}
   end
 
   defp insert_validated_spec(%Spec{} = spec, no_delete \\ false) do
@@ -388,84 +259,13 @@ defmodule ProxyConf.ConfigCache do
     end
   end
 
-  def reply_resources(streams, cluster_id, old_resources_for_cluster, resources_for_cluster) do
-    {streams, waiting_acks} =
-      Enum.map_reduce(streams, [], fn {{node_info, type_url} = stream_config_key,
-                                       %{stream: stream, version: version} = stream_config},
-                                      waiting_acks ->
-        is_cluster_member = node_info.cluster == cluster_id
-
-        old_resources_for_type = Map.get(old_resources_for_cluster, type_url)
-
-        case Map.get(resources_for_cluster, type_url) do
-          ^old_resources_for_type ->
-            Logger.debug(cluster: cluster_id, message: "No changes for type #{type_url}")
-
-            {{stream_config_key, stream_config}, waiting_acks}
-
-          nil when is_cluster_member ->
-            Logger.warning(
-              cluster: cluster_id,
-              message: "Can't provide resources for type #{type_url}"
-            )
-
-            {{stream_config_key, stream_config}, waiting_acks}
-
-          resources_for_type when is_cluster_member ->
-            new_version = version + 1
-
-            {:ok, response} =
-              Protobuf.JSON.from_decoded(
-                %{
-                  "version_info" => "#{new_version}",
-                  "type_url" => type_url,
-                  "control_plane" => %{
-                    "identifier" => "#{node()}"
-                  },
-                  "resources" =>
-                    Enum.map(resources_for_type, fn r -> %{"@type" => type_url, "value" => r} end),
-                  "nonce" => nonce()
-                },
-                Envoy.Service.Discovery.V3.DiscoveryResponse
-              )
-
-            GRPC.Server.Stream.send_reply(stream, response, [])
-
-            Logger.debug(
-              cluster: node_info.cluster,
-              message: "#{type_url} Push new version #{new_version} to #{node_info.node_id}"
-            )
-
-            {{stream_config_key, %{stream_config | version: new_version}},
-             [{stream_config_key, "#{new_version}"} | waiting_acks]}
-
-          _ ->
-            {{stream_config_key, stream_config}, waiting_acks}
-        end
-      end)
-
-    {Map.new(streams), Map.new(waiting_acks)}
-  end
-
-  def nonce do
-    "#{node()}#{DateTime.utc_now() |> DateTime.to_unix(:nanosecond)}" |> Base.encode64()
-  end
-
   def add_spec(spec_file) do
     if File.exists?(spec_file) do
       GenServer.call(__MODULE__, {:add_spec, spec_file})
     end
   end
 
-  def subscribe_stream(node_info, stream, type_url, version) do
-    GenServer.call(
-      __MODULE__,
-      {:subscribe_stream, node_info, stream, type_url, version},
-      :infinity
-    )
-  end
-
-  defp resources(cluster_id, version, changed_files) do
+  defp cache_notify_resources(cluster_id, changed_files) do
     case ConfigGenerator.from_oas3_specs(cluster_id, changed_files) do
       {:ok, config} ->
         resources =
@@ -480,12 +280,23 @@ defmodule ProxyConf.ConfigCache do
             File.mkdir_p!("/tmp/proxyconf")
 
             File.write!(
-              "/tmp/proxyconf/#{cluster_id}-#{version}.config.json",
+              "/tmp/proxyconf/#{cluster_id}.config.json",
               Jason.encode!(config, pretty: true)
             )
           end)
 
-        {:ok, resources}
+        Enum.each(resources, fn {type, resources_for_type} ->
+          hash = :erlang.phash2(resources_for_type)
+
+          :ets.insert(
+            @resources_table,
+            {{cluster_id, type}, resources_for_type}
+          )
+
+          # not sending the resources to the stream pid, instead let the
+          # the stream process fetch the resources if required
+          ProxyConf.Stream.push_resource_changes(cluster_id, type, hash)
+        end)
 
       {:error, errored_files} ->
         Logger.warning(
@@ -494,6 +305,13 @@ defmodule ProxyConf.ConfigCache do
         )
 
         :error
+    end
+  end
+
+  def get_resources(cluster_id, type_url) do
+    case :ets.lookup(@resources_table, {cluster_id, type_url}) do
+      [] -> []
+      [{_, resources}] -> resources
     end
   end
 

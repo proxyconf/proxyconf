@@ -10,6 +10,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
     :auth_type,
     :auth_field_name,
     :clients,
+    :allowed_source_ips,
     :jwt_provider_config
   ])
 
@@ -19,6 +20,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
         api_id: spec.api_id,
         api_url: spec.api_url,
         auth_type: "disabled",
+        allowed_source_ips: spec.allowed_source_ips,
         clients: %{}
       }
       |> wrap_gen()
@@ -32,6 +34,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
           api_id: spec.api_id,
           api_url: spec.api_url,
           auth_type: "mtls",
+          allowed_source_ips: spec.allowed_source_ips,
           clients: clients
         }
         |> wrap_gen()
@@ -47,6 +50,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
           api_url: spec.api_url,
           auth_type: "basic",
           auth_field_name: "authorization",
+          allowed_source_ips: spec.allowed_source_ips,
           clients: clients
         }
         |> wrap_gen()
@@ -65,6 +69,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
           api_url: spec.api_url,
           auth_type: "header",
           auth_field_name: header_name,
+          allowed_source_ips: spec.allowed_source_ips,
           clients: clients
         }
         |> wrap_gen()
@@ -83,6 +88,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
           api_url: spec.api_url,
           auth_type: "query",
           auth_field_name: query_field_name,
+          allowed_source_ips: spec.allowed_source_ips,
           clients: clients
         }
         |> wrap_gen()
@@ -100,6 +106,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
           api_id: spec.api_id,
           api_url: spec.api_url,
           auth_type: "jwt",
+          allowed_source_ips: spec.allowed_source_ips,
           jwt_provider_config:
             jwt_provider_config |> Map.put("payload_in_metadata", "jwt_payload")
         }
@@ -155,8 +162,6 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
       Map.get(configs_by_auth_type, "basic", []) ++
         Map.get(configs_by_auth_type, "header", []) ++ Map.get(configs_by_auth_type, "query", [])
 
-    mtls_configs = Map.get(configs_by_auth_type, "mtls", [])
-
     rbac_filter = to_envoy_rbac_filter(configs)
 
     {jwt_filter, remote_jwks_clusters} = to_envoy_jwt_filter(jwt_configs)
@@ -164,6 +169,12 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
     lua_filter = to_lua_filter(lua_configs)
 
     {List.flatten([jwt_filter, lua_filter, rbac_filter]), Enum.uniq(remote_jwks_clusters)}
+  end
+
+  defp rbac_source_ip_principals(%__MODULE__{allowed_source_ips: allowed_source_ips}) do
+    Enum.map(allowed_source_ips, fn source_ip ->
+      %{"remote_ip" => source_ip}
+    end)
   end
 
   defp rbac_principals(%__MODULE__{auth_type: auth_type} = config)
@@ -187,7 +198,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
   defp rbac_principals(%__MODULE__{auth_type: auth_type} = config)
        when auth_type == "mtls" do
     # The name of the principal. If set, The URI SAN or DNS SAN in that order is used from the certificate, otherwise the subject field is used. If unset, it applies to any user that is authenticated.
-    Enum.flat_map(config.clients, fn {client_id, principal_names} ->
+    Enum.flat_map(config.clients, fn {_client_id, principal_names} ->
       Enum.map(principal_names, fn principal_name ->
         %{"authenticated" => %{"principal_name" => %{"exact" => principal_name}}}
       end)
@@ -235,7 +246,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
                  "permissions" => [
                    %{"url_path" => %{"path" => %{"prefix" => config.api_url.path}}}
                  ],
-                 "principals" => rbac_principals(config)
+                 "principals" => rbac_principals(config) ++ rbac_source_ip_principals(config)
                }}
             end)
         }

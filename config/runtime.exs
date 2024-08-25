@@ -4,17 +4,17 @@ downstream_tls_path = System.get_env("PROXYCONF_SERVER_DOWNSTREAM_TLS_PATH", "/t
 
 config :proxyconf,
   config_directories:
-    System.get_env("PROXYCONF_CONFIG_DIRS", "") |> String.split(",", trim: true),
+    System.get_env("PROXYCONF_CONFIG_DIRS", "test/oas3") |> String.split(",", trim: true),
   grpc_endpoint_port:
     System.get_env("PROXYCONF_GRPC_ENDPOINT_PORT", "18000") |> String.to_integer(),
-  config_extensions:
-    System.get_env("PROXYCONF_CONFIG_EXTENSIONS", "Elixir.ProxyConfValidator.Store")
-    |> String.split(",", trim: true)
-    |> Enum.map(fn module -> {String.to_atom(module), :config_extension} end),
-  external_spec_handlers:
-    System.get_env("PROXYCONF_EXTERNAL_SPEC_HANDLERS", "Elixir.ProxyConfValidator.Store")
-    |> String.split(",", trim: true)
-    |> Enum.map(fn module -> {String.to_atom(module), :handle_spec} end),
+  #  config_extensions:
+  #    System.get_env("PROXYCONF_CONFIG_EXTENSIONS", "Elixir.ProxyConfValidator.Store")
+  #    |> String.split(",", trim: true)
+  #    |> Enum.map(fn module -> {String.to_atom(module), :config_extension} end),
+  #  external_spec_handlers:
+  #    System.get_env("PROXYCONF_EXTERNAL_SPEC_HANDLERS", "Elixir.ProxyConfValidator.Store")
+  #    |> String.split(",", trim: true)
+  #    |> Enum.map(fn module -> {String.to_atom(module), :handle_spec} end),
   ca_certificate:
     System.get_env("PROXYCONF_CA_CERTIFICATE", Path.join(downstream_tls_path, "ca-cert.pem")),
   ca_private_key:
@@ -34,7 +34,7 @@ config :proxyconf,
     ),
   downstream_tls_path: downstream_tls_path
 
-config :proxyconf_validator,
-  http_endpoint_name: System.get_env("PROXYCONF_VALIDATOR_HTTP_ENDPOINT_NAME", "localhost"),
-  http_endpoint_port:
-    System.get_env("PROXYCONF_VALIDATOR_HTTP_ENDPOINT_PORT", "19000") |> String.to_integer()
+# config :proxyconf_validator,
+#  http_endpoint_name: System.get_env("PROXYCONF_VALIDATOR_HTTP_ENDPOINT_NAME", "localhost"),
+#  http_endpoint_port:
+#    System.get_env("PROXYCONF_VALIDATOR_HTTP_ENDPOINT_PORT", "19000") |> String.to_integer()

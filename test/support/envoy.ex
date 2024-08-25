@@ -92,8 +92,10 @@ defmodule ProxyConf.TestSupport.Envoy do
     File.write!(config_file, envoy_config)
     base_id = config.admin_port
 
+    envoy_bin = System.get_env("ENVOY_BIN", "envoy")
+
     port =
-      Port.open({:spawn_executable, "envoy-contrib"},
+      Port.open({:spawn_executable, envoy_bin},
         args: [
           "-c",
           "#{config_file}",

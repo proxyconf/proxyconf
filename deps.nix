@@ -11,18 +11,19 @@ let
 
       workarounds = { };
 
-      applyOverrides =
-        appName: drv:
+      applyOverrides = appName: drv:
         let
           allOverridesForApp = builtins.foldl'
-            (
-              acc: workaround: acc // workarounds.${workaround} drv
-            )
+            (acc: workaround: acc // workarounds.${workaround} drv)
             { }
             apps.${appName};
 
         in
-        if builtins.hasAttr appName apps then drv.override allOverridesForApp else drv;
+        if builtins.hasAttr appName apps
+        then
+          drv.override allOverridesForApp
+        else
+          drv;
 
     in
     builtins.mapAttrs applyOverrides prev);
@@ -138,21 +139,6 @@ let
           inherit version;
           pkg = "file_system";
           sha256 = "4414d1f38863ddf9120720cd976fce5bdde8e91d8283353f0e31850fa89feb9e";
-        };
-      };
-
-    floki =
-      let
-        version = "0.36.2";
-      in
-      buildMix {
-        inherit version;
-        name = "floki";
-
-        src = fetchHex {
-          inherit version;
-          pkg = "floki";
-          sha256 = "a8766c0bc92f074e5cb36c4f9961982eda84c5d2b8e979ca67f5c268ec8ed580";
         };
       };
 

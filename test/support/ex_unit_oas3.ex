@@ -147,7 +147,10 @@ defmodule ProxyConf.TestSupport.Oas3Case do
       "x-proxyconf-api-url" => "#{ctx.http_schema}://localhost:#{ctx.listener_port}/#{api_id}",
       "x-proxyconf-id" => api_id,
       "x-proxyconf-cluster-id" => ctx.cluster_id,
-      "x-proxyconf-listener" => %{"address" => "127.0.0.1", "port" => ctx.listener_port}
+      "x-proxyconf-listener" => %{
+        "address" => "127.0.0.1",
+        "port" => ctx.listener_port
+      }
     }
 
     {:ok, %ProxyConf.Spec{spec: %{"servers" => servers} = spec}} =

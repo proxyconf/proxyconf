@@ -46,7 +46,7 @@ defmodule ProxyConf.AggregatedDiscoveryServiceServer do
         end
       end
 
-    ConfigCache.subscribe_stream(node_info, stream, type_url, version)
+    ProxyConf.Stream.event(stream, node_info, type_url, version)
   end
 
   def nonce do

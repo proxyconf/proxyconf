@@ -12,6 +12,8 @@ mkShell {
     # `mix local.hex` will install hex into MIX_HOME and should take precedence
     export MIX_PATH="${pkgs.beam.packages.erlang.hex}/lib/erlang/lib/hex/ebin"
     export PATH=$MIX_HOME/bin:$HEX_HOME/bin:$PATH
+    mix local.hex --force
+    mix local.rebar --force
     export LANG=C.UTF-8
     # keep your shell history in iex
     export ERL_AFLAGS="-kernel shell_history enabled"
@@ -29,7 +31,9 @@ mkShell {
     export ENV_VAR="your_env_var"
   '';
   buildInputs = [
+    elixir_ls
     elixir
+    envoy
     nixpkgs-fmt
 
   ];

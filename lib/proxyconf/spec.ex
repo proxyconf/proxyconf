@@ -9,7 +9,7 @@ defmodule ProxyConf.Spec do
     :api_id,
     :listener_address,
     :listener_port,
-    :listener_allowed_subnets,
+    :allowed_source_ips,
     :downstream_auth,
     :spec,
     type: :oas3
@@ -47,9 +47,9 @@ defmodule ProxyConf.Spec do
            Map.get(listener, "port", Application.get_env(:proxyconf, :default_api_port, 8080)),
          {_, true} <- {:invalid_api_listener_port, is_integer(port)},
          {_, true} <- {:listener_port_does_not_match_api_url, port == api_url.port},
-         {allowed_subnets, parse_result} <-
-           Map.get(listener, "allowed_subnets", ["127.0.0.1/32"]) |> to_cidrs(),
-         {_, true} <- {:invalid_allowed_subnets, parse_result},
+         {allowed_source_ips, parse_result} <-
+           Map.get(listener, "allowed_source_ips", ["127.0.0.1/32"]) |> to_cidrs(),
+         {_, true} <- {:invalid_allowed_source_ips, parse_result},
          # downstream auth is validated in it's own module
          downstream_auth <- Map.get(spec, "x-proxyconf-downstream-auth") do
       {:ok,
@@ -61,7 +61,7 @@ defmodule ProxyConf.Spec do
          api_id: api_id,
          listener_address: address,
          listener_port: port,
-         listener_allowed_subnets: allowed_subnets,
+         allowed_source_ips: allowed_source_ips,
          downstream_auth: downstream_auth,
          spec: spec
        }}
@@ -86,7 +86,7 @@ defmodule ProxyConf.Spec do
           {%{"address_prefix" => address_prefix, "prefix_len" => prefix_length}, true}
         else
           _ ->
-            Logger.warning("Invalid CIDR range in 'allowed_subnets' configuration #{subnet}")
+            Logger.warning("Invalid CIDR range in 'allowed_source_ips' configuration #{subnet}")
             {nil, false}
         end
     end)
