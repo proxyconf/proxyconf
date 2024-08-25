@@ -58,7 +58,7 @@ defmodule ProxyConf.Stream do
            %{in_sync: false}
          ) do
       {:ok, _pid} ->
-        link_grpc_stream_pid(grpc_stream)
+        monitor_grpc_stream_pid(grpc_stream)
 
         {:ok,
          %{
@@ -108,9 +108,13 @@ defmodule ProxyConf.Stream do
     end
   end
 
-  defp link_grpc_stream_pid(%GRPC.Server.Stream{payload: %{pid: pid}}) do
-    # ensure we go down if grpc proc terminates
-    Process.link(pid)
+  def handle_info({:DOWN, _mref, :process, _pid, reason}, state) do
+    Logger.debug(cluster: state.node_info.cluster, message: "GRPC stream for type #{state.type_url} terminated due to #{inspect(reason)}")
+    {:stop, :normal, state}
+  end
+
+  defp monitor_grpc_stream_pid(%GRPC.Server.Stream{payload: %{pid: pid}}) do
+    Process.monitor(pid)
   end
 
   defp maybe_push_resources(state) do
