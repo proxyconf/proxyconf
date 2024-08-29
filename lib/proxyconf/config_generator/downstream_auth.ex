@@ -192,7 +192,15 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
 
   defp rbac_principals(%__MODULE__{auth_type: auth_type} = _config)
        when auth_type == "disabled" do
-    [%{"any" => true}]
+    [
+      %{
+        "metadata" => %{
+          "filter" => "proxyconf.downstream_auth",
+          "path" => [%{"key" => "status"}],
+          "value" => %{"string_match" => %{"exact" => "noauth"}}
+        }
+      }
+    ]
   end
 
   defp rbac_principals(%__MODULE__{auth_type: auth_type} = config)

@@ -27,11 +27,8 @@ defmodule ProxyConf.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:deps_nix, "~> 0.0", only: :dev},
       {:envoy_xds, git: "https://github.com/proxyconf/envoy_xds_ex.git"},
       {:json_xema, "~> 0.6.2"},
-      # {:jsonpatch, "~> 2.2"},
-      # {:elixir_map_to_xml, "~> 0.1.0"},
       {:plug, "~> 1.16"},
       {:plug_cowboy, "~> 2.7"},
       {:jason, "~> 1.4"},
@@ -43,16 +40,12 @@ defmodule ProxyConf.MixProject do
       {:finch, "~> 0.18.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
       {:joken, "~> 2.6", only: :test}
-      # {:dep_from_hexpm, "~> 0.3.0"},
-      # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]
   end
 
   defp aliases do
     [
-      test: "test --no-start",
-      "deps.get": ["deps.get", "deps.nix"],
-      "deps.update": ["deps.update", "deps.nix"]
+      test: "test --no-start"
     ]
   end
 

@@ -27,15 +27,18 @@ defmodule ProxyConf.Stream do
        [:"$3"]}
     ])
     |> Enum.each(fn pid ->
-      Process.send(pid, {:push_resource_changes, hash}, [])
+      GenServer.call(pid, {:push_resource_changes, hash})
     end)
   end
 
   def in_sync(cluster_id) do
-    Registry.count_select(ProxyConf.StreamRegistry, [
-      {{{:_, :"$1", :_}, :_, %{in_sync: :"$2"}}, [{:==, :"$1", cluster_id}, {:==, :"$2", false}],
-       [true]}
-    ]) == 0
+    num_unsynchronized_streams =
+      Registry.count_select(ProxyConf.StreamRegistry, [
+        {{{:_, :"$1", :_}, :_, %{in_sync: :"$2"}},
+         [{:==, :"$1", cluster_id}, {:==, :"$2", false}], [true]}
+      ])
+
+    num_unsynchronized_streams == 0
   end
 
   def event(grpc_stream, node_info, type_url, version) do
@@ -75,7 +78,7 @@ defmodule ProxyConf.Stream do
     end
   end
 
-  def handle_call({:event, version}, _from, state) do
+  def handle_call({:event, version}, _from, %{waiting_ack: waiting_ack} = state) do
     node_info = state.node_info
 
     case state.version do
@@ -92,24 +95,34 @@ defmodule ProxyConf.Stream do
       nil ->
         # new node
         {:reply, :ok, maybe_push_resources(%{state | version: 0})}
+
+      _ when waiting_ack != nil and waiting_ack > version ->
+        # the last update wasn't acked, likely due to a configuration error
+        # reset version and waiting ack
+        old_version = version
+        {:reply, :ok, %{state | version: old_version, waiting_ack: nil}}
     end
   end
 
-  def handle_info({:push_resource_changes, hash}, state) do
+  def handle_call({:push_resource_changes, hash}, _from, state) do
     if state.hash != hash do
-      {:noreply, maybe_push_resources(%{state | hash: hash})}
+      {:reply, :ok, maybe_push_resources(%{state | hash: hash})}
     else
       Logger.debug(
         cluster: state.node_info.cluster,
         message: "No changes for type #{state.type_url}"
       )
 
-      {:noreply, state}
+      {:reply, :ok, state}
     end
   end
 
   def handle_info({:DOWN, _mref, :process, _pid, reason}, state) do
-    Logger.debug(cluster: state.node_info.cluster, message: "GRPC stream for type #{state.type_url} terminated due to #{inspect(reason)}")
+    Logger.debug(
+      cluster: state.node_info.cluster,
+      message: "GRPC stream for type #{state.type_url} terminated due to #{inspect(reason)}"
+    )
+
     {:stop, :normal, state}
   end
 

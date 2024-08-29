@@ -68,7 +68,7 @@ function envoy_on_request(request_handle)
   local auth_field_name = metadata:get("auth_field_name")
 
   if api_id == nil or auth_type == nil or auth_field_name == nil then
-    request_handle:logInfo(string.format("Downstream authentication disabled for API %s", "disables-api"))
+    request_handle:logInfo(string.format("Downstream authentication disabled for API %s", "disabled-auth"))
     request_handle:streamInfo():dynamicMetadata():set("proxyconf.downstream_auth", "status", "noauth")
     return
   end

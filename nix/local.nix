@@ -31,6 +31,7 @@ mkShell {
     export ENV_VAR="your_env_var"
   '';
   buildInputs = [
+    inotify-tools
     elixir_ls
     elixir
     envoy
