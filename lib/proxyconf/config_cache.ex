@@ -275,6 +275,7 @@ defmodule ProxyConf.ConfigCache do
             @route_configuration => config.route_configurations,
             @tls_secret => config.downstream_tls
           }
+          |> apply_static_patches()
           |> apply_config_extensions()
           |> tap(fn config ->
             File.mkdir_p!("/tmp/proxyconf")
@@ -313,6 +314,30 @@ defmodule ProxyConf.ConfigCache do
       [] -> []
       [{_, resources}] -> resources
     end
+  end
+
+  defp apply_static_patches(config) do
+    default_patches_dir = Path.join(:code.priv_dir(:proxyconf), "config-patches")
+    patches_dir = Application.get_env(:proxyconf, :config_patches, default_patches_dir)
+
+    Enum.reduce(config, config, fn {type, configs_for_type}, acc ->
+      patch_type = String.replace_prefix(type, "type.googleapis.com/", "")
+      patch_location = Path.join(patches_dir, patch_type <> ".json")
+
+      if File.exists?(patch_location) do
+        Logger.debug("patch exists #{patch_location}")
+        patch = File.read!(patch_location) |> Jason.decode!()
+
+        Map.put(
+          acc,
+          type,
+          MapPatch.patch(configs_for_type, patch)
+        )
+      else
+        Logger.debug("no patch exists #{patch_location}")
+        acc
+      end
+    end)
   end
 
   defp apply_config_extensions(config) do

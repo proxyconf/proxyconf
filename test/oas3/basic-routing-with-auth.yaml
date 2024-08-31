@@ -21,8 +21,7 @@ paths:
         '200':
           content:
             application/json:
-              examples:
-                - '{"hello":"world"}'
+              example: '{"hello":"world"}'
               schema:
                 type: object
 

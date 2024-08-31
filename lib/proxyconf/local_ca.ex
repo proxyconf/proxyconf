@@ -5,11 +5,11 @@ defmodule ProxyConf.LocalCA do
   @client_subject "/CN=ProxyConf client"
 
   @doc """
-    Setting up a self signed certificate authority. This isn't build for production usage.
+    Setting up a certificate authority. This isn't build for production usage.
   """
   def ca_setup do
-    ca_certificate = Application.get_env(:proxyconf, :ca_certificate)
-    ca_private_key = Application.get_env(:proxyconf, :ca_private_key)
+    ca_certificate = Application.fetch_env!(:proxyconf, :ca_certificate)
+    ca_private_key = Application.fetch_env!(:proxyconf, :ca_private_key)
 
     if not File.exists?(ca_certificate) or not File.exists?(ca_private_key) do
       File.mkdir_p!(Path.dirname(ca_certificate))
@@ -25,7 +25,7 @@ defmodule ProxyConf.LocalCA do
       File.chmod!(ca_private_key, 0o400)
 
       Logger.warning(
-        "created selfsigned issuer certificate (#{ca_certificate}) and private key (#{ca_private_key}), this only works in single node cluster setup"
+        "created selfsigned issuer certificate (#{ca_certificate}) and private key (#{ca_private_key}), unless the certificate and private key aren't made available to all other ProxyConf nodes, this only works in single node ProxyConf setup (NOT RECOMMENDED!)."
       )
     else
       Logger.info(
@@ -61,10 +61,9 @@ defmodule ProxyConf.LocalCA do
   end
 
   def cert_setup(subject, certificate, private_key) do
-    ca_certificate = Application.get_env(:proxyconf, :ca_certificate)
-    ca_private_key = Application.get_env(:proxyconf, :ca_private_key)
-
     if not File.exists?(certificate) or not File.exists?(private_key) do
+      ca_certificate = Application.get_env(:proxyconf, :ca_certificate)
+      ca_private_key = Application.get_env(:proxyconf, :ca_private_key)
       File.mkdir_p!(Path.dirname(certificate))
       File.mkdir_p!(Path.dirname(private_key))
 

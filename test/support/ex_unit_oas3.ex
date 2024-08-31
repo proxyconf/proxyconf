@@ -156,7 +156,7 @@ defmodule ProxyConf.TestSupport.Oas3Case do
     {:ok, %ProxyConf.Spec{spec: %{"servers" => servers} = spec}} =
       ProxyConf.ConfigCache.parse_spec_file(spec_file, overrides)
 
-    finch_name = String.to_atom("ProxyConfFinch#{:erlang.phash2(spec_file)}")
+    finch_name = String.to_atom("ProxyConfFinch#{:erlang.phash2({ctx.cluster_id, spec_file})}")
 
     {:ok, _pid} =
       Finch.start_link(
@@ -167,7 +167,20 @@ defmodule ProxyConf.TestSupport.Oas3Case do
           default: [
             conn_opts: [
               transport_opts: [
-                cacertfile: Application.fetch_env!(:proxyconf, :ca_certificate)
+                {:cacertfile, Application.fetch_env!(:proxyconf, :ca_certificate)}
+                | case Map.get(ctx, :client_certificate) do
+                    nil ->
+                      []
+
+                    wrapper_fn ->
+                      {cert, private_key} = wrapper_fn.()
+                      cert = X509.Certificate.from_pem!(cert) |> X509.Certificate.to_der()
+
+                      private_key =
+                        X509.PrivateKey.from_pem!(private_key) |> X509.PrivateKey.to_der()
+
+                      [certs_keys: [%{cert: cert, key: {:ECPrivateKey, private_key}}]]
+                  end
               ]
             ]
           ]
@@ -189,9 +202,9 @@ defmodule ProxyConf.TestSupport.Oas3Case do
       end)
 
     ctx =
-      case TestSupport.Oidc.maybe_setup_jwt_auth(spec) do
-        {:ok, jwt, _} ->
-          Map.put(ctx, :jwt_auth, jwt)
+      case TestSupport.Jwt.maybe_setup_jwt_auth(spec) do
+        {:ok, signer} ->
+          Map.put(ctx, :jwt_signer, signer)
 
         {:error, :no_jwt_auth_defined} ->
           ctx
@@ -257,15 +270,11 @@ defmodule ProxyConf.TestSupport.Oas3Case do
         response_headers =
           Map.get(response_object, "headers", %{})
           |> Enum.map(fn {header, value} ->
-            {header,
-             List.flatten(Map.get(value, "examples", []) ++ [Map.get(value, "example", [])])}
+            {header, List.flatten([Map.get(value, "example", [])])}
           end)
 
         response_body_samples_for_media_type =
-          List.flatten(
-            Map.get(media_type_object, "examples", []) ++
-              [Map.get(media_type_object, "example", [])]
-          )
+          List.flatten([Map.get(media_type_object, "example", [])])
 
         %{
           api_url: api_url,
@@ -349,12 +358,23 @@ defmodule ProxyConf.TestSupport.Oas3Case do
     end)
 
     request_headers =
-      case Map.get(ctx, :jwt_auth) do
-        nil -> prop.request_headers
-        jwt -> Map.put(prop.request_headers, "Authorization", "Bearer " <> jwt)
+      case Map.get(ctx, :jwt_signer) do
+        nil ->
+          prop.request_headers
+
+        signer ->
+          jwt = TestSupport.Jwt.gen_jwt(Map.get(ctx, :jwt_claims, %{}), signer)
+          Map.put(prop.request_headers, "Authorization", "Bearer " <> jwt)
       end
 
-    resp = http_req(prop.method, uri, prop.request_body, request_headers |> Enum.into([]), finch)
+    resp =
+      http_req(
+        prop.method,
+        uri,
+        prop.request_body,
+        request_headers |> Enum.into([]),
+        finch
+      )
 
     assert(assert_fn.(resp, prop))
     IO.write(".")

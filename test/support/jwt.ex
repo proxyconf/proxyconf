@@ -1,4 +1,4 @@
-defmodule ProxyConf.TestSupport.Oidc do
+defmodule ProxyConf.TestSupport.Jwt do
   defmodule JWT do
     use Joken.Config
   end
@@ -16,7 +16,6 @@ defmodule ProxyConf.TestSupport.Oidc do
           "config" => %{
             # issuer is ignored, this allows to check wrong issuer validation failure
             "issuer" => _issuer,
-            "audiences" => audiences,
             "remote_jwks" => %{"http_uri" => %{"uri" => jwks_uri}}
           }
         }
@@ -40,17 +39,18 @@ defmodule ProxyConf.TestSupport.Oidc do
       |> Plug.Conn.resp(200, Jason.encode!(jwks))
     end)
 
-    # audiences with a -wrong suffix are used by the tests to check wrong audiences
-    audiences =
-      Enum.map(audiences, fn aud ->
-        String.replace_suffix(aud, "-wrong", "")
-      end)
-
-    JWT.generate_and_sign(
-      %{"iss" => @issuer, "aud" => List.first(audiences)},
-      signer
-    )
+    {:ok, signer}
   end
 
   def maybe_setup_jwt_auth(_spec), do: {:error, :no_jwt_auth_defined}
+
+  def gen_jwt(claims, signer) do
+    {:ok, jwt, _} =
+      JWT.generate_and_sign(
+        Map.put_new(claims, "iss", @issuer),
+        signer
+      )
+
+    jwt
+  end
 end

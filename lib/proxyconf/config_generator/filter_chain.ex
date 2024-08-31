@@ -56,7 +56,9 @@ defmodule ProxyConf.ConfigGenerator.FilterChain do
       {downstream_auth_listener_config, downstream_auth_cluster_config} =
         DownstreamAuth.to_envoy_http_filter(downstream_auth)
 
-      transport_socket = DownstreamTls.to_envoy_transport_socket(downstream_tls)
+      transport_socket =
+        DownstreamTls.to_envoy_transport_socket(listener_name, downstream_auth, downstream_tls)
+
       server_names = VHost.server_names(vhost)
 
       %{"transport_socket" => transport_socket} =

@@ -154,15 +154,15 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
     File.read!("lib/proxyconf/config_generator/downstream_auth.lua")
   ]
 
-  def to_envoy_http_filter(configs) do
-    configs_by_auth_type = Enum.group_by(configs, fn conig -> conig.auth_type end)
+  def to_envoy_http_filter(downstream_auth) do
+    configs_by_auth_type = Enum.group_by(downstream_auth, fn config -> config.auth_type end)
     jwt_configs = Map.get(configs_by_auth_type, "jwt", [])
 
     lua_configs =
       Map.get(configs_by_auth_type, "basic", []) ++
         Map.get(configs_by_auth_type, "header", []) ++ Map.get(configs_by_auth_type, "query", [])
 
-    rbac_filter = to_envoy_rbac_filter(configs)
+    rbac_filter = to_envoy_rbac_filter(downstream_auth)
 
     {jwt_filter, remote_jwks_clusters} = to_envoy_jwt_filter(jwt_configs)
 
@@ -192,15 +192,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
 
   defp rbac_principals(%__MODULE__{auth_type: auth_type} = _config)
        when auth_type == "disabled" do
-    [
-      %{
-        "metadata" => %{
-          "filter" => "proxyconf.downstream_auth",
-          "path" => [%{"key" => "status"}],
-          "value" => %{"string_match" => %{"exact" => "noauth"}}
-        }
-      }
-    ]
+    []
   end
 
   defp rbac_principals(%__MODULE__{auth_type: auth_type} = config)
@@ -254,7 +246,13 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
                  "permissions" => [
                    %{"url_path" => %{"path" => %{"prefix" => config.api_url.path}}}
                  ],
-                 "principals" => rbac_principals(config) ++ rbac_source_ip_principals(config)
+                 "principals" => [
+                   %{
+                     "and_ids" => %{
+                       "ids" => rbac_principals(config) ++ rbac_source_ip_principals(config)
+                     }
+                   }
+                 ]
                }}
             end)
         }

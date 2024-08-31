@@ -20,6 +20,9 @@ defmodule ProxyConf.MapPatch do
 
   iex> ProxyConf.MapPatch.patch(%{"a" => %{"b" => [%{"c" => 10}, %{"c" => 20}]}}, %{op: "delete_in", path: "a/b/~last"})
   %{"a" => %{"b" => [%{"c" => 10}]}}
+
+  iex> ProxyConf.MapPatch.patch(%{"a" => %{"b" => [%{"c" => 10}, %{"c" => 20}]}}, %{op: "merge_in", path: "a/b/~last", value: %{"d" => 123}})
+  %{"a" => %{"b" => [%{"c" => 10}, %{"c" => 20, "d" => 123}]}}
   """
   def patch(map, %{op: "put_in", path: path, value: value}) do
     path = to_path(path)
@@ -36,6 +39,17 @@ defmodule ProxyConf.MapPatch do
     path = to_path(path)
     {_, map} = pop_in(map, path)
     map
+  end
+
+  def patch(map, %{op: "merge_in", path: path, value: value}) do
+    path = to_path(path)
+    get_in(map, path)
+    update_in(map, path, fn v -> DeepMerge.deep_merge(v, value) end)
+  end
+
+  def patch(map, %{"op" => _, "path" => _} = patch) do
+    # patch loaded from json
+    patch(map, Enum.map(patch, fn {k, v} -> {String.to_existing_atom(k), v} end) |> Map.new())
   end
 
   defp to_path(path) do

@@ -14,9 +14,6 @@ defmodule ProxyConf.Application do
     LocalCA.control_plane_client_cert_setup()
 
     children = [
-      # Starts a worker by calling: ProxyConf.Worker.start_link(arg)
-      # {ProxyConf.Worker, arg}
-      # {GRPC.Server.Supervisor, endpoint: ProxyConf.Endpoint, port: 4040, start_server: true},
       DynamicSupervisor.child_spec(name: ProxyConf.StreamSupervisor),
       Registry.child_spec(keys: :unique, name: ProxyConf.StreamRegistry),
       ProxyConf.ConfigCache,
