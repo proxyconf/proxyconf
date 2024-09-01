@@ -235,7 +235,8 @@ defmodule ProxyConf.ConfigGenerator.Route do
          },
          "route" =>
            %{
-             "prefix_rewrite" => path
+             "prefix_rewrite" => path,
+             "auto_host_rewrite" => true
            }
            |> Map.merge(cluster_route_config)
        }, clusters}
@@ -277,6 +278,7 @@ defmodule ProxyConf.ConfigGenerator.Route do
          },
          "route" =>
            %{
+             "auto_host_rewrite" => true,
              "path_rewrite_policy" => %{
                "name" => "envoy.path.rewrite.uri_template.uri_template_rewriter",
                "typed_config" => %{

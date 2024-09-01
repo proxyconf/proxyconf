@@ -4,9 +4,14 @@ defmodule ProxyConf.ConfigGenerator.Cluster do
 
   deftemplate(%{
     "name" => :name,
-    "connect_timeout" => "0.25s",
+    "connect_timeout" => %{"seconds" => 5},
     "type" => "STRICT_DNS",
     "lb_policy" => "ROUND_ROBIN",
+    "http2_protocol_options" => %{
+      # recommended config for untrusted upstreams
+      "initial_connection_window_size" => 1_048_576.0,
+      "initial_stream_window_size" => 65536.0
+    },
     "load_assignment" => %{
       "cluster_name" => :name,
       "endpoints" => [
@@ -17,7 +22,7 @@ defmodule ProxyConf.ConfigGenerator.Cluster do
     }
   })
 
-  def from_spec_gen(spec) do
+  def from_spec_gen(_spec) do
     fn clusters ->
       Enum.uniq(clusters)
       |> Enum.map(fn {cluster_name, cluster_uri} ->
@@ -25,11 +30,34 @@ defmodule ProxyConf.ConfigGenerator.Cluster do
           name: cluster_name,
           endpoints: [ClusterLbEndpoint.eval(%{host: cluster_uri.host, port: cluster_uri.port})]
         })
+        |> Map.merge(
+          if cluster_uri.scheme == "https" do
+            %{
+              "transport_socket" => %{
+                "name" => "envoy.transport_sockets.tls",
+                "typed_config" => %{
+                  "@type" =>
+                    "type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext",
+                  "sni" => cluster_uri.host,
+                  "common_tls_context" => %{
+                    "validation_context" => %{
+                      "trusted_ca" => %{
+                        "filename" => "/etc/ssl/certs/ca-certificates.crt"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          else
+            %{}
+          end
+        )
       end)
     end
   end
 
-  def cluster_uri_from_oas3_server(api_id, server) do
+  def cluster_uri_from_oas3_server(_api_id, server) do
     url = Map.fetch!(server, "url")
 
     url =

@@ -37,7 +37,6 @@ defmodule ProxyConf.Spec do
              Application.get_env(:proxyconf, :default_cluster_id, "proxyconf-cluster")
            ),
          {_, true} <- {:invalid_cluster_id, is_binary(cluster_id)},
-         api_id <- Map.get(spec, "x-proxyconf-id", Path.rootname(filename) |> Path.basename()),
          {_, true} <- {:invalid_api_id, is_binary(api_id)},
          listener <- Map.get(spec, "x-proxyconf-listener", %{}),
          {_, true} <- {:invalid_api_listener, is_map(listener)},
