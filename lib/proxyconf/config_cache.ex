@@ -324,9 +324,10 @@ defmodule ProxyConf.ConfigCache do
       patch_type = String.replace_prefix(type, "type.googleapis.com/", "")
       patch_location = Path.join(patches_dir, patch_type <> ".json")
 
-      if File.exists?(patch_location) do
+      with true <- File.exists?(patch_location),
+           {:ok, patch_data} <- File.read(patch_location),
+           {:ok, patch} <- Jason.decode(patch_data) do
         Logger.debug("patch exists #{patch_location}")
-        patch = File.read!(patch_location) |> Jason.decode!()
 
         Map.put(
           acc,
@@ -334,8 +335,13 @@ defmodule ProxyConf.ConfigCache do
           MapPatch.patch(configs_for_type, patch)
         )
       else
-        Logger.debug("no patch exists #{patch_location}")
-        acc
+        false ->
+          Logger.error("no patch exists #{patch_location}")
+          acc
+
+        {:error, reason} ->
+          Logger.error("Can't apply patch #{patch_location} due to #{inspect(reason)}")
+          acc
       end
     end)
   end

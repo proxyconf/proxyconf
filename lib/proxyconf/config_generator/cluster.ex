@@ -4,14 +4,8 @@ defmodule ProxyConf.ConfigGenerator.Cluster do
 
   deftemplate(%{
     "name" => :name,
-    "connect_timeout" => %{"seconds" => 5},
     "type" => "STRICT_DNS",
     "lb_policy" => "ROUND_ROBIN",
-    "http2_protocol_options" => %{
-      # recommended config for untrusted upstreams
-      "initial_connection_window_size" => 1_048_576.0,
-      "initial_stream_window_size" => 65536.0
-    },
     "load_assignment" => %{
       "cluster_name" => :name,
       "endpoints" => [

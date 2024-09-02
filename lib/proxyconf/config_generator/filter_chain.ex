@@ -29,10 +29,6 @@ defmodule ProxyConf.ConfigGenerator.FilterChain do
             },
             "route_config_name" => :route_config_name
           },
-          # "route_config" => %{
-          #  "name" => "local_route",
-          #  "virtual_hosts" => :virtual_hosts
-          # },
           "http_filters" =>
             [
               :downstream_auth,

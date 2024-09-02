@@ -24,33 +24,91 @@ defmodule ProxyConf.MapPatch do
   iex> ProxyConf.MapPatch.patch(%{"a" => %{"b" => [%{"c" => 10}, %{"c" => 20}]}}, %{op: "merge_in", path: "a/b/~last", value: %{"d" => 123}})
   %{"a" => %{"b" => [%{"c" => 10}, %{"c" => 20, "d" => 123}]}}
   """
-  def patch(map, %{op: "put_in", path: path, value: value}) do
+  def patch(map, %{op: "put_in", path: path, value: value} = patch) do
+    matcher = Map.get(patch, :match)
     path = to_path(path)
-    put_in(map, path, value)
+    item = get_in(map, path)
+
+    if is_match(matcher, item) do
+      put_in(map, path, value)
+    else
+      map
+    end
   end
 
-  def patch(map, %{op: "update_in", path: path, value_fn: value_fn}) do
+  def patch(map, %{op: "update_in", path: path, value_fn: value_fn} = patch) do
+    matcher = Map.get(patch, :match)
     path = to_path(path)
-    get_in(map, path)
-    update_in(map, path, value_fn)
+    item = get_in(map, path)
+
+    if is_match(matcher, item) do
+      update_in(map, path, value_fn)
+    else
+      map
+    end
   end
 
-  def patch(map, %{op: "delete_in", path: path}) do
+  def patch(map, %{op: "delete_in", path: path} = patch) do
+    matcher = Map.get(patch, :match)
     path = to_path(path)
-    {_, map} = pop_in(map, path)
-    map
+    item = get_in(map, path)
+
+    if is_match(matcher, item) do
+      {_, map} = pop_in(map, path)
+      map
+    else
+      map
+    end
   end
 
-  def patch(map, %{op: "merge_in", path: path, value: value}) do
+  def patch(map, %{op: "merge_in", path: path, value: value} = patch) do
+    matcher = Map.get(patch, :match)
     path = to_path(path)
-    get_in(map, path)
-    update_in(map, path, fn v -> DeepMerge.deep_merge(v, value) end)
+    item = get_in(map, path)
+
+    if is_match(matcher, item) do
+      update_in(map, path, fn v -> DeepMerge.deep_merge(v, value) end)
+    else
+      map
+    end
   end
 
   def patch(map, %{"op" => _, "path" => _} = patch) do
     # patch loaded from json
     patch(map, Enum.map(patch, fn {k, v} -> {String.to_existing_atom(k), v} end) |> Map.new())
   end
+
+  defp to_match_paths(matcher, path \\ [])
+
+  defp to_match_paths(matcher, path) when is_map(matcher) do
+    Enum.map(matcher, fn {k, v} ->
+      to_match_paths(v, [k | path])
+    end)
+    |> List.flatten()
+  end
+
+  defp to_match_paths(v, path), do: {Enum.reverse(path), v}
+
+  defp is_match(nil, _), do: true
+
+  defp is_match(matcher, item) when is_map(matcher) do
+    to_match_paths(matcher)
+    |> Enum.all?(fn {path, val} ->
+      dyn_get_in(item, path) == val
+    end)
+  end
+
+  defp dyn_get_in(v, []), do: v
+
+  defp dyn_get_in(item, [k | path]) when is_map(item) do
+    dyn_get_in(Map.get(item, k), path)
+  end
+
+  defp dyn_get_in(item, [k | path]) when is_list(item) and is_integer(k) do
+    dyn_get_in(Enum.at(item, k), path)
+  end
+
+  defp dyn_get_in(_, _), do: nil
 
   defp to_path(path) do
     Path.split(path)
