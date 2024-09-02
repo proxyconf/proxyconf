@@ -22,7 +22,7 @@ defmodule ProxyConf.ConfigCache do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
 
-  # only used for testing
+  # currently only used for testing
   def load_external_spec(spec_name, spec) do
     case GenServer.call(__MODULE__, {:load_external_spec, spec_name, spec}) do
       {:ok, cluster_id} ->

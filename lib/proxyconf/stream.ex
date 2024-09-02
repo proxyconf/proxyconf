@@ -94,7 +94,7 @@ defmodule ProxyConf.Stream do
 
       nil ->
         # new node
-        {:reply, :ok, maybe_push_resources(%{state | version: 0})}
+        {:reply, :ok, push_resources(%{state | version: 0})}
 
       _ when waiting_ack != nil and waiting_ack > version ->
         # the last update wasn't acked, likely due to a configuration error
@@ -106,7 +106,7 @@ defmodule ProxyConf.Stream do
 
   def handle_call({:push_resource_changes, hash}, _from, state) do
     if state.hash != hash do
-      {:reply, :ok, maybe_push_resources(%{state | hash: hash})}
+      {:reply, :ok, push_resources(%{state | hash: hash})}
     else
       Logger.debug(
         cluster: state.node_info.cluster,
@@ -130,7 +130,7 @@ defmodule ProxyConf.Stream do
     Process.monitor(pid)
   end
 
-  defp maybe_push_resources(state) do
+  defp push_resources(state) do
     resources = ConfigCache.get_resources(state.node_info.cluster, state.type_url)
 
     new_version = state.version + 1
