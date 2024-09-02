@@ -39,7 +39,8 @@ defmodule ProxyConf.ConfigGenerator.FilterChain do
               %{
                 "name" => "envoy.filters.http.router",
                 "typed_config" => %{
-                  "@type" => "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router"
+                  "@type" => "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router",
+                  "suppress_envoy_headers" => true
                 }
               }
             ]
