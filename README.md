@@ -53,7 +53,7 @@ We welcome contributions! Please see our CONTRIBUTING.md for details on how to g
 
 ## License
 
-ProxyConf is licensed under the Apache2 License.
+ProxyConf is licensed under the Mozilla Public License (MPL).
 
 ## Contact
 
