@@ -204,16 +204,12 @@ defmodule ProxyConf.ConfigCache do
   end
 
   def compat_lookup_element(table, key, pos, default) do
-    # :ets.lookup_element/4 introduced in OTP26
-    :ets.lookup_element(table, key, pos, default)
-  rescue
-    _ ->
-      try do
-        :ets.lookup_element(table, key, pos)
-      rescue
-        _ ->
-          default
-      end
+    try do
+      :ets.lookup_element(table, key, pos)
+    rescue
+      _ ->
+        default
+    end
   end
 
   def parse_spec_file(spec_filename, overrides \\ %{}) do

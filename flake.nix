@@ -5,14 +5,14 @@
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     nix2container.url = "github:nlewo/nix2container";
     flake-utils.url = "github:numtide/flake-utils";
+
   };
 
   outputs =
-    { self
+    inputs@{ self
     , nixpkgs
     , nix2container
     , flake-utils
-    ,
     }:
     flake-utils.lib.eachDefaultSystem (system:
     let
@@ -58,8 +58,26 @@
         };
       };
 
-      defaultShell = pkgs.mkShell {
+      run_ci = pkgs.writeShellScriptBin "run-ci" ''
+        set -euxo pipefail
+        export MIX_ENV=test
+        mix deps.get
+        mix format --check-formatted
+        mix compile --warnings-as-errors
+        mix test
+      '';
+
+      devShell = pkgs.mkShell {
+        buildInputs = [
+          pkgs.elixir
+          pkgs.elixir_ls
+          pkgs.envoy
+          pkgs.sops
+          run_ci
+        ] ++ optional pkgs.stdenv.isLinux pkgs.inotify-tools
+        ++ optional pkgs.stdenv.isDarwin pkgs.terminal-notifier;
         shellHook = ''
+                          export LOCALES="${cldr}/priv/cldr";
           # this allows mix to work on the local directory
               mkdir -p .nix-mix .nix-hex
               export MIX_HOME=$PWD/.nix-mix
@@ -75,29 +93,19 @@
               export ERL_AFLAGS="-kernel shell_history enabled"
               export ENVOY_BIN=${pkgs.envoy}/bin/envoy
         '';
-        packages = [
-          pkgs.sops
-          pkgs.inotify-tools
-          pkgs.beamPackages.hex
-          pkgs.elixir
-          pkgs.envoy
-          pkgs.nixpkgs-fmt
-
-        ];
 
       };
 
       image = nix2containerPkgs.nix2container.buildImage {
-        name = "${pname}";
+        name = "proxyconf";
         config = {
           entrypoint = [ "${pkg}/bin/${pname}" ];
         };
-        layers = [
-          (nix2containerPkgs.nix2container.buildLayer {
-            deps = [ pkg ];
-            reproducible = false;
-          })
-        ];
+        copyToRoot = pkgs.buildEnv {
+          name = "root";
+          paths = [ pkg pkgs.bashInteractive pkgs.coreutils pkgs.inotify-tools ];
+          pathsToLink = [ "/bin" ];
+        };
       };
     in
     {
@@ -105,9 +113,10 @@
       packages = {
         default = pkg;
         image = image;
-        devShells = {
-          default = defaultShell;
-        };
+        run_ci = run_ci;
+      };
+      devShells = {
+        default = devShell;
       };
     }
     );

@@ -2,9 +2,7 @@ defmodule ProxyConf.AggregatedDiscoveryServiceServer do
   require Logger
   use GRPC.Server, service: Envoy.Service.Discovery.V3.AggregatedDiscoveryService.Service
 
-  alias ProxyConf.ConfigCache
   alias Envoy.Service.Discovery.V3.DiscoveryRequest
-  alias Envoy.Service.Discovery.V3.DeltaDiscoveryRequest
   alias Envoy.Config.Core.V3.Node
 
   def stream_aggregated_resources(request, stream) do
