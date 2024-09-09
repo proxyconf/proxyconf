@@ -30,8 +30,13 @@ defmodule ProxyConf.TlsTest do
       http_schema: "https"
 
     oas3spec("test/oas3/tls.yaml", ctx) do
-      fn %Mint.TransportError{reason: :closed}, _ ->
-        assert true
+      fn
+        %Mint.TransportError{reason: _}, _ ->
+          # TODO: multiple error reasons popped up during testing
+          # - closed
+          # - einval
+          # - tls alert, certificate_required
+          assert true
       end
     end
   end

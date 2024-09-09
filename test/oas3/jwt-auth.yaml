@@ -12,7 +12,7 @@ x-proxyconf-downstream-auth:
         seconds: 300
   
 servers:
-  - url: http://127.0.0.1:8088
+  - url: http://127.0.0.1
 openapi: 3.1.0
 paths:
   /test:

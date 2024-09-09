@@ -97,10 +97,16 @@ defmodule ProxyConf.Stream do
         {:reply, :ok, push_resources(%{state | version: 0})}
 
       _ when waiting_ack != nil and waiting_ack > version ->
-        # the last update wasn't acked, likely due to a configuration error
-        # reset version and waiting ack
-        old_version = version
-        {:reply, :ok, %{state | version: old_version, waiting_ack: nil}}
+        # if many updates are in flight, keep the waiting ack
+
+        Logger.debug(
+          cluster: node_info.cluster,
+          message:
+            "#{state.type_url} Acked older version by #{node_info.node_id} version #{version}, current version is #{state.version}."
+        )
+
+        # keep state
+        {:reply, :ok, state}
     end
   end
 

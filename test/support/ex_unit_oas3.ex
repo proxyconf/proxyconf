@@ -8,6 +8,15 @@ defmodule ProxyConf.TestSupport.Oas3Case do
     The macro parts are inspired by  the StreamData 
     property based testing library 
 
+    If no port is provided as part of the upstream server
+    URL, a random port is used for the testing. If one want's
+    to test a scenario where multiple specs use the same upstream
+    server one would need to specify the port explicitely.
+
+    The port specified in `x-proxyconf-listener` is ignored and
+    random value is assigned. One can override this behaviour by
+    explicitely providing the `listener_port` macro option.
+
   """
   import ProxyConf.TestSupport.Common
   alias ProxyConf.TestSupport
@@ -66,18 +75,22 @@ defmodule ProxyConf.TestSupport.Oas3Case do
     end
   end
 
+  def next_port do
+    Enum.random(40000..50000)
+  end
+
   defmacro __using__(opts) do
     quote do
       import unquote(__MODULE__)
 
       setup_all do
-        listener_port = Enum.random(40001..50000)
+        listener_port = next_port()
         cluster_id = "proxyconf-exunit-#{__MODULE__}"
 
         ctx =
           TestSupport.Envoy.start_envoy(%{
             cluster_id: cluster_id,
-            admin_port: Enum.random(30000..40000),
+            admin_port: next_port(),
             listener_port: listener_port,
             log_level: :info,
             log_path: "/tmp/envoy-#{cluster_id}.log"
@@ -155,6 +168,18 @@ defmodule ProxyConf.TestSupport.Oas3Case do
 
     {:ok, %ProxyConf.Spec{spec: %{"servers" => servers} = spec}} =
       ProxyConf.ConfigCache.parse_spec_file(spec_file, overrides)
+
+    servers =
+      Enum.map(servers, fn %{"url" => url} = server ->
+        if String.match?(url, ~r/^[a-z,0-9\.]+:\d+$/) do
+          # port is provided, keep as is
+          server
+        else
+          Map.put(server, "url", "#{url}:#{next_port()}")
+        end
+      end)
+
+    spec = Map.put(spec, "servers", servers)
 
     finch_name = String.to_atom("ProxyConfFinch#{:erlang.phash2({ctx.cluster_id, spec_file})}")
 

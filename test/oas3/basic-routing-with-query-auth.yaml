@@ -8,7 +8,7 @@ x-proxyconf-downstream-auth:
         - 9a618248b64db62d15b300a07b00580b
   
 servers:
-  - url: http://127.0.0.1:8088
+  - url: http://127.0.0.1
 openapi: 3.1.0
 paths:
   /test:
