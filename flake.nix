@@ -73,6 +73,7 @@
           pkgs.elixir_ls
           pkgs.envoy
           pkgs.sops
+          pkgs.docker-compose
           run_ci
         ] ++ optional pkgs.stdenv.isLinux pkgs.inotify-tools
         ++ optional pkgs.stdenv.isDarwin pkgs.terminal-notifier;
@@ -98,6 +99,7 @@
 
       image = nix2containerPkgs.nix2container.buildImage {
         name = "proxyconf";
+        tag = "latest";
         config = {
           entrypoint = [ "${pkg}/bin/${pname}" ];
         };

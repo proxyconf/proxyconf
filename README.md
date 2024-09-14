@@ -2,7 +2,7 @@
 
 **ProxyConf** is a control plane for [Envoyproxy](https://www.envoyproxy.io/) that simplifies and secures API management in enterprise environments. It leverages the OpenAPI specification to streamline the configuration of Envoyproxy, providing a powerful yet user-friendly platform for managing, monitoring, and securing API traffic at scale.
 
-## Features
+## Key Features
 
 - **Envoyproxy Integration**
   - High-performance routing, load balancing, and traffic management.
@@ -46,6 +46,29 @@
 | Request body validation JSON / Form-Data            | JSON schema                                          | Golang Envoy Plugin                   |                 | x               | yes      |
 | Response body validation JSON / Form-Data           | JSON schema                                          | Golang Envoy Plugin                   |                 | x               | yes      |
 | Vulnerability scanning                              |                                                      | Golang Envoy Plugin                   |                 | x               | no       |
+
+
+## Demo Setup
+
+To quickly explore the capabilities of **ProxyConf**, we provide a demo environment that can be easily launched using Docker Compose. The demo setup, located inside the `demo` folder, includes all the necessary components to run a local instance of Envoyproxy with ProxyConf, configured to proxy traffic to a local instance of the **Swagger Petstore** API.
+
+### Steps to Run the Demo:
+1. **Generate TLS Certificates**: Before starting the demo, you need to generate the required TLS certificates by running the `setup-certificates.sh` script located in the `demo` folder:
+   ```bash
+   ./setup-certificates.sh
+   ```
+2. **Start the Demo Environment**: Once the certificates are generated, you can bring up the environment with Docker Compose:
+   ```bash
+   docker-compose up
+   ```
+3. **Explore the Setup**: The demo environment sets up **ProxyConf** to manage and secure Envoyproxy, which acts as a gateway proxying traffic to a local instance of the **Swagger Petstore**. The Swagger Petstore is a sample API, allowing you to test ProxyConf’s routing, security, and traffic management features in a real-world scenario.
+
+### Key Components:
+- **Envoyproxy**: Handles traffic routing and load balancing.
+- **ProxyConf**: Configures Envoyproxy using OpenAPI specs, providing centralized policy management and enhanced security features.
+- **Swagger Petstore**: A demo API specified in `demo/proxyconf/oas3specs/petstore.yaml` that Envoy proxies traffic to, allowing you to experiment with API management features such as routing, TLS termination, and request validation.
+
+This demo provides a hands-on way to see how **ProxyConf** simplifies the configuration and management of Envoyproxy.
 
 ## Contributing
 

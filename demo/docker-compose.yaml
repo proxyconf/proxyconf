@@ -1,0 +1,30 @@
+services:
+  envoy:
+    image: envoyproxy/envoy:v1.31.0
+    environment:
+      POSTGRES_USER: example
+      POSTGRES_DB: exampledb
+    command: envoy -c /etc/data/envoy.demo.yaml
+    volumes:
+      - ./envoy:/etc/data
+    ports:
+      - "9901:9901" # admin port
+      - "8080:8080"
+  proxyconf:
+    image: proxyconf:latest
+    command: start
+    volumes:
+      - ./proxyconf:/etc/data
+    environment:
+      RELEASE_COOKIE: "proxyconf-cookie"
+      PROXYCONF_GRPC_ENDPOINT_PORT: "18000"
+      PROXYCONF_CONFIG_DIRS: "/etc/data/oas3specs"
+      PROXYCONF_SERVER_DOWNSTREAM_TLS_PATH: "/etc/data"
+      PROXYCONF_CA_CERTIFICATE: "/etc/data/ca.crt"
+      PROXYCONF_CA_PRIVATE_KEY: "/etc/data/server.key"
+      PROXYCONF_CONTROL_PLANE_CERTIFICATE: "/etc/data/server.crt"
+      PROXYCONF_CONTROL_PLANE_PRIVATE_KEY: "/etc/data/server.key"
+  petstore:
+    image: swaggerapi/petstore3:unstable
+    ports:
+      - "8081:8080"
