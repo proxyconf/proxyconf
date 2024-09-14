@@ -210,6 +210,9 @@ defmodule ProxyConf.ConfigGenerator.Route do
       end
 
     route_id = route_id(operation, path, spec)
+    [%{"url" => server_url} | _] = servers
+    server = URI.parse(server_url)
+    server_path = server.path || "/"
 
     if path_templates == [] do
       # no path templating
@@ -235,7 +238,7 @@ defmodule ProxyConf.ConfigGenerator.Route do
          },
          "route" =>
            %{
-             "prefix_rewrite" => path,
+             "prefix_rewrite" => Path.join(server_path, path),
              "auto_host_rewrite" => true
            }
            |> Map.merge(cluster_route_config)
@@ -285,14 +288,17 @@ defmodule ProxyConf.ConfigGenerator.Route do
                  "@type" =>
                    "type.googleapis.com/envoy.extensions.path.rewrite.uri_template.v3.UriTemplateRewriteConfig",
                  "path_template_rewrite" =>
-                   Enum.reduce(path_templates, {0, path}, fn
-                     [path_template, @path_wildcard], {i, path_acc} ->
-                       {i, String.replace(path_acc, path_template, "{#{@path_wildcard}}")}
+                   Path.join(
+                     server_path,
+                     Enum.reduce(path_templates, {0, path}, fn
+                       [path_template, @path_wildcard], {i, path_acc} ->
+                         {i, String.replace(path_acc, path_template, "{#{@path_wildcard}}")}
 
-                     [path_template, _path_variable], {i, path_acc} ->
-                       {i + 1, String.replace(path_acc, path_template, "{var#{i}}")}
-                   end)
-                   |> elem(1)
+                       [path_template, _path_variable], {i, path_acc} ->
+                         {i + 1, String.replace(path_acc, path_template, "{var#{i}}")}
+                     end)
+                     |> elem(1)
+                   )
                }
              }
            }

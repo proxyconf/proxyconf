@@ -43,8 +43,7 @@ defmodule ProxyConf.Spec do
          address <- Map.get(listener, "address", "127.0.0.1"),
          {_, true} <- {:invalid_api_listener_address, is_binary(address)},
          port <-
-           Map.get(listener, "port", Application.get_env(:proxyconf, :default_api_port, 8080)),
-         {_, true} <- {:invalid_api_listener_port, is_integer(port)},
+           Map.get(listener, "port", api_url.port),
          {_, true} <- {:listener_port_does_not_match_api_url, port == api_url.port},
          {allowed_source_ips, parse_result} <-
            Map.get(listener, "allowed_source_ips", ["127.0.0.1/32"]) |> to_cidrs(),
@@ -74,7 +73,9 @@ defmodule ProxyConf.Spec do
     :crypto.hash(:sha256, data) |> Base.encode64()
   end
 
-  defp to_cidrs(subnets) do
+  defp to_cidrs(subnet) when is_binary(subnet), do: to_cidrs([subnet])
+
+  defp to_cidrs(subnets) when is_list(subnets) do
     Enum.map_reduce(subnets, true, fn
       _, false ->
         {nil, false}

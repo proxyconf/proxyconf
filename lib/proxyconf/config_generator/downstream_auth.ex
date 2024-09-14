@@ -171,9 +171,16 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
     {List.flatten([jwt_filter, lua_filter, rbac_filter]), Enum.uniq(remote_jwks_clusters)}
   end
 
+  defp ensure_no_empty_principals([]), do: [%{"any" => false}]
+  defp ensure_no_empty_principals(principals), do: principals
+
   defp rbac_source_ip_principals(%__MODULE__{allowed_source_ips: allowed_source_ips}) do
-    Enum.map(allowed_source_ips, fn source_ip ->
-      %{"remote_ip" => source_ip}
+    Enum.map(allowed_source_ips, fn
+      %{"address_prefix" => "0.0.0.0", "prefix_len" => 0} ->
+        %{"any" => true}
+
+      source_ip ->
+        %{"remote_ip" => source_ip}
     end)
   end
 
@@ -192,7 +199,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
 
   defp rbac_principals(%__MODULE__{auth_type: auth_type} = _config)
        when auth_type == "disabled" do
-    []
+    [%{"any" => true}]
   end
 
   defp rbac_principals(%__MODULE__{auth_type: auth_type} = config)
@@ -249,7 +256,19 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
                  "principals" => [
                    %{
                      "and_ids" => %{
-                       "ids" => rbac_principals(config) ++ rbac_source_ip_principals(config)
+                       "ids" => [
+                         %{
+                           "or_ids" => %{
+                             "ids" => rbac_principals(config) |> ensure_no_empty_principals()
+                           }
+                         },
+                         %{
+                           "or_ids" => %{
+                             "ids" =>
+                               rbac_source_ip_principals(config) |> ensure_no_empty_principals()
+                           }
+                         }
+                       ]
                      }
                    }
                  ]

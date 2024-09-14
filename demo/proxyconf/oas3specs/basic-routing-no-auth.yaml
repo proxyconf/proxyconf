@@ -6,7 +6,7 @@ x-proxyconf-downstream-auth:
       testUser:
         # md5sum of supersecret
         - 9a618248b64db62d15b300a07b00580b
-x-proxyconf-api-url: http://localhost:8080/demo
+x-proxyconf-api-url: https://localhost:8080/demo
 x-proxyconf-listener:
   address: 0.0.0.0
   port: 8080

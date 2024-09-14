@@ -2,7 +2,6 @@ x-proxyconf-downstream-auth:
   auth_type: mtls
   config:
     trusted_ca: /tmp/proxyconf/ca-cert.pem
-    
     clients:
       test_client:
         - exunit-good
