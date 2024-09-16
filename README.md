@@ -1,6 +1,6 @@
 # ProxyConf
 
-**ProxyConf** is a control plane for [Envoyproxy](https://www.envoyproxy.io/) that simplifies and secures API management in enterprise environments. It leverages the OpenAPI specification to streamline the configuration of Envoyproxy, providing a powerful yet user-friendly platform for managing, monitoring, and securing API traffic at scale.
+**ProxyConf** is a control plane for [Envoyproxy](https://www.envoyproxy.io/) that simplifies and secures API management in enterprise environments. It leverages the OpenAPI specification to streamline the configuration of Envoyproxy, providing a powerful yet user-friendly platform for managing, and securing API traffic at scale.
 
 > [!WARNING]
 > ProxyConf is **currently in development** and under active construction ⚠️. While it may already be **usable for some cases**, there’s a good chance you’ll encounter **bugs or incomplete features**.
@@ -8,21 +8,19 @@
 > However, your feedback is incredibly valuable to us! 🚀 If you're feeling adventurous, we’d love for you to try it out and let us know what works, what doesn’t, and where we can improve. Together, we can make ProxyConf even better!
 
 
-## Key Features
+## ✨ Key Features
 
 - **Envoyproxy Integration**
   - High-performance routing, load balancing, and traffic management.
   - Built-in observability with metrics, logging, and tracing.
-  - Security features like TLS termination and rate limiting.
+  - Security features like JWT authentication, TLS termination, and rate limiting.
 
 - **ProxyConf Control Plane**
   - **OpenAPI-Driven Configuration:** Simplifies and standardizes Envoyproxy configuration using OpenAPI specs.
   - **Centralized Policy Management:** Manage API security, routing, and traffic policies across multiple Envoy instances.
-  - **Enhanced Security:** Adds layers like authentication, authorization, and custom rate limiting on top of Envoyproxy’s native features.
-  - **Real-time Monitoring:** Unified dashboard with real-time insights into API health, performance, and security.
   - **Scalability:** Seamless scaling in distributed, high-availability environments.
 
-- **Proprietary Extensions** (Available as Paid Add-ons)
+- **Proprietary Extensions** (Available as Paid Add-ons, work in progress)
   - **Request and Response Validation:** Advanced validation mechanisms for API requests and responses, ensuring data integrity and compliance with specifications.
   - **SOAP/WSDL Support:**  Support for SOAP-based APIs and WSDL specifications, enabling seamless integration with legacy systems.
 
@@ -56,7 +54,7 @@
 | Response body validation XML                        | JSON schema                                          | Golang Envoy Plugin                   |                 | x               | no       |
 | SOAP & WSDL based configuration                     |                                                      |                                       |                 | ?               | no       |
 
-## Demo Setup
+## 🔧 Demo Setup
 
 To quickly explore the capabilities of **ProxyConf**, we provide a demo environment that can be easily launched using Docker Compose. The demo setup, located inside the `demo` folder, includes all the necessary components to run a local instance of Envoyproxy with ProxyConf, configured to proxy traffic to a local instance of the **Swagger Petstore** API.
 
@@ -78,13 +76,34 @@ To quickly explore the capabilities of **ProxyConf**, we provide a demo environm
 
 This demo provides a hands-on way to see how **ProxyConf** simplifies the configuration and management of Envoyproxy.
 
-## Contributing
+## 🤝 Contributing
 
-We welcome contributions! Please see our CONTRIBUTING.md for details on how to get started with development and submit pull requests.
+We welcome contributions to ProxyConf! Whether it’s bug fixes, new features, or improvements to documentation, your help is appreciated.
 
-## License
+### How to Contribute:
+- **Fork** the repository.
+- Create a new branch for your changes (e.g., `feature/your-feature`).
+- **Commit** your changes with clear and descriptive messages.
+- Open a **Pull Request** describing your changes and how they address the issue.
 
-ProxyConf is licensed under the Mozilla Public License (MPL).
+### Guidelines:
+- Ensure that your changes are well-tested and maintain the existing functionality.
+- Follow consistent code formatting and best practices used in the project.
+- Be respectful and constructive in all interactions.
+
+We’re excited to collaborate with the community to make ProxyConf better! Feel free to open an issue if you have questions or need guidance.
+
+## 📝 License
+
+ProxyConf is licensed under the [Mozilla Public License 2.0](https://www.mozilla.org/en-US/MPL/2.0/). You are free to use, modify, and distribute the software under the terms of this license.
+
+For more details, please refer to the [LICENSE](./LICENSE) file included in the repository.
+
+## 🙌 Kudos to Envoy
+
+ProxyConf is built on top of the amazing work done by the [Envoy Proxy](https://www.envoyproxy.io) team. We’re standing on the shoulders of giants, leveraging Envoy’s powerful and flexible architecture to bring ProxyConf to life. 
+
+We greatly appreciate the efforts of the Envoy community and contributors for making such a robust and versatile project available!
 
 ## 📬 Contact & Support
 
