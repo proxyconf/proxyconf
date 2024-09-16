@@ -1,0 +1,24 @@
+name: Release
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+jobs:
+  build:
+    name: CI
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: 'Login to GitHub Container Registry'
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{github.actor}}
+          password: ${{secrets.GITHUB_TOKEN}}
+      - uses: DeterminateSystems/nix-installer-action@v10
+      - uses: DeterminateSystems/magic-nix-cache-action@v4
+      - name: Run CI
+        run: nix develop --command -- run-ci
+      - name: Build and push container
+        run: nix run .#image.copyTo docker://ghcr.io/proxyconf/proxyconf:latest
