@@ -2,6 +2,12 @@
 
 **ProxyConf** is a control plane for [Envoyproxy](https://www.envoyproxy.io/) that simplifies and secures API management in enterprise environments. It leverages the OpenAPI specification to streamline the configuration of Envoyproxy, providing a powerful yet user-friendly platform for managing, monitoring, and securing API traffic at scale.
 
+> [!WARNING]
+> ProxyConf is **currently in development** and under active construction ⚠️. While it may already be **usable for some cases**, there’s a good chance you’ll encounter **bugs or incomplete features**.
+>
+> However, your feedback is incredibly valuable to us! 🚀 If you're feeling adventurous, we’d love for you to try it out and let us know what works, what doesn’t, and where we can improve. Together, we can make ProxyConf even better!
+
+
 ## Key Features
 
 - **Envoyproxy Integration**
@@ -45,8 +51,10 @@
 | Query parameter validation                          | JSON Schema                                          | Golang Envoy Plugin                   |                 | x               | yes      |
 | Request body validation JSON / Form-Data            | JSON schema                                          | Golang Envoy Plugin                   |                 | x               | yes      |
 | Response body validation JSON / Form-Data           | JSON schema                                          | Golang Envoy Plugin                   |                 | x               | yes      |
-| Vulnerability scanning                              |                                                      | Golang Envoy Plugin                   |                 | x               | no       |
-
+| Vulnerability scanning                              |                                                      | Golang Envoy Plugin                   |                 | ?               | no       |
+| Request body validation XML                         | XML schema                                           | Golang Envoy Plugin                   |                 | x               | no       |
+| Response body validation XML                        | JSON schema                                          | Golang Envoy Plugin                   |                 | x               | no       |
+| SOAP & WSDL based configuration                     |                                                      |                                       |                 | ?               | no       |
 
 ## Demo Setup
 
@@ -78,9 +86,11 @@ We welcome contributions! Please see our CONTRIBUTING.md for details on how to g
 
 ProxyConf is licensed under the Mozilla Public License (MPL).
 
-## Contact
+## 📬 Contact & Support
 
-For any questions or support, please reach out via GitHub Discussions or open an issue.
+If you have any questions about features, want to report bugs, or request new functionality, please open a [GitHub Issue](https://github.com/proxyconf/proxyconf/issues). We actively monitor and respond to issues to help improve ProxyConf.
+
+For **security concerns**, **business inquiries**, or **consulting requests**, feel free to reach out via email at [proxyconf@pm.me](mailto:proxyconf@pm.me).
 
 ---
 
