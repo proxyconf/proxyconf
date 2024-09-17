@@ -11,7 +11,7 @@ services:
       - "9901:9901" # admin port
       - "8080:8080"
   proxyconf:
-    image: proxyconf:latest
+    image: ghcr.io/proxyconf/proxyconf:latest
     command: start
     volumes:
       - ./proxyconf:/etc/data
