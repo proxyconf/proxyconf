@@ -4,6 +4,8 @@ on:
     branches:
       - main
   workflow_dispatch:
+permissions:
+  packages: write
 jobs:
   build:
     name: CI
