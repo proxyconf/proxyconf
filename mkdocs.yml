@@ -1,0 +1,64 @@
+site_name: proxyconf
+site_url: https://localhost
+#repo_url: https://github.com/proxyconf/proxyconf
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+      auto_title: true
+      linenums: true
+  - pymdownx.superfences
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+#nav:
+#  - Home: index.md
+#  - Get Started: get_started/index.md
+#  - Configuration: configuration/index.md
+theme:
+  name: material
+  logo: assets/logo.svg
+  features:
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.footer
+    - search.suggest
+    - search.highlight
+    - header.autohide
+    - content.code.copy
+  font: 
+    text: Lato
+    code: Fira Code
+  palette:
+    # Palette toggle for light mode
+    - scheme: default
+      primary: amber
+      accent: orange
+      toggle:
+        icon: material/brightness-7 
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - scheme: slate
+      primary: amber
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+extra:
+  consent:
+    title: Cookie consent
+    description: >- 
+      We use cookies to recognize your repeated visits and preferences, as well
+      as to measure the effectiveness of our documentation and whether users
+      find what they're searching for. With your consent, you're helping us to
+      make our documentation better.
+    cookies:
+      analytics: google
+      github: github
+copyright: >
+  Copyright &copy; 2024 ProxyConf Authors –
+  <a href="#__consent">Change cookie settings</a>
+
+plugins:
+  - privacy
+  - search
+  - social
