@@ -74,6 +74,11 @@
           pkgs.envoy
           pkgs.sops
           pkgs.docker-compose
+          pkgs.python312Packages.mkdocs-material
+          pkgs.python312Packages.pillow
+          pkgs.python312Packages.cairosvg
+          pkgs.python312Packages.mkdocs-rss-plugin
+          pkgs.python312Packages.filelock
           run_ci
         ] ++ optional pkgs.stdenv.isLinux pkgs.inotify-tools
         ++ optional pkgs.stdenv.isDarwin pkgs.terminal-notifier;

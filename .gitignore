@@ -25,7 +25,5 @@ proxyconf-*.tar
 # Temporary files, for example, from tests.
 /tmp/
 
-# Devenv
-.devenv*
-devenv.local.nix
+/site/
 
