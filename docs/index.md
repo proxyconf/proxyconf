@@ -1,7 +1,11 @@
 # ProxyConf
 
+![Image title](./assets/logo.svg){ align=left } 
+
 **ProxyConf** is a control plane for [Envoyproxy](https://www.envoyproxy.io/) that simplifies and secures API management in enterprise environments. It leverages the OpenAPI specification to streamline the configuration of Envoyproxy, providing a powerful yet user-friendly platform for managing, and securing API traffic at scale.
 
+<br />
+<br />
 !!! Warning
     
     ProxyConf is **currently in development** and under active construction ⚠️. While it may already be **usable for some cases**, there’s a good chance you’ll encounter **bugs or incomplete features**.
@@ -12,17 +16,17 @@
 ## Key Features
 
 - **Envoyproxy Integration**
-  - High-performance routing, load balancing, and traffic management.
-  - Built-in observability with metrics, logging, and tracing.
-  - Security features like JWT authentication, TLS termination, and rate limiting.
+    - High-performance routing, load balancing, and traffic management.
+    - Built-in observability with metrics, logging, and tracing.
+    - Security features like JWT authentication, TLS termination, and rate limiting.
 
 - **ProxyConf Control Plane**
-  - **OpenAPI-Driven Configuration:** Simplifies and standardizes Envoyproxy configuration using OpenAPI specs.
-  - **Centralized Policy Management:** Manage API security, routing, and traffic policies across multiple Envoy instances.
-  - **Scalability:** Seamless scaling in distributed, high-availability environments.
+    - **OpenAPI-Driven Configuration:** Simplifies and standardizes Envoyproxy configuration using OpenAPI specs.
+    - **Centralized Policy Management:** Manage API security, routing, and traffic policies across multiple Envoy instances.
+    - **Scalability:** Seamless scaling in distributed, high-availability environments.
 
 - **Proprietary Extensions** (Available as Paid Add-ons, work in progress)
-  - **Request and Response Validation:** Advanced validation mechanisms for API requests and responses, ensuring data integrity and compliance with specifications.
+    - **Request and Response Validation:** Advanced validation mechanisms for API requests and responses, ensuring data integrity and compliance with specifications.
   - **SOAP/WSDL Support:**  Support for SOAP-based APIs and WSDL specifications, enabling seamless integration with legacy systems.
 
 

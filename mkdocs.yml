@@ -1,11 +1,14 @@
-site_name: proxyconf
+site_name: ProxyConf
 site_url: https://localhost
-#repo_url: https://github.com/proxyconf/proxyconf
+repo_url: https://github.com/proxyconf/proxyconf
+repo_name: proxyconf/proxyconf
 markdown_extensions:
   - pymdownx.highlight:
       anchor_linenums: true
       auto_title: true
       linenums: true
+  - attr_list
+  - md_in_html
   - pymdownx.superfences
   - admonition
   - pymdownx.details
@@ -25,24 +28,17 @@ theme:
     - search.highlight
     - header.autohide
     - content.code.copy
+  icon:
+    repo: fontawesome/brands/github
   font: 
-    text: Lato
+    text: Fira Sans
     code: Fira Code
   palette:
-    # Palette toggle for light mode
-    - scheme: default
-      primary: amber
-      accent: orange
-      toggle:
-        icon: material/brightness-7 
-        name: Switch to dark mode
-    # Palette toggle for dark mode
-    - scheme: slate
-      primary: amber
-      accent: amber
-      toggle:
-        icon: material/brightness-4
-        name: Switch to light mode
+    scheme: slate
+    primary: black
+    accent: green
+extra_css:
+  - stylesheets/extra.css
 extra:
   consent:
     title: Cookie consent
