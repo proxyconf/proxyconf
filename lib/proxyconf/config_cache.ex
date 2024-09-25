@@ -1,4 +1,8 @@
 defmodule ProxyConf.ConfigCache do
+  @moduledoc """
+    This module implements a GenServer handling changes of the OpenAPI
+    specs, and pushing resource updates to the ProxyConf.Stream GenServers.
+  """
   use GenServer
   alias ProxyConf.ConfigGenerator
   alias ProxyConf.MapPatch

@@ -1,4 +1,7 @@
 defmodule ProxyConf.ConfigGenerator.ClusterLbEndpoint do
+  @moduledoc """
+    This module implements the cluster loadbalancer endpoint resource
+  """
   use ProxyConf.MapTemplate
 
   deftemplate(%{

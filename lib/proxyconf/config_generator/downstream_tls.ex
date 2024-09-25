@@ -1,4 +1,8 @@
 defmodule ProxyConf.ConfigGenerator.DownstreamTls do
+  @moduledoc """
+    This module implements the generator for Downstream TLS context
+    used by XDS/LDS
+  """
   alias ProxyConf.Spec
   alias ProxyConf.ConfigGenerator.Listener
   alias ProxyConf.LocalCA
@@ -74,7 +78,6 @@ defmodule ProxyConf.ConfigGenerator.DownstreamTls do
         "require_client_certificate" => true,
         "common_tls_context" =>
           %{
-            # TODO additional configs from global TLS Conig
             "tls_certificate_sds_secret_configs" =>
               Enum.reject(downstream_tls, fn %{"name" => name} ->
                 String.starts_with?(name, "mtls-")

@@ -1,4 +1,18 @@
 defmodule ProxyConf.ConfigGenerator do
+  @moduledoc """
+    This module implements the config generator that produces the different
+    Envoy resources.
+
+    Every config generator module (ProxyConf.ConfigGenerator.*) is able to
+    produce generator functions for resources or fragments used by a resource 
+    by calling the `from_spec_gen/1` function, passing the internal Spec struct. 
+    The produced resource generators are tagged by a grouping key (e.g. a listener).
+    The tagging is required to group resources together as multiple OpenAPI 
+    specs could configure the same listener, and therefore listener specific
+    configurations (but potentially specific to each space) like TLS/mTLS or
+    VHost matching must be aggregated.
+    
+  """
   alias ProxyConf.ConfigGenerator.Cluster
   alias ProxyConf.ConfigGenerator.FilterChain
   alias ProxyConf.ConfigGenerator.Listener
@@ -34,6 +48,7 @@ defmodule ProxyConf.ConfigGenerator do
         listener_tmpl = Listener.from_spec_gen(spec) |> add_unifier(listener_name)
 
         vhost_unifier = %{listener: listener_name, host: spec.api_url.host}
+
         filter_chain_tmpl = FilterChain.from_spec_gen(spec) |> add_unifier(vhost_unifier)
         downstream_tls_tmpl = DownstreamTls.from_spec_gen(spec) |> add_unifier(vhost_unifier)
         downstream_auth_tmpl = DownstreamAuth.from_spec_gen(spec) |> add_unifier(vhost_unifier)

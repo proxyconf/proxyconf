@@ -46,7 +46,7 @@ defmodule ProxyConf.TestSupport.Envoy do
                           "address" => %{
                             "socket_address" => %{
                               "address" => "127.0.0.1",
-                              "port_value" => 18000
+                              "port_value" => 18_000
                             }
                           }
                         }

@@ -1,5 +1,7 @@
 defmodule ProxyConf.TestSupport.Jwt do
+  @moduledoc false
   defmodule JWT do
+    @moduledoc false
     use Joken.Config
   end
 

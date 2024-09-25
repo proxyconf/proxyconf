@@ -1,4 +1,7 @@
 defmodule ProxyConf.ConfigGenerator.Listener do
+  @moduledoc """
+    This implements the config generator for the listener resource
+  """
   use ProxyConf.MapTemplate
 
   deftemplate(%{

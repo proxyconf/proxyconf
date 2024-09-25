@@ -1,4 +1,9 @@
 defmodule ProxyConf.ConfigGenerator.FilterChain do
+  @moduledoc """
+    This module implements the filter chain resource.
+
+    One filter chain per VHost is generated.
+  """
   use ProxyConf.MapTemplate
   alias ProxyConf.ConfigGenerator.DownstreamAuth
   alias ProxyConf.ConfigGenerator.DownstreamTls

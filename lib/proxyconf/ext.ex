@@ -19,7 +19,7 @@ defmodule ProxyConf.Ext do
                   address: %{
                     oneOf: [%{type: :string, format: :ipv4}, %{type: :string, format: :ipv6}]
                   },
-                  port: %{type: :integer, minimum: 1, maximum: 65535}
+                  port: %{type: :integer, minimum: 1, maximum: 65_535}
                 }
               },
               security: %{

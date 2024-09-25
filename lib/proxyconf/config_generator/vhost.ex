@@ -1,4 +1,7 @@
 defmodule ProxyConf.ConfigGenerator.VHost do
+  @moduledoc """
+    This module implements a config generator for the VHost used as part of XDS/LDS
+  """
   use ProxyConf.MapTemplate
 
   deftemplate(%{

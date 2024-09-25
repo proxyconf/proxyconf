@@ -1,4 +1,7 @@
 defmodule ProxyConf.ConfigGenerator.RouteConfiguration do
+  @moduledoc """
+    This module implements the config generator for the route configuration
+  """
   use ProxyConf.MapTemplate
 
   deftemplate(%{

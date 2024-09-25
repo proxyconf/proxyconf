@@ -1,4 +1,7 @@
 defmodule ProxyConf.Spec do
+  @moduledoc """
+    This module models the internal representation of the OpenAPI spec.
+  """
   require Logger
   alias ProxyConf.Ext
 

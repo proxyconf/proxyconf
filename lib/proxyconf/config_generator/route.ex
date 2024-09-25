@@ -1,4 +1,7 @@
 defmodule ProxyConf.ConfigGenerator.Route do
+  @moduledoc """
+    This module implements the generator of the Route Configs used by Envoy XDS/RDS
+  """
   alias ProxyConf.Spec
   alias ProxyConf.ConfigGenerator.Cluster
   alias ProxyConf.ConfigGenerator.DownstreamAuth

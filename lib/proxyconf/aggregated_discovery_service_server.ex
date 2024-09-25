@@ -1,4 +1,5 @@
 defmodule ProxyConf.AggregatedDiscoveryServiceServer do
+  @moduledoc false
   require Logger
   use GRPC.Server, service: Envoy.Service.Discovery.V3.AggregatedDiscoveryService.Service
 

@@ -1,4 +1,7 @@
 defmodule ProxyConf.ConfigGenerator.Cluster do
+  @moduledoc """
+    Thid module implements the cluster resource.
+  """
   alias ProxyConf.ConfigGenerator.ClusterLbEndpoint
   use ProxyConf.MapTemplate
 

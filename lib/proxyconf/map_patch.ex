@@ -29,7 +29,7 @@ defmodule ProxyConf.MapPatch do
     path = to_path(path)
     item = get_in(map, path)
 
-    if is_match(matcher, item) do
+    if match_?(matcher, item) do
       put_in(map, path, value)
     else
       map
@@ -41,7 +41,7 @@ defmodule ProxyConf.MapPatch do
     path = to_path(path)
     item = get_in(map, path)
 
-    if is_match(matcher, item) do
+    if match_?(matcher, item) do
       update_in(map, path, value_fn)
     else
       map
@@ -53,7 +53,7 @@ defmodule ProxyConf.MapPatch do
     path = to_path(path)
     item = get_in(map, path)
 
-    if is_match(matcher, item) do
+    if match_?(matcher, item) do
       {_, map} = pop_in(map, path)
       map
     else
@@ -66,7 +66,7 @@ defmodule ProxyConf.MapPatch do
     path = to_path(path)
     item = get_in(map, path)
 
-    if is_match(matcher, item) do
+    if match_?(matcher, item) do
       update_in(map, path, fn v -> DeepMerge.deep_merge(v, value) end)
     else
       map
@@ -89,9 +89,9 @@ defmodule ProxyConf.MapPatch do
 
   defp to_match_paths(v, path), do: {Enum.reverse(path), v}
 
-  defp is_match(nil, _), do: true
+  defp match_?(nil, _), do: true
 
-  defp is_match(matcher, item) when is_map(matcher) do
+  defp match_?(matcher, item) when is_map(matcher) do
     to_match_paths(matcher)
     |> Enum.all?(fn {path, val} ->
       dyn_get_in(item, path) == val

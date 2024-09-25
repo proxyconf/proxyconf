@@ -1,4 +1,13 @@
 defmodule ProxyConf.LocalCA do
+  @moduledoc """
+    This module implements a simple certificate authority that is used to
+    create on-demand TLS certificates (incl key material) in case a certificate
+    is required but isn't available.
+
+    In general it's recommended to NOT rely on this certificate authority and use
+    a solid PKI instead.
+  """
+
   require Logger
   @ca_subject "/CN=ProxyConf self-signed issuer"
   @control_plane_subject "/CN=ProxyConf control plane"

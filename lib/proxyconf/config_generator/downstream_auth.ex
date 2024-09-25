@@ -1,4 +1,13 @@
 defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
+  @moduledoc """
+    This module implements the generator for the Lua based
+    downstream authentication script as well as the depending
+    RBAC filter that utilizes Lua Filter metadata resulted during
+    authentication.
+
+    JWT and mTLS authentication cases don't rely on a Lua script
+    but also use the RBAC filter for the final authentication verdict.
+  """
   require Logger
   alias ProxyConf.Spec
   alias ProxyConf.ConfigGenerator.Cluster
@@ -297,7 +306,9 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
           Map.put(provider_config, "failed_status_in_metadata", "proxyconf.downstream_auth")
 
         {provider_config, remote_jwks_acc} =
-          if not is_nil(http_uri) do
+          if is_nil(http_uri) do
+            {provider_config, remote_jwks_acc}
+          else
             {cluster_name, cluster_uri} =
               Cluster.cluster_uri_from_oas3_server("internal-jwks", %{"url" => http_uri})
 
@@ -311,8 +322,6 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
                })
                | remote_jwks_acc
              ]}
-          else
-            {provider_config, remote_jwks_acc}
           end
 
         {Map.put(providers_acc, provider_name, provider_config), rules_acc, remote_jwks_acc}

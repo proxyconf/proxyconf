@@ -76,7 +76,7 @@ defmodule ProxyConf.TestSupport.Oas3Case do
   end
 
   def next_port do
-    Enum.random(40000..50000)
+    Enum.random(40_000..50_000)
   end
 
   defmacro __using__(opts) do
@@ -359,7 +359,7 @@ defmodule ProxyConf.TestSupport.Oas3Case do
 
     querystring =
       if map_size(prop.query_parameters) > 0 do
-        "?" <> (Enum.map(prop.query_parameters, fn {k, v} -> k <> "=" <> v end) |> Enum.join("&"))
+        "?" <> Enum.map_join(prop.query_parameters, "&", fn {k, v} -> k <> "=" <> v end)
       else
         ""
       end

@@ -37,6 +37,7 @@ defmodule ProxyConf.MixProject do
       {:file_system, "~> 1.0"},
       #      {:proxyconf_validator, path: "../proxyconf_validator", optional: true},
       {:x509, "~> 0.8.9"},
+      {:credo, "~> 1.7"},
       {:finch, "~> 0.19.0", only: :test},
       {:bypass, "~> 2.1", only: :test},
       {:joken, "~> 2.6", only: :test}

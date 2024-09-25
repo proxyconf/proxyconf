@@ -1,4 +1,14 @@
 defmodule ProxyConf.Stream do
+  @moduledoc """
+    This module implements a GenServer that is used to communicate
+    with the GRPC stream. For Envoy XDS/ADS one GRPC stream per resource
+    type is used. This enables that discovery request/responses for a 
+    specific resource type can be easily dispatched via the GenServers.
+    To simplify the dispatching an Elixir Registry is use. 
+
+    The GenServer monitors the GRPC stream process and terminates if the
+    GRPC stream stops, e.g. due to a disconnect of an Envoy node.
+  """
   use GenServer
   require Logger
   alias ProxyConf.ConfigCache

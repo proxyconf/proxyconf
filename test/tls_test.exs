@@ -32,7 +32,7 @@ defmodule ProxyConf.TlsTest do
     oas3spec("test/oas3/tls.yaml", ctx) do
       fn
         %Mint.TransportError{reason: _}, _ ->
-          # TODO: multiple error reasons popped up during testing
+          # multiple error reasons popped up during testing
           # - closed
           # - einval
           # - tls alert, certificate_required
