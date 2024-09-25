@@ -1,4 +1,8 @@
-x-proxyconf-downstream-auth: disabled
+x-proxyconf:
+  security:
+    auth: 
+      downstream: disabled
+
 servers:
   - url: http://127.0.0.1
 openapi: 3.1.0

@@ -1,4 +1,8 @@
-x-proxyconf-downstream-auth: disabled
+x-proxyconf:
+  security:
+    auth:
+      downstream: disabled
+
 servers:
   # invalid upstream url
   - url: "/"

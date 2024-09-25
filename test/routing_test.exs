@@ -20,18 +20,4 @@ defmodule ProxyConf.RoutingTest do
         assert prop.status in ["403"]
     end
   end
-
-  oas3spec(
-    "test/oas3/error-missing-downstream-config.yaml",
-    ctx
-  ) do
-    fn
-      %Mint.TransportError{reason: :econnrefused}, _ ->
-        # can happen if it is the first test
-        assert true
-
-      %Finch.Response{status: 403}, prop ->
-        assert prop.status in ["403"]
-    end
-  end
 end

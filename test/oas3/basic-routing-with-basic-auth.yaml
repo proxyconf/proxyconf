@@ -1,10 +1,12 @@
-x-proxyconf-downstream-auth:
-  auth_type: basic
-  config:
-    clients:
-      myUser:
-        # echo "myuser:mysecret" | md5sum
-        - c1380f318aa8d769323574b15d84986d
+x-proxyconf:
+  security:
+    auth:
+      downstream:
+        type: basic
+        clients:
+          myUser:
+            # echo "myuser:mysecret" | md5sum
+            - c1380f318aa8d769323574b15d84986d
   
 servers:
   - url: http://127.0.0.1

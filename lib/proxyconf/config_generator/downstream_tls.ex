@@ -5,19 +5,11 @@ defmodule ProxyConf.ConfigGenerator.DownstreamTls do
 
   def from_spec_gen(
         %Spec{
-          api_url: %URI{scheme: "https", host: host} = _api_url
+          api_url: %URI{scheme: "https", host: host} = _api_url,
+          downstream_auth: %{type: "mtls", trusted_ca: trusted_ca}
         } = spec
       ) do
     listener_name = Listener.name(spec)
-
-    trusted_ca =
-      case Map.get(spec, :downstream_auth) do
-        %{"auth_type" => "mtls", "config" => config} ->
-          Map.get(config, "trusted_ca", Application.fetch_env!(:proxyconf, :ca_certificate))
-
-        _ ->
-          nil
-      end
 
     fn ->
       {crt, key} = LocalCA.server_cert(host).()
@@ -33,28 +25,40 @@ defmodule ProxyConf.ConfigGenerator.DownstreamTls do
               "inline_string" => crt
             }
           }
+        },
+        %{
+          "name" => "mtls-#{listener_name}",
+          "validation_context" => %{
+            "trusted_ca" => %{"inline_string" => File.read!(trusted_ca)}
+          }
         }
-        | maybe_mtls_trusted_ca(listener_name, trusted_ca)
+      ]
+    end
+  end
+
+  def from_spec_gen(%Spec{
+        api_url: %URI{scheme: "https", host: host} = _api_url
+      }) do
+    fn ->
+      {crt, key} = LocalCA.server_cert(host).()
+
+      [
+        %{
+          "name" => host,
+          "tls_certificate" => %{
+            "private_key" => %{
+              "inline_string" => key
+            },
+            "certificate_chain" => %{
+              "inline_string" => crt
+            }
+          }
+        }
       ]
     end
   end
 
   def from_spec_gen(_spec), do: fn -> [] end
-
-  defp maybe_mtls_trusted_ca(_, nil), do: []
-
-  defp maybe_mtls_trusted_ca(listener_name, trusted_ca) do
-    ca_certs = File.read!(trusted_ca)
-
-    [
-      %{
-        "name" => "mtls-#{listener_name}",
-        "validation_context" => %{
-          "trusted_ca" => %{"inline_string" => ca_certs}
-        }
-      }
-    ]
-  end
 
   def to_envoy_transport_socket(_listener_name, _downstream_auth, []), do: nil
 

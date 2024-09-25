@@ -13,8 +13,15 @@ defmodule ProxyConf.ConfigCache do
   @spec_table :config_cache_tbl_specs
   @resources_table :config_cache_tbl_resources
   @valid_oas3_file_extensions [".json", ".yaml", ".yml"]
-  @oas3_0_schema File.read!("priv/schemas/oas3_0.json") |> Jason.decode!() |> JsonXema.new()
-  @oas3_1_schema File.read!("priv/schemas/oas3_1.json") |> Jason.decode!() |> JsonXema.new()
+  @ext_schema ProxyConf.Ext.schema()
+  @oas3_0_schema File.read!("priv/schemas/oas3_0.json")
+                 |> Jason.decode!()
+                 |> Map.merge(@ext_schema)
+                 |> JsonXema.new()
+  @oas3_1_schema File.read!("priv/schemas/oas3_1.json")
+                 |> Jason.decode!()
+                 |> Map.merge(@ext_schema)
+                 |> JsonXema.new()
 
   def start_link(_args) do
     :ets.new(@spec_table, [:public, :named_table])
@@ -109,14 +116,14 @@ defmodule ProxyConf.ConfigCache do
 
   def handle_call({:load_external_spec, spec_name, spec}, _from, state)
       when is_map(spec) do
-    Logger.notice(
-      file_name: spec_name,
-      api_id: Map.get(spec, "x-proxyconf-id", "UNKNOWN"),
-      message: "loading external spec"
-    )
-
     case validate_spec(spec_name, spec, :erlang.term_to_binary(spec)) do
       {:ok, %Spec{} = spec} ->
+        Logger.notice(
+          file_name: spec_name,
+          api_id: spec.api_id,
+          message: "loading external spec"
+        )
+
         insert_validated_spec(spec)
 
         case cache_notify_resources(spec.cluster_id, %{spec_name => :external}) do
@@ -184,7 +191,7 @@ defmodule ProxyConf.ConfigCache do
 
           {:error, reason} ->
             Logger.warning(
-              message: "Validation error when parsing spec #{filename} due to #{inspect(reason)}"
+              message: "Validation error when parsing spec #{filename} due to #{reason}"
             )
 
             :ignored
@@ -217,7 +224,7 @@ defmodule ProxyConf.ConfigCache do
          ext <- Path.extname(spec_filename),
          {:ok, data} <- File.read(spec_filename),
          {:ok, parsed} <- parse_spec(ext, data),
-         parsed <- Map.merge(parsed, overrides),
+         parsed <- DeepMerge.deep_merge(parsed, overrides),
          {:ok, internal_spec} <- validate_spec(spec_filename, parsed, data) do
       {:ok, internal_spec}
     else
@@ -240,8 +247,8 @@ defmodule ProxyConf.ConfigCache do
       :ok ->
         Spec.from_oas3(filename, spec, data)
 
-      {:error, errors} ->
-        {:error, errors}
+      {:error, %JsonXema.ValidationError{} = error} ->
+        {:error, JsonXema.ValidationError.message(error)}
     end
   end
 

@@ -13,7 +13,7 @@ defmodule ProxyConf.TestSupport.Oas3Case do
     to test a scenario where multiple specs use the same upstream
     server one would need to specify the port explicitely.
 
-    The port specified in `x-proxyconf-listener` is ignored and
+    The port specified in `x-proxyconf/listener` is ignored and
     random value is assigned. One can override this behaviour by
     explicitely providing the `listener_port` macro option.
 
@@ -118,55 +118,52 @@ defmodule ProxyConf.TestSupport.Oas3Case do
     end
   end
 
-  defp listener_name_from_spec(spec) do
-    listener = Map.get(spec, "x-proxyconf-listener", %{})
-    address = Map.get(listener, "address", "127.0.0.1")
-    port = Map.get(listener, "port", 8080)
-    "#{address}:#{port}"
-  end
+  defp wait_until_listener_setup(ctx, listner, retries \\ 10)
 
-  defp wait_until_listener_setup(ctx, spec, retries \\ 10)
-
-  defp wait_until_listener_setup(_ctx, spec, 0) do
-    listener = listener_name_from_spec(spec)
+  defp wait_until_listener_setup(_ctx, listener, 0) do
     Logger.warning("Listener #{listener} not ready, giving up")
   end
 
-  defp wait_until_listener_setup(ctx, spec, n) do
-    name = listener_name_from_spec(spec)
-
+  defp wait_until_listener_setup(ctx, listener, n) do
     %Finch.Response{status: 200, body: body} =
       http_req(:get, "http://localhost:#{ctx.admin_port}/listeners?format=json")
 
     with %{"listener_statuses" => listeners} <- Jason.decode!(body),
          listeners <- Enum.map(listeners, fn %{"name" => name} -> name end),
-         true <- name in listeners do
+         true <- listener in listeners do
       :ok
     else
       _ ->
         Process.sleep(1000)
-        wait_until_listener_setup(ctx, spec, n - 1)
+        wait_until_listener_setup(ctx, listener, n - 1)
     end
   rescue
     Mint.TransportError ->
       Process.sleep(1000)
-      wait_until_listener_setup(ctx, spec, n - 1)
+      wait_until_listener_setup(ctx, listener, n - 1)
   end
 
   def test_property_stream(ctx, spec_file, n, assert_fn) do
     api_id = "api-#{:erlang.phash2(spec_file)}"
 
     overrides = %{
-      "x-proxyconf-api-url" => "#{ctx.http_schema}://localhost:#{ctx.listener_port}/#{api_id}",
-      "x-proxyconf-id" => api_id,
-      "x-proxyconf-cluster-id" => ctx.cluster_id,
-      "x-proxyconf-listener" => %{
-        "address" => "127.0.0.1",
-        "port" => ctx.listener_port
+      "x-proxyconf" => %{
+        "url" => "#{ctx.http_schema}://localhost:#{ctx.listener_port}/#{api_id}",
+        "api_id" => api_id,
+        "cluster" => ctx.cluster_id,
+        "listener" => %{
+          "address" => "127.0.0.1",
+          "port" => ctx.listener_port
+        }
       }
     }
 
-    {:ok, %ProxyConf.Spec{spec: %{"servers" => servers} = spec}} =
+    {:ok,
+     %ProxyConf.Spec{
+       spec: %{"servers" => servers} = spec,
+       listener_port: listener_port,
+       listener_address: listener_address
+     }} =
       ProxyConf.ConfigCache.parse_spec_file(spec_file, overrides)
 
     servers =
@@ -236,7 +233,7 @@ defmodule ProxyConf.TestSupport.Oas3Case do
       end
 
     ctx = Map.put(ctx, :finch, finch_name) |> Map.put(:bypasses, bypasses)
-    wait_until_listener_setup(ctx, spec)
+    wait_until_listener_setup(ctx, "#{listener_address}:#{listener_port}")
 
     property_stream(spec)
     |> Enum.reduce_while(0, fn prop, acc ->
@@ -323,7 +320,7 @@ defmodule ProxyConf.TestSupport.Oas3Case do
   defp property_stream(
          %{
            "paths" => paths,
-           "x-proxyconf-api-url" => api_url
+           "x-proxyconf" => %{"url" => api_url}
          } = spec
        ) do
     props =

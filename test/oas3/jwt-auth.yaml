@@ -1,15 +1,18 @@
-x-proxyconf-downstream-auth:
-  auth_type: jwt
-  config:
-    issuer: proxyconf-exunit
-    audiences: 
-      - exunit
-    remote_jwks:
-      http_uri:
-        uri: http://127.0.0.1:18888/.well-known/jwks.json
-        timeout: 1s
-      cache_duration:
-        seconds: 300
+x-proxyconf:
+  security:
+    auth:
+      downstream:
+        type: jwt
+        provider_config:
+          issuer: proxyconf-exunit
+          audiences: 
+            - exunit
+          remote_jwks:
+            http_uri:
+              uri: http://127.0.0.1:18888/.well-known/jwks.json
+              timeout: 1s
+            cache_duration:
+              seconds: 300
   
 servers:
   - url: http://127.0.0.1

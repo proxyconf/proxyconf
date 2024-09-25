@@ -1,11 +1,13 @@
-x-proxyconf-downstream-auth:
-  auth_type: header
-  config:
-    name: my-api-key
-    clients:
-      testUser:
-        # md5sum of supersecret
-        - 9a618248b64db62d15b300a07b00580b
+x-proxyconf:
+  security:
+    auth: 
+      downstream:
+        type: header
+        name: my-api-key
+        clients:
+          testUser:
+            # md5sum of supersecret
+            - 9a618248b64db62d15b300a07b00580b
   
 servers:
   - url: http://127.0.0.1

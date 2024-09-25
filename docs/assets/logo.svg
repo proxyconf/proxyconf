@@ -2,13 +2,16 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   width="61.791084mm"
-   height="61.7911mm"
-   viewBox="0 0 61.791084 61.7911"
+   width="61.00938mm"
+   height="61.009399mm"
+   viewBox="0 0 61.00938 61.009399"
    version="1.1"
    id="svg5"
    inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
    sodipodi:docname="proxyconf.svg"
+   inkscape:export-filename="proxyconf-logo-grayscale.svg"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -26,7 +29,7 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="1.1009789"
-     inkscape:cx="396.46535"
+     inkscape:cx="358.77163"
      inkscape:cy="381.02455"
      inkscape:window-width="1854"
      inkscape:window-height="1011"
@@ -38,85 +41,128 @@
      id="defs2">
     <linearGradient
        inkscape:collect="always"
-       id="linearGradient1902">
+       id="linearGradient1885">
       <stop
-         style="stop-color:#ff288d;stop-opacity:1;"
+         style="stop-color:#b6eaff;stop-opacity:1;"
          offset="0"
-         id="stop1898" />
+         id="stop1877" />
       <stop
-         style="stop-color:#fbee9d;stop-opacity:1;"
-         offset="0.5"
-         id="stop1979" />
+         style="stop-color:#d3fb9d;stop-opacity:1;"
+         offset="0.35226139"
+         id="stop1879" />
       <stop
-         style="stop-color:#7fff79;stop-opacity:1;"
+         style="stop-color:#f9fdba;stop-opacity:1;"
+         offset="0.65166563"
+         id="stop1881" />
+      <stop
+         style="stop-color:#ffdcb4;stop-opacity:1;"
          offset="1"
-         id="stop1900" />
+         id="stop1883" />
     </linearGradient>
     <linearGradient
        inkscape:collect="always"
-       xlink:href="#linearGradient1902"
-       id="linearGradient2247"
+       id="linearGradient1475">
+      <stop
+         style="stop-color:#b6eaff;stop-opacity:1;"
+         offset="0"
+         id="stop1473" />
+      <stop
+         style="stop-color:#d3fb9d;stop-opacity:1;"
+         offset="0.31359413"
+         id="stop1471" />
+      <stop
+         style="stop-color:#f9fdba;stop-opacity:1;"
+         offset="0.65166563"
+         id="stop1512" />
+      <stop
+         style="stop-color:#ffdcb4;stop-opacity:1;"
+         offset="1"
+         id="stop1469" />
+    </linearGradient>
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1475"
+       id="linearGradient1785"
        gradientUnits="userSpaceOnUse"
-       gradientTransform="matrix(1.1215526,0,0,1.1215526,63.557467,21.947107)"
-       x1="29.165747"
-       y1="113.03732"
-       x2="64.708496"
-       y2="113.03732" />
+       x1="95.449417"
+       y1="123.57755"
+       x2="157.24051"
+       y2="123.57755"
+       spreadMethod="pad" />
+    <linearGradient
+       inkscape:collect="always"
+       xlink:href="#linearGradient1885"
+       id="linearGradient1787"
+       gradientUnits="userSpaceOnUse"
+       x1="109.46381"
+       y1="97.430923"
+       x2="155.62776"
+       y2="149.47353"
+       spreadMethod="pad" />
   </defs>
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-100.79458,-99.95345)">
+     transform="translate(-5.4385721,-170.97717)">
     <g
-       id="g2570"
-       inkscape:export-filename="proxyconf-logo.png"
+       id="g2570-1-8"
+       inkscape:export-filename="proxyconf-logo.svg"
        inkscape:export-xdpi="96"
-       inkscape:export-ydpi="96">
+       inkscape:export-ydpi="96"
+       transform="translate(-90.401699,77.90432)"
+       style="fill:url(#linearGradient1787);fill-opacity:1;stroke:none;stroke-opacity:1">
       <rect
-         style="fill:#333333;fill-opacity:1;stroke:#333333;stroke-width:0.781707;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
-         id="rect2301"
+         style="fill:url(#linearGradient1785);fill-opacity:1;stroke:none;stroke-width:0.781707;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+         id="rect2301-2-7"
          width="61.009388"
          height="61.009388"
-         x="101.18543"
-         y="100.34431"
+         x="95.840271"
+         y="93.072853"
          rx="4.4397178"
          ry="3.677624" />
+    </g>
+    <g
+       id="g1828"
+       transform="translate(-14.315725,95.491053)">
       <text
          xml:space="preserve"
-         style="font-style:italic;font-variant:normal;font-weight:900;font-stretch:normal;font-size:63.5577px;line-height:1.25;font-family:Lato;-inkscape-font-specification:'Lato Heavy Italic';fill:#ffffff;fill-opacity:1;stroke:#111111;stroke-width:0.960135;stroke-dasharray:none;stroke-opacity:1"
-         x="107.58519"
-         y="158.42377"
-         id="text1787-2-4-7"
-         transform="scale(1.0526191,0.95001127)"><tspan
-           id="tspan1785-6-1-0"
-           style="font-style:italic;font-variant:normal;font-weight:900;font-stretch:normal;font-size:63.5577px;font-family:Lato;-inkscape-font-specification:'Lato Heavy Italic';fill:#ffffff;fill-opacity:1;stroke:#111111;stroke-width:0.960135;stroke-dasharray:none;stroke-opacity:1"
-           x="107.58519"
-           y="158.42377"
+         style="font-style:italic;font-variant:normal;font-weight:900;font-stretch:normal;font-size:63.5577px;line-height:1.25;font-family:Lato;-inkscape-font-specification:'Lato Heavy Italic';fill:#ffffff;fill-opacity:1;stroke:#333333;stroke-width:1.2;stroke-miterlimit:5;stroke-dasharray:none;stroke-opacity:1"
+         x="31.013231"
+         y="132.0788"
+         id="text1787-2-4"
+         transform="scale(1.0526191,0.95001127)"
+         inkscape:export-filename="./proxyconf-logo-grayscale.svg"
+         inkscape:export-xdpi="96"
+         inkscape:export-ydpi="96"><tspan
+           id="tspan1785-6-1"
+           style="font-style:italic;font-variant:normal;font-weight:900;font-stretch:normal;font-size:63.5577px;font-family:Lato;-inkscape-font-specification:'Lato Heavy Italic';fill:#ffffff;fill-opacity:1;stroke:#333333;stroke-width:1.2;stroke-miterlimit:5;stroke-dasharray:none;stroke-opacity:1"
+           x="31.013231"
+           y="132.0788"
            sodipodi:role="line">P</tspan></text>
       <text
          xml:space="preserve"
-         style="font-style:italic;font-variant:normal;font-weight:900;font-stretch:normal;font-size:65.9491px;line-height:1.25;font-family:Lato;-inkscape-font-specification:'Lato Heavy Italic';fill:#ffffff;fill-opacity:1;stroke:#111111;stroke-width:0.99626;stroke-dasharray:none;stroke-opacity:1"
-         x="100.62191"
-         y="166.39995"
-         id="text1787-2-8"
+         style="font-style:italic;font-variant:normal;font-weight:900;font-stretch:normal;font-size:65.9491px;line-height:1.25;font-family:Lato;-inkscape-font-specification:'Lato Heavy Italic';fill:#b5b5b5;fill-opacity:1;stroke:#333333;stroke-width:1.2;stroke-miterlimit:5;stroke-dasharray:none;stroke-opacity:1"
+         x="25.918915"
+         y="140.19821"
+         id="text1787-2"
          transform="scale(1.0931213,0.91481155)"><tspan
-           id="tspan1785-6-6"
-           style="font-style:italic;font-variant:normal;font-weight:900;font-stretch:normal;font-size:65.9491px;font-family:Lato;-inkscape-font-specification:'Lato Heavy Italic';fill:#ffffff;fill-opacity:1;stroke:#111111;stroke-width:0.99626;stroke-dasharray:none;stroke-opacity:1"
-           x="100.62191"
-           y="166.39995"
+           id="tspan1785-6"
+           style="font-style:italic;font-variant:normal;font-weight:900;font-stretch:normal;font-size:65.9491px;font-family:Lato;-inkscape-font-specification:'Lato Heavy Italic';fill:#b5b5b5;fill-opacity:1;stroke:#333333;stroke-width:1.2;stroke-miterlimit:5;stroke-dasharray:none;stroke-opacity:1"
+           x="25.918915"
+           y="140.19821"
            sodipodi:role="line">P</tspan></text>
       <text
          xml:space="preserve"
-         style="font-style:italic;font-variant:normal;font-weight:900;font-stretch:normal;font-size:67.9324px;line-height:1.25;font-family:Lato;-inkscape-font-specification:'Lato Heavy Italic';fill:url(#linearGradient2247);fill-opacity:1;stroke:#111111;stroke-width:1.02622;stroke-dasharray:none;stroke-opacity:1"
-         x="94.733269"
-         y="173.46881"
-         id="text1787-24"
+         style="font-style:italic;font-variant:normal;font-weight:900;font-stretch:normal;font-size:67.9324px;line-height:1.25;font-family:Lato;-inkscape-font-specification:'Lato Heavy Italic';fill:#333333;fill-opacity:1;stroke:#333333;stroke-width:1.2;stroke-miterlimit:5;stroke-dasharray:none;stroke-opacity:1"
+         x="21.32144"
+         y="147.65318"
+         id="text1787"
          transform="scale(1.1267636,0.88749761)"><tspan
-           id="tspan1785-7"
-           style="font-style:italic;font-variant:normal;font-weight:900;font-stretch:normal;font-size:67.9324px;font-family:Lato;-inkscape-font-specification:'Lato Heavy Italic';fill:url(#linearGradient2247);fill-opacity:1;stroke:#111111;stroke-width:1.02622;stroke-dasharray:none;stroke-opacity:1"
-           x="94.733269"
-           y="173.46881"
+           id="tspan1785"
+           style="font-style:italic;font-variant:normal;font-weight:900;font-stretch:normal;font-size:67.9324px;font-family:Lato;-inkscape-font-specification:'Lato Heavy Italic';fill:#333333;fill-opacity:1;stroke:#333333;stroke-width:1.2;stroke-miterlimit:5;stroke-dasharray:none;stroke-opacity:1"
+           x="21.32144"
+           y="147.65318"
            sodipodi:role="line">P</tspan></text>
     </g>
   </g>

@@ -11,12 +11,18 @@ defmodule ProxyConf.TestSupport.Jwt do
 
   @issuer "proxyconf-exunit"
   def maybe_setup_jwt_auth(%{
-        "x-proxyconf-downstream-auth" => %{
-          "auth_type" => "jwt",
-          "config" => %{
-            # issuer is ignored, this allows to check wrong issuer validation failure
-            "issuer" => _issuer,
-            "remote_jwks" => %{"http_uri" => %{"uri" => jwks_uri}}
+        "x-proxyconf" => %{
+          "security" => %{
+            "auth" => %{
+              "downstream" => %{
+                "type" => "jwt",
+                "provider_config" => %{
+                  # issuer is ignored, this allows to check wrong issuer validation failure
+                  "issuer" => _issuer,
+                  "remote_jwks" => %{"http_uri" => %{"uri" => jwks_uri}}
+                }
+              }
+            }
           }
         }
       }) do

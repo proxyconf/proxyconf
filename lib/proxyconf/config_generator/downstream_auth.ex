@@ -26,7 +26,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
       |> wrap_gen()
 
   def from_spec_gen(
-        %Spec{downstream_auth: %{"auth_type" => "mtls", "config" => %{"clients" => clients}}} =
+        %Spec{downstream_auth: %{type: "mtls", clients: clients}} =
           spec
       ),
       do:
@@ -40,7 +40,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
         |> wrap_gen()
 
   def from_spec_gen(
-        %Spec{downstream_auth: %{"auth_type" => "basic", "config" => %{"clients" => clients}}} =
+        %Spec{downstream_auth: %{type: "basic", clients: clients}} =
           spec
       ),
       # the official basic_auth support in envoy is configured either on a listener level or a route level, both are suboptimal, therefore we use the downstream Lua auth 
@@ -57,10 +57,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
 
   def from_spec_gen(
         %Spec{
-          downstream_auth: %{
-            "auth_type" => "header",
-            "config" => %{"name" => header_name, "clients" => clients}
-          }
+          downstream_auth: %{type: "header", name: header_name, clients: clients}
         } = spec
       ),
       do:
@@ -76,10 +73,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
 
   def from_spec_gen(
         %Spec{
-          downstream_auth: %{
-            "auth_type" => "query",
-            "config" => %{"name" => query_field_name, "clients" => clients}
-          }
+          downstream_auth: %{type: "query", name: query_field_name, clients: clients}
         } = spec
       ),
       do:
@@ -95,10 +89,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
 
   def from_spec_gen(
         %Spec{
-          downstream_auth: %{
-            "auth_type" => "jwt",
-            "config" => jwt_provider_config
-          }
+          downstream_auth: %{type: "jwt", provider_config: jwt_provider_config}
         } = spec
       ),
       do:
@@ -108,30 +99,30 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
           auth_type: "jwt",
           allowed_source_ips: spec.allowed_source_ips,
           jwt_provider_config:
-            jwt_provider_config |> Map.put("payload_in_metadata", "jwt_payload")
+            jwt_provider_config
+            |> Map.put("payload_in_metadata", "jwt_payload")
+            # ugly, but ensures we only deal with string keys
+            |> Jason.encode!()
+            |> Jason.decode!()
         }
         |> wrap_gen()
 
-  def from_spec_gen(_spec) do
+  def from_spec_gen(spec) do
     raise(
-      "API doesn't configure downstream authentication, which isn't allowed. To disable downstream authentication (not recommended) you can specify 'x-proxyconf-downstream-auth' to 'disabled'"
+      "API doesn't configure downstream authentication, which isn't allowed. To disable downstream authentication (not recommended) you can specify 'x-proxyconf -> security -> auth -> downstream' to 'disabled' has: #{inspect(spec.downstream_auth)}"
     )
   end
 
   defp wrap_gen(res), do: fn -> res end
 
   def to_filter_metadata(spec) do
-    case from_spec_gen(spec).() do
-      %__MODULE__{} = config ->
-        %{
-          "api_id" => spec.api_id,
-          "auth_type" => config.auth_type,
-          "auth_field_name" => config.auth_field_name
-        }
+    %__MODULE__{} = config = from_spec_gen(spec).()
 
-      _ ->
-        %{}
-    end
+    %{
+      "api_id" => spec.api_id,
+      "auth_type" => config.auth_type,
+      "auth_field_name" => config.auth_field_name
+    }
   end
 
   @external_resource "lua/vendor/md5/md5.lua"

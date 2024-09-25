@@ -1,14 +1,17 @@
-x-proxyconf-downstream-auth:
-  auth_type: mtls
-  config:
-    trusted_ca: /tmp/proxyconf/ca-cert.pem
-    clients:
-      test_client:
-        - exunit-good
-x-proxyconf-api-url: "https://localhost:44444/tls"
-x-proxyconf-listener:
-  address: "127.0.0.1"
-  port: 44444
+x-proxyconf:
+  url: https://localhost:44444/tls
+  listener:
+    address: "127.0.0.1"
+    port: 44444
+  security:
+    auth:
+      downstream:
+        type: mtls
+        trusted_ca: /tmp/proxyconf/ca-cert.pem
+        clients:
+          test_client:
+            - exunit-good
+
 servers:
   - url: http://127.0.0.1
 openapi: 3.1.0
