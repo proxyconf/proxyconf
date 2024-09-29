@@ -10,7 +10,7 @@ defmodule ProxyConf.ConfigGenerator.RouteConfiguration do
   })
 
   def from_spec_gen(_spec) do
-    fn vhost_name, listener_name, vhost ->
+    fn %{host: vhost_name, listener: listener_name}, [vhost] ->
       %{name: name(listener_name, vhost_name), virtual_hosts: [vhost]} |> eval()
     end
   end

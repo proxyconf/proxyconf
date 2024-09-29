@@ -33,6 +33,22 @@ defmodule ProxyConf.Ext do
                     additional_properties: false,
                     required: [:downstream],
                     properties: %{
+                      upstream: %{
+                        oneOf: [
+                          %{type: :null},
+                          %{
+                            type: :object,
+                            additional_properties: false,
+                            required: [:type, :name, :value],
+                            properties: %{
+                              type: %{const: :header},
+                              name: %{type: :string, minLength: 1},
+                              value: %{type: :string, minLength: 1},
+                              overwrite: %{type: :boolean}
+                            }
+                          }
+                        ]
+                      },
                       downstream: %{
                         oneOf: [
                           %{const: :disabled},
@@ -161,7 +177,7 @@ defmodule ProxyConf.Ext do
         address: "127.0.0.1",
         port: api_url_parsed.port
       },
-      security: %{allowed_source_ips: ["127.0.0.1/32"]}
+      security: %{allowed_source_ips: ["127.0.0.1/32"], auth: %{upstream: nil}}
     }
   end
 

@@ -6,6 +6,7 @@ defmodule ProxyConf.ConfigGenerator.FilterChain do
   """
   use ProxyConf.MapTemplate
   alias ProxyConf.ConfigGenerator.DownstreamAuth
+  alias ProxyConf.ConfigGenerator.UpstreamAuth
   alias ProxyConf.ConfigGenerator.DownstreamTls
   alias ProxyConf.ConfigGenerator.VHost
   alias ProxyConf.ConfigGenerator.Listener
@@ -36,7 +37,7 @@ defmodule ProxyConf.ConfigGenerator.FilterChain do
           },
           "http_filters" =>
             [
-              :downstream_auth,
+              :http_filters,
               %{
                 "name" => "envoy.filters.http.router",
                 "typed_config" => %{
@@ -54,9 +55,16 @@ defmodule ProxyConf.ConfigGenerator.FilterChain do
   def from_spec_gen(spec) do
     listener_name = Listener.name(spec)
 
-    fn vhost, source_ip_ranges, downstream_auth, downstream_tls ->
-      {downstream_auth_listener_config, downstream_auth_cluster_config} =
+    fn [vhost], source_ip_ranges, downstream_auth, downstream_tls, upstream_auth ->
+      {downstream_auth_filter, downstream_auth_cluster_config} =
         DownstreamAuth.to_envoy_http_filter(downstream_auth)
+
+      {upstream_auth, upstream_secrets} =
+        UpstreamAuth.to_envoy_api_specific_http_filters(upstream_auth)
+
+      upstream_auth = to_composite(upstream_auth)
+
+      api_specific_filters = [upstream_auth] |> List.flatten()
 
       transport_socket =
         DownstreamTls.to_envoy_transport_socket(listener_name, downstream_auth, downstream_tls)
@@ -69,7 +77,7 @@ defmodule ProxyConf.ConfigGenerator.FilterChain do
           server_names: [server_names |> List.first()],
           transport_socket: transport_socket,
           allowed_source_ip_ranges: source_ip_ranges,
-          downstream_auth: downstream_auth_listener_config,
+          http_filters: [downstream_auth_filter, api_specific_filters],
           route_config_name: RouteConfiguration.name(listener_name, List.first(server_names))
         }
         |> eval()
@@ -85,7 +93,55 @@ defmodule ProxyConf.ConfigGenerator.FilterChain do
           filter_chain
         end
 
-      {filter_chain, downstream_auth_cluster_config}
+      {filter_chain, downstream_auth_cluster_config, upstream_secrets}
     end
+  end
+
+  defp to_composite(filters) when is_map(filters) and map_size(filters) > 0 do
+    %{
+      "name" => "composite",
+      "typed_config" => %{
+        "@type" => "type.googleapis.com/envoy.extensions.common.matching.v3.ExtensionWithMatcher",
+        "extension_config" => %{
+          "name" => "composite",
+          "typed_config" => %{
+            "@type" => "type.googleapis.com/envoy.extensions.filters.http.composite.v3.Composite"
+          }
+        },
+        "xds_matcher" => %{
+          "matcher_tree" => %{
+            "input" => %{
+              "name" => "request-headers",
+              "typed_config" => %{
+                "@type" =>
+                  "type.googleapis.com/envoy.type.matcher.v3.HttpRequestHeaderMatchInput",
+                "header_name" => "x-proxyconf-api-id"
+              }
+            },
+            "exact_match_map" => %{
+              "map" =>
+                Map.new(filters, fn {api_id,
+                                     %{"name" => _name, "typed_config" => _typed_config} = filter} ->
+                  {api_id,
+                   %{
+                     "action" => %{
+                       "name" => "composite_action",
+                       "typed_config" => %{
+                         "@type" =>
+                           "type.googleapis.com/envoy.extensions.filters.http.composite.v3.ExecuteFilterAction",
+                         "typed_config" => filter
+                       }
+                     }
+                   }}
+                end)
+            }
+          }
+        }
+      }
+    }
+  end
+
+  defp to_composite(filters) when is_map(filters) do
+    []
   end
 end

@@ -310,12 +310,26 @@ defmodule ProxyConf.TestSupport.Oas3Case do
           request_body: request_body_samples_for_media_type |> shuffler(),
           status: status_code,
           response_body: response_body_samples_for_media_type |> shuffler(),
-          response_headers: response_headers |> shuffler()
+          response_headers: response_headers |> shuffler(),
+          upstream_auth: upstream_auth_to_property(spec)
         }
         |> shuffle()
       end)
     end)
   end
+
+  defp upstream_auth_to_property(%{
+         "x-proxyconf" => %{
+           "security" => %{"auth" => %{"upstream" => %{"type" => "header"} = upstream_auth}}
+         }
+       }) do
+    fn %Plug.Conn{} = conn ->
+      assert List.keyfind!(conn.req_headers, upstream_auth["name"], 0) |> elem(1) ==
+               upstream_auth["value"]
+    end
+  end
+
+  defp upstream_auth_to_property(_), do: fn _conn -> true end
 
   defp property_stream(
          %{
@@ -369,6 +383,8 @@ defmodule ProxyConf.TestSupport.Oas3Case do
 
     Enum.each(bypasses, fn bypass ->
       Bypass.stub(bypass, "#{prop.method}" |> String.upcase(), path, fn conn ->
+        assert prop.upstream_auth.(conn)
+
         response_headers = prop.response_headers || []
 
         Enum.reduce(response_headers, conn, fn {k, v}, acc ->
@@ -479,6 +495,9 @@ defmodule ProxyConf.TestSupport.Oas3Case do
   defp shuffle(map) when is_map(map) do
     fn ->
       Enum.map(map, fn
+        {:upstream_auth, ua} ->
+          {:upstream_auth, ua}
+
         {k, v} when is_function(v) ->
           {k, v.()}
 

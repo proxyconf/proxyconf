@@ -125,6 +125,8 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
   defp wrap_gen(res), do: fn -> res end
 
   def to_filter_metadata(spec) do
+    # this function is called by the route generator and injects
+    # custom metadata available if a route matches
     %__MODULE__{} = config = from_spec_gen(spec).()
 
     %{
@@ -339,8 +341,6 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
        }
      ], jwt_clusters}
   end
-
-  defp to_lua_filter([]), do: []
 
   defp to_lua_filter(configs) do
     [

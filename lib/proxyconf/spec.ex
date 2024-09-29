@@ -15,6 +15,7 @@ defmodule ProxyConf.Spec do
     :listener_port,
     :allowed_source_ips,
     :downstream_auth,
+    :upstream_auth,
     :spec,
     type: :oas3
   ])
@@ -25,7 +26,10 @@ defmodule ProxyConf.Spec do
       url: api_url,
       api_id: api_id,
       listener: %{address: address, port: port},
-      security: %{allowed_source_ips: allowed_source_ips, auth: %{downstream: downstream_auth}}
+      security: %{
+        allowed_source_ips: allowed_source_ips,
+        auth: %{downstream: downstream_auth, upstream: upstream_auth}
+      }
     } = Ext.config_from_spec(filename, spec)
 
     {:ok,
@@ -39,6 +43,7 @@ defmodule ProxyConf.Spec do
        listener_port: port,
        allowed_source_ips: allowed_source_ips,
        downstream_auth: downstream_auth,
+       upstream_auth: upstream_auth,
        spec: spec
      }}
   end

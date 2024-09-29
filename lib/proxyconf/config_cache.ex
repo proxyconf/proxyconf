@@ -280,7 +280,7 @@ defmodule ProxyConf.ConfigCache do
             @listener => config.listeners,
             @cluster => config.clusters,
             @route_configuration => config.route_configurations,
-            @tls_secret => config.downstream_tls
+            @tls_secret => config.tls_secret
           }
           |> apply_static_patches()
           |> apply_config_extensions()
