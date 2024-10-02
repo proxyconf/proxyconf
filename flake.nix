@@ -73,6 +73,7 @@
           pkgs.elixir_ls
           pkgs.envoy
           pkgs.sops
+          pkgs.json-schema-for-humans
           pkgs.docker-compose
           pkgs.python312Packages.mkdocs-material
           pkgs.python312Packages.pillow

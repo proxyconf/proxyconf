@@ -18,6 +18,7 @@ defmodule ProxyConf.ConfigCache do
   @resources_table :config_cache_tbl_resources
   @valid_oas3_file_extensions [".json", ".yaml", ".yml"]
   @ext_schema ProxyConf.Ext.schema()
+
   @oas3_0_schema File.read!("priv/schemas/oas3_0.json")
                  |> Jason.decode!()
                  |> Map.merge(@ext_schema)

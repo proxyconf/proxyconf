@@ -1,0 +1,9 @@
+template_name: md
+template_md_options:
+  show_heading_numbers: false
+  properties_table_columns: [Property,Type,Title/Description]
+  show_array_restrictions: false
+show_toc: false
+show_breadcrumbs: false
+examples_as_yaml: true
+with_footer: false

@@ -4,142 +4,69 @@ defmodule ProxyConf.Ext do
   """
   require Logger
 
-  @schema %{
+  @schema ProxyConf.Helpers.config_schema("config", %{
             type: :object,
-            additional_properties: false,
-            required: [:security],
+            required: ["x-proxyconf"],
+            title: "OpenAPI Extension for ProxyConf",
             properties: %{
-              api_id: %{type: :string, minLength: 1},
-              url: %{type: :string, format: :uri},
-              cluster: %{type: :string, minLength: 1},
-              listener: %{
+              :"x-proxyconf" => %{
                 type: :object,
+                title: "ProxyConf API Config",
                 additional_properties: false,
+                required: [:security],
                 properties: %{
-                  address: %{
-                    oneOf: [%{type: :string, format: :ipv4}, %{type: :string, format: :ipv6}]
+                  api_id: %{
+                    title: "API Identifier",
+                    type: :string,
+                    minLength: 1,
+                    default: "The OpenAPI Spec filename is used as default"
                   },
-                  port: %{type: :integer, minimum: 1, maximum: 65_535}
-                }
-              },
-              security: %{
-                type: :object,
-                additional_properties: false,
-                required: [:auth],
-                properties: %{
-                  allowed_source_ips: %{type: :array, items: %{type: :string}, uniqueItems: true},
-                  auth: %{
+                  url: %{title: "API URL", type: :string, format: :uri},
+                  cluster: %{title: "Cluster Identifier", type: :string, minLength: 1},
+                  listener: ProxyConf.ConfigGenerator.Listener.schema(),
+                  security: %{
+                    title: "Security Configuration",
                     type: :object,
                     additional_properties: false,
-                    required: [:downstream],
+                    required: [:auth],
                     properties: %{
-                      upstream: %{
-                        oneOf: [
-                          %{type: :null},
-                          %{
-                            type: :object,
-                            additional_properties: false,
-                            required: [:type, :name, :value],
-                            properties: %{
-                              type: %{const: :header},
-                              name: %{type: :string, minLength: 1},
-                              value: %{type: :string, minLength: 1},
-                              overwrite: %{type: :boolean}
-                            }
-                          }
-                        ]
+                      allowed_source_ips: %{
+                        title: "Allowed Source IP Address Ranges",
+                        type: :array,
+                        default: ["127.0.0.1/8"],
+                        items: %{
+                          title: "IP Address Range in CIDR Notation",
+                          type: :string,
+                          format: :cidr
+                        },
+                        uniqueItems: true
                       },
-                      downstream: %{
-                        oneOf: [
-                          %{const: :disabled},
-                          %{
-                            type: :object,
-                            additional_properties: false,
-                            required: [:type, :trusted_ca, :clients],
-                            properties: %{
-                              type: %{
-                                const: :mtls
-                              },
-                              trusted_ca: %{type: :string, minLength: 1},
-                              clients: %{
-                                type: :object,
-                                additionalProperties: %{
-                                  type: :array,
-                                  items: %{type: :string, minLength: 1},
-                                  uniqueItems: true
-                                }
-                              }
-                            }
-                          },
-                          %{
-                            type: :object,
-                            additional_properties: false,
-                            required: [:type, :clients],
-                            properties: %{
-                              type: %{
-                                const: :basic
-                              },
-                              clients: %{
-                                type: :object,
-                                additionalProperties: %{
-                                  type: :array,
-                                  items: %{type: :string, minLength: 1},
-                                  uniqueItems: true
-                                }
-                              }
-                            }
-                          },
-                          %{
-                            type: :object,
-                            additional_properties: false,
-                            required: [:type, :name, :clients],
-                            properties: %{
-                              type: %{
-                                type: :string,
-                                enum: [:header, :query]
-                              },
-                              name: %{type: :string, minLength: 1},
-                              clients: %{
-                                type: :object,
-                                properties: %{},
-                                additionalProperties: %{
-                                  type: :array,
-                                  items: %{type: :string, minLength: 1},
-                                  uniqueItems: true
-                                }
-                              }
-                            }
-                          },
-                          %{
-                            type: :object,
-                            additional_properties: false,
-                            required: [:type, :provider_config],
-                            properties: %{
-                              type: %{const: :jwt},
-                              # see https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/jwt_authn/v3/config.proto#envoy-v3-api-msg-extensions-filters-http-jwt-authn-v3-jwtprovider
-                              provider_config: %{type: :object}
-                            }
-                          }
-                        ]
+                      auth: %{
+                        title: "Authentication",
+                        type: :object,
+                        additional_properties: false,
+                        required: [:downstream],
+                        properties: %{
+                          upstream: ProxyConf.ConfigGenerator.UpstreamAuth.schema(),
+                          downstream: ProxyConf.ConfigGenerator.DownstreamAuth.schema()
+                        }
                       }
+                    }
+                  },
+                  routing: %{
+                    type: :object,
+                    additional_properties: false,
+                    properties: %{
+                      fail_fast_on_wrong_request: %{type: :boolean},
+                      fail_fast_on_missing_query_parameter: %{type: :boolean},
+                      fail_fast_on_missing_header_parameter: %{type: :boolean},
+                      fail_fast_on_wrong_media_type: %{type: :boolean}
                     }
                   }
                 }
-              },
-              routing: %{
-                type: :object,
-                additional_properties: false,
-                properties: %{
-                  fail_fast_on_wrong_request: %{type: :boolean},
-                  fail_fast_on_missing_query_parameter: %{type: :boolean},
-                  fail_fast_on_missing_header_parameter: %{type: :boolean},
-                  fail_fast_on_wrong_media_type: %{type: :boolean}
-                }
               }
             }
-          }
-          |> Jason.encode!()
-          |> Jason.decode!()
+          })
 
   def schema do
     @schema
@@ -177,7 +104,7 @@ defmodule ProxyConf.Ext do
         address: "127.0.0.1",
         port: api_url_parsed.port
       },
-      security: %{allowed_source_ips: ["127.0.0.1/32"], auth: %{upstream: nil}}
+      security: %{allowed_source_ips: ["127.0.0.1/8"], auth: %{upstream: nil}}
     }
   end
 

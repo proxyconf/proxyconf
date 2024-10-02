@@ -24,6 +24,8 @@ theme:
     - navigation.tracking
     - navigation.tabs
     - navigation.footer
+    - navigation.prune
+    - toc.follow
     - search.suggest
     - search.highlight
     - header.autohide

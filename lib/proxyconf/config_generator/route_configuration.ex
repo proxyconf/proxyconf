@@ -6,7 +6,8 @@ defmodule ProxyConf.ConfigGenerator.RouteConfiguration do
 
   deftemplate(%{
     "virtual_hosts" => :virtual_hosts,
-    "name" => :name
+    "name" => :name,
+    "internal_only_headers" => ["x-proxyconf-api-id"]
   })
 
   def from_spec_gen(_spec) do
