@@ -20,101 +20,47 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
     :auth_field_name,
     :clients,
     :allowed_source_ips,
-    :jwt_provider_config
+    :jwt_provider_config,
+    :trusted_ca
   ])
 
-  def from_spec_gen(%Spec{downstream_auth: "disabled"} = spec),
+  def config_from_json("disabled") do
+    %__MODULE__{
+      auth_type: "disabled",
+      clients: %{}
+    }
+  end
+
+  def config_from_json(%{"type" => auth_type} = json) when is_map(json) do
+    %__MODULE__{
+      auth_type: auth_type,
+      auth_field_name:
+        if auth_type == "basic" do
+          "authorization"
+        else
+          Map.get(json, "name")
+        end,
+      clients: Map.get(json, "clients"),
+      jwt_provider_config:
+        if auth_type == "jwt" do
+          Map.get(json, "provider_config")
+          |> Map.put("payload_in_metadata", "jwt_payload")
+        else
+          nil
+        end,
+      trusted_ca: Map.get(json, "trusted_ca")
+    }
+  end
+
+  def from_spec_gen(%Spec{downstream_auth: downstream_auth} = spec),
     do:
       %__MODULE__{
-        api_id: spec.api_id,
-        api_url: spec.api_url,
-        auth_type: "disabled",
-        allowed_source_ips: spec.allowed_source_ips,
-        clients: %{}
+        downstream_auth
+        | api_id: spec.api_id,
+          api_url: spec.api_url,
+          allowed_source_ips: spec.allowed_source_ips
       }
       |> wrap_gen()
-
-  def from_spec_gen(
-        %Spec{downstream_auth: %{type: "mtls", clients: clients}} =
-          spec
-      ),
-      do:
-        %__MODULE__{
-          api_id: spec.api_id,
-          api_url: spec.api_url,
-          auth_type: "mtls",
-          allowed_source_ips: spec.allowed_source_ips,
-          clients: clients
-        }
-        |> wrap_gen()
-
-  def from_spec_gen(
-        %Spec{downstream_auth: %{type: "basic", clients: clients}} =
-          spec
-      ),
-      # the official basic_auth support in envoy is configured either on a listener level or a route level, both are suboptimal, therefore we use the downstream Lua auth 
-      do:
-        %__MODULE__{
-          api_id: spec.api_id,
-          api_url: spec.api_url,
-          auth_type: "basic",
-          auth_field_name: "authorization",
-          allowed_source_ips: spec.allowed_source_ips,
-          clients: clients
-        }
-        |> wrap_gen()
-
-  def from_spec_gen(
-        %Spec{
-          downstream_auth: %{type: "header", name: header_name, clients: clients}
-        } = spec
-      ),
-      do:
-        %__MODULE__{
-          api_id: spec.api_id,
-          api_url: spec.api_url,
-          auth_type: "header",
-          auth_field_name: header_name,
-          allowed_source_ips: spec.allowed_source_ips,
-          clients: clients
-        }
-        |> wrap_gen()
-
-  def from_spec_gen(
-        %Spec{
-          downstream_auth: %{type: "query", name: query_field_name, clients: clients}
-        } = spec
-      ),
-      do:
-        %__MODULE__{
-          api_id: spec.api_id,
-          api_url: spec.api_url,
-          auth_type: "query",
-          auth_field_name: query_field_name,
-          allowed_source_ips: spec.allowed_source_ips,
-          clients: clients
-        }
-        |> wrap_gen()
-
-  def from_spec_gen(
-        %Spec{
-          downstream_auth: %{type: "jwt", provider_config: jwt_provider_config}
-        } = spec
-      ),
-      do:
-        %__MODULE__{
-          api_id: spec.api_id,
-          api_url: spec.api_url,
-          auth_type: "jwt",
-          allowed_source_ips: spec.allowed_source_ips,
-          jwt_provider_config:
-            jwt_provider_config
-            |> Map.put("payload_in_metadata", "jwt_payload")
-            # ugly, but ensures we only deal with string keys
-            |> Jason.encode!()
-            |> Jason.decode!()
-        }
-        |> wrap_gen()
 
   def from_spec_gen(spec) do
     raise(

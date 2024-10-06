@@ -11,6 +11,7 @@ defmodule Mix.Tasks.GenMarkdown do
   @shortdoc "JsonSchema to Markdown"
 
   use Mix.Task
+  @requirements ["app.config"]
 
   @impl Mix.Task
   def run([jsonschema_path, out_path]) do
