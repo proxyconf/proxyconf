@@ -6,60 +6,67 @@
 ##      spec is for internal purposes only.
 ##
 ##################################################################
+x-proxyconf:
 # The API URL that is used as the main entrypoint for this API
 #   https --> expose this API using an HTTPS listener
 #   localhost --> vhost based routing that matches the SNI / Host Header 'localhost'
 #   petstore --> root of this API
-x-proxyconf-api-url: https://localhost:8080/petstore
+  url: https://localhost:8080/petstore
+
+# setting  up the listener
+  listener:
+    address: 0.0.0.0
+    port: 8080
+
 ##################################################################
 # The downstream authentication configuration for this API
-x-proxyconf-downstream-auth:
+  security:
+# configure the sllowed source IP ranges
+    allowed_source_ips:
+      - 0.0.0.0/0
+    auth:
+      downstream:
 # .. OR explicitely opt-out of downstream authentication
-# x-proxyconf-downstream-auth: disabled
+# type: disabled
 # Envoy should check a header for an API Key
 # Request example: curl -vv https://localhost:8080/petstore/pet/1 -H "my-api-key: supersecret" -k
-  auth_type: header 
-  config:
-    name: my-api-key
-    clients:
-      testUser:
-        # Currently secrets are configured using the md5sum of the secret value
-        # the following is the md5sum of the string "supersecret"
-        - 9a618248b64db62d15b300a07b00580b
+        type: header
+        name: my-api-key
+        clients:
+          testUser:
+          # Currently secrets are configured using the md5sum of the secret value
+          # the following is the md5sum of the string "supersecret"
+          - 9a618248b64db62d15b300a07b00580b
 # Envoy should check a query parameter for an API Key
 # Request example: curl -vv "https://localhost:8080/petstore/pet/1?my-api-key=supersecret" -k
-  #  auth_type: query 
-  #  config:
-  #    name: my-api-key
-  #    clients:
-  #      testUser:
-  #        # Currently secrets are configured using the md5sum of the secret value
-  #        # the following is the md5sum of the string "supersecret"
-  #        - 9a618248b64db62d15b300a07b00580b
-  #
+  #        type: query
+  #        name: my-api-key
+  #        clients:
+  #          testUser:
+  #          # Currently secrets are configured using the md5sum of the secret value
+  #          # the following is the md5sum of the string "supersecret"
+  #          - 9a618248b64db62d15b300a07b00580b
 # Envoy should check basic auth credentials
 # Request example: curl -vv https://localhost:8080/petstore/pet/1 -utestUser:supersecret -k
-  #    auth_type: basic 
-  #    config:
-  #      clients:
-  #        testUser:
+  #        type: basic
+  #        clients:
+  #          testUser:
   #          # Currently basic auth values are configured using the md5sum of the username/password value 
   #          # the following is the result of echo -n "testUser:supersecret" | md5sum
   #          - bac2130eb6c9a64b7a9b61db24355735
 # Envoy should check TLS client certificate (mTLS)
 # Request example: curl -vv https://localhost:8080/petstore/pet/1 --cert ./demo-client.crt --key ./demo-client.key -k
-  #  auth_type: mtls
-  #  config:
-  #    trusted_ca: /etc/data/ca.crt
-  #    clients:
-  #      test_client:
-  #        - "CN=demo-client,OU=Demo Client,O=ProxyConf,L=Basel,ST=Basel,C=CH"
+  #        type: mtls
+  #        trusted_ca: /etc/data/ca.crt
+  #        clients:
+  #          testUser:
+  #          - "CN=demo-client,OU=Demo Client,O=ProxyConf,L=Basel,ST=Basel,C=CH"
 # JWT Token support also exists
 
-x-proxyconf-listener:
-  address: 0.0.0.0
-  allowed_source_ips:
-    - 0.0.0.0/0
+# setting  up the listener
+  listener:
+    address: 0.0.0.0
+    port: 8080
 
 
 openapi: 3.0.2

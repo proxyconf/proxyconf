@@ -21,11 +21,11 @@ defmodule ProxyConf.ConfigCache do
 
   @oas3_0_schema File.read!("priv/schemas/oas3_0.json")
                  |> Jason.decode!()
-                 |> Map.merge(@ext_schema)
+                 |> DeepMerge.deep_merge(@ext_schema)
                  |> JsonXema.new()
   @oas3_1_schema File.read!("priv/schemas/oas3_1.json")
                  |> Jason.decode!()
-                 |> Map.merge(@ext_schema)
+                 |> DeepMerge.deep_merge(@ext_schema)
                  |> JsonXema.new()
 
   def start_link(_args) do
@@ -258,12 +258,14 @@ defmodule ProxyConf.ConfigCache do
   end
 
   defp validate_spec(filename, %{"openapi" => "3.0" <> _} = spec, data) do
+    IO.inspect(spec |> Map.keys())
+
     case JsonXema.validate(@oas3_0_schema, spec) do
       :ok ->
         Spec.from_oas3(filename, spec, data)
 
-      {:error, errors} ->
-        {:error, errors}
+      {:error, %JsonXema.ValidationError{} = error} ->
+        {:error, JsonXema.ValidationError.message(error)}
     end
   end
 
