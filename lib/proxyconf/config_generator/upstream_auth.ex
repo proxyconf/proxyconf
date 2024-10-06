@@ -12,31 +12,21 @@ defmodule ProxyConf.ConfigGenerator.UpstreamAuth do
     :overwrite
   ])
 
-  def from_spec_gen(%Spec{upstream_auth: nil} = spec) do
-    %__MODULE__{
-      api_id: spec.api_id,
-      auth_type: "disabled"
-    }
-    |> wrap_gen()
+  def config_from_json(nil) do
+    config_from_json(%{"type" => "disabled"})
   end
 
-  def from_spec_gen(
-        %Spec{
-          upstream_auth:
-            %{
-              type: "header",
-              name: header_name,
-              value: header_value
-            } = upstream_auth
-        } = spec
-      ) do
+  def config_from_json(%{"type" => type} = json) do
     %__MODULE__{
-      api_id: spec.api_id,
-      auth_type: "header",
-      auth_field_name: header_name,
-      auth_field_value: header_value,
-      overwrite: Map.get(upstream_auth, :overwrite, true)
+      auth_type: type,
+      auth_field_name: Map.get(json, "name"),
+      auth_field_value: Map.get(json, "value"),
+      overwrite: Map.get(json, "overwrite", true)
     }
+  end
+
+  def from_spec_gen(%Spec{upstream_auth: upstream_auth} = spec) do
+    %__MODULE__{upstream_auth | api_id: spec.api_id}
     |> wrap_gen()
   end
 

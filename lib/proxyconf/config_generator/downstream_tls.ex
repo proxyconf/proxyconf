@@ -4,13 +4,14 @@ defmodule ProxyConf.ConfigGenerator.DownstreamTls do
     used by XDS/LDS
   """
   alias ProxyConf.Spec
+  alias ProxyConf.ConfigGenerator.DownstreamAuth
   alias ProxyConf.ConfigGenerator.Listener
   alias ProxyConf.LocalCA
 
   def from_spec_gen(
         %Spec{
           api_url: %URI{scheme: "https", host: host} = _api_url,
-          downstream_auth: %{type: "mtls", trusted_ca: trusted_ca}
+          downstream_auth: %DownstreamAuth{auth_type: "mtls", trusted_ca: trusted_ca}
         } = spec
       ) do
     listener_name = Listener.name(spec)

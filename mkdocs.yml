@@ -54,7 +54,7 @@ extra:
       analytics: google
       github: github
 copyright: >
-  Copyright &copy; 2024 ProxyConf Authors –
+  Copyright &copy; 2024 André Graf / ProxyConf Authors –
   <a href="#__consent">Change cookie settings</a>
 
 plugins:
