@@ -1,0 +1,149 @@
+{
+  "examples": [
+    {
+      "x-proxyconf": {
+        "api_id": "my-api",
+        "cluster": "proxyconf-envoy-cluster",
+        "listener": {
+          "address": "127.0.0.1",
+          "port": 8080
+        },
+        "security": {
+          "allowed_source_ips": [
+            "192.168.0.0/16"
+          ],
+          "auth": {
+            "downstream": {
+              "clients": {
+                "testUser": [
+                  "9a618248b64db62d15b300a07b00580b"
+                ]
+              },
+              "name": "x-api-key",
+              "type": "header"
+            }
+          }
+        },
+        "url": "https://api.example.com:8080/my-api"
+      }
+    }
+  ],
+  "properties": {
+    "x-proxyconf": {
+      "additional_properties": false,
+      "description": "The x-proxyconf property extends the OpenAPI specification with ProxyConf-specific configurations, used to generate the necessary resources for Envoyproxy.\n",
+      "examples": [],
+      "properties": {
+        "api_id": {
+          "default": "The OpenAPI Spec filename is used as default",
+          "description": "The identifier used by ProxyConf to identify the API. The identifier is used for API specific logging and monitoring inside ProxyConf and Envoyproxy.",
+          "minLength": 1,
+          "title": "API Identifier",
+          "type": "string"
+        },
+        "cluster": {
+          "default": "proxyconf-cluster",
+          "description": "The cluster identifier is used to group APIs belonging to different Envoy clusters. Note: the cluster identifier used also be provided by the static \"bootstrap\" Envoy configuration.\n",
+          "minLength": 1,
+          "title": "Cluster Identifier",
+          "type": "string"
+        },
+        "listener": {
+          "$ref": "file://config/listener.json",
+          "title": "Listener",
+          "description": "The `listener` object configures the Envoy listener used to serve this API. Depending on the provided `api_url` a TLS context is configured."
+        },
+        "routing": {
+          "title": "Routing Configuration",
+          "type": "object",
+          "additional_properties": false,
+          "description": "The `routing` object can be used to control request routing behaviour. Currently it's possible to reject requests that fail some parameter requirements outlined in the OpenAPI spec.",
+          "properties": {
+            "fail-fast-on-missing-header-parameter": {
+              "title": "Fail fast on missing header parameter",
+              "description": "Rejects a request if a required header is missing. This setting has a path level override `x-proxyconf-fail-fast-on-missing-header-parameter`.",
+              "type": "boolean",
+              "default": true
+            },
+            "fail-fast-on-missing-query-parameter": {
+              "title": "Fail fast on missing query parameter",
+              "description": "Rejects a request if a required query parameter is missing. This setting has a path level override `x-proxyconf-fail-fast-on-missing-query-parameter`.",
+              "type": "boolean",
+              "default": true
+            },
+            "fail-fast-on_wrong-media-type": {
+              "title": "Fail fast on wrong media type",
+              "description": "Rejects a request if the media type providd in the `content-type` header doesn't match the specification. This setting has a path level override `x-proxyconf-fail-fast-on-wrong-media-type`.",
+              "type": "boolean",
+              "default": true
+            }
+          }
+        },
+        "security": {
+          "additional_properties": false,
+          "description": "The `security` object allows configuration of API-specific security features. Currently, it supports settings for source IP filtering, downstream request authentication, and injecting credentials for upstream requests.\n",
+          "properties": {
+            "allowed_source_ips": {
+              "default": [
+                "127.0.0.1/8"
+              ],
+              "description": "The `allowed_source_ips` array specifies the source IP address ranges that are allowed to access the API.",
+              "items": {
+                "description": "The IP address range in CIDR notation.",
+                "format": "cidr",
+                "title": "IP Address Range",
+                "type": "string"
+              },
+              "title": "Allowed Source IP Address Ranges",
+              "type": "array",
+              "uniqueItems": true
+            },
+            "auth": {
+              "additional_properties": false,
+              "description": "The `auth` object allows configuring downstream request authentication, and injecting credentials for upstream requests.",
+              "properties": {
+                "downstream": {
+                  "$ref": "file://config/security/auth/downstream.json",
+                  "title": "Downstream Authentication",
+                  "description": "Configure downstream authentication options."
+                },
+                "upstream": {
+                  "$ref": "file://config/security/auth/upstream.json",
+                  "title": "Upstream Authentication",
+                  "description": "Configure upstream authentication options."
+                }
+              },
+              "required": [
+                "downstream"
+              ],
+              "title": "Authentication",
+              "type": "object"
+            }
+          },
+          "required": [
+            "auth"
+          ],
+          "title": "Security Configuration",
+          "type": "object"
+        },
+        "url": {
+          "default": "http://localhost:8080/{api_id}",
+          "description": "The API URL serves several functions. The scheme in the `url` (e.g., `http` or `https`) determines whether ProxyConf configures a TLS or non-TLS Envoy listener.\n\nThe domain name in the `url` is used to set up virtual host matching in the Envoy filter chain, while the path configures prefix matching within the same chain.\n\nIf a TCP port is specified in the `url`, it overrides the default listener port. Note: The default HTTP ports, 80 and 443, must be explicitly configured.\n",
+          "format": "uri",
+          "title": "API URL",
+          "type": "string"
+        }
+      },
+      "required": [
+        "security"
+      ],
+      "title": "ProxyConf API Config",
+      "type": "object"
+    }
+  },
+  "required": [
+    "x-proxyconf"
+  ],
+  "title": "OpenAPI Extension for ProxyConf",
+  "type": "object"
+}

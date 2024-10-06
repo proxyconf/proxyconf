@@ -12,20 +12,6 @@ defmodule ProxyConf.ConfigGenerator.UpstreamAuth do
     :overwrite
   ])
 
-  def schema,
-    do: %{
-      title: "Upstream Authentication",
-      type: :object,
-      additional_properties: false,
-      required: [:type, :name, :value],
-      properties: %{
-        type: %{const: :header},
-        name: %{type: :string, minLength: 1},
-        value: %{type: :string, minLength: 1},
-        overwrite: %{type: :boolean}
-      }
-    }
-
   def from_spec_gen(%Spec{upstream_auth: nil} = spec) do
     %__MODULE__{
       api_id: spec.api_id,

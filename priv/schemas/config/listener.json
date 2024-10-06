@@ -1,0 +1,35 @@
+{
+  "additional_properties": false,
+  "properties": {
+    "address": {
+      "title": "Listener Address",
+      "description": "The IP address Envoy listens for new TCP connections",
+      "default": "127.0.0.1",
+      "oneOf": [
+        {
+          "format": "ipv4",
+          "title": "IPv4",
+          "description": "IPv4 TCP Listener Address",
+          "type": "string"
+        },
+        {
+          "format": "ipv6",
+          "title": "IPv6",
+          "description": "IPv6 TCP Listener Address",
+          "type": "string"
+        }
+      ]
+    },
+    "port": {
+      "default": 8080,
+      "description": "The port is extracted from the `api_url` if it is explicitely provided as part of the url. E.g. the implicit ports 80/443 for http/https are replaced by the default `8080`.",
+      "maximum": 65535,
+      "minimum": 1,
+      "title": "TCP Listener Port",
+      "type": "integer"
+    }
+  },
+  "title": "Listener Configuration",
+  "description": "The `listener` object configures the Envoy listener used to serve this API. Depending on the provided `api_url` a TLS context is configured.",
+  "type": "object"
+}

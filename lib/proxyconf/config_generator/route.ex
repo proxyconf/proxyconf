@@ -85,20 +85,27 @@ defmodule ProxyConf.ConfigGenerator.Route do
          %Spec{} = spec
        ) do
     servers = Map.fetch!(path_item_object, "servers")
-    fail_fast = Map.get(path_item_object, "x-proxyconf-fail-fast-on-wrong-request", true)
 
     missing_query_param_check =
-      Map.get(path_item_object, "x-proxyconf-fail-fast-on-missing-query-parameter", fail_fast)
+      Map.get(
+        path_item_object,
+        "x-proxyconf-fail-fast-on-missing-query-parameter",
+        spec.routing.fail_fast_on_missing_query_parameter
+      )
 
     missing_header_param_check =
       Map.get(
         path_item_object,
         "x-proxyconf-fail-fast-on-missing-header-parameter",
-        fail_fast
+        spec.routing.fail_fast_on_missing_header_parameter
       )
 
     wrong_request_media_type_check =
-      Map.get(path_item_object, "x-proxyconf-fail-fast-on-wrong-media-type", fail_fast)
+      Map.get(
+        path_item_object,
+        "x-proxyconf-fail-fast-on-wrong-request-media-type",
+        spec.routing.fail_fast_on_wrong_request_media_type
+      )
 
     parameters =
       Map.get(path_item_object, "parameters", [])
