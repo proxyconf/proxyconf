@@ -24,6 +24,60 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
     :trusted_ca
   ])
 
+  @typedoc """
+    title: Disabled
+    description: Disabling any downstream authentication. This potentially allows untrusted traffic. It's recommended to further limit exposure by narrowing the `allowed-source-ips` as much as possible.
+    examples:
+      - security:
+          auth:
+            downstream: disabled
+  """
+  @type disabled :: :disabled
+
+  @typedoc """
+    title: Authentication Type
+    description: Constant `mtls` identifiying that mutual TLS is used for authenticating downstream HTTP requests.
+  """
+  @type mtls_type :: :mtls
+
+  @typedoc """
+    title: Trusted Certificate Authority (CA)
+    description: A path to a PEM encoded file containing the trusted CAs. This file must be readable by the ProxyConf server and is automatically distributed to the Envoy instances using the SDS mechanism
+  """
+  @type trusted_ca :: String.t()
+
+  @typedoc """
+    title: Certificate Subject / SubjectAlternativeName (SAN)
+    description: The clients are matches based on the client certificate subject or SAN
+    minLength: 1
+  """
+  @type mtls_subjects :: [String.t()]
+
+  @typedoc """
+    title: Allowed Clients
+    description: The clients are matches based on the client certificate subject or SAN
+  """
+  @type mtls_clients :: %{
+          String.t() => mtls_subjects()
+        }
+
+  @typedoc """
+    title: Mutual TLS
+    description: Enabling mutual TLS for all clients that access this API. The `subject` or `SAN` in the provided client certificate is matched against the list provided in the `clients` property.
+  """
+
+  @type mtls :: %{
+          type: mtls_type(),
+          trusted_ca: trusted_ca(),
+          clients: mtls_clients()
+        }
+
+  @typedoc """
+    title: Downstream Authentication
+    description: The `downstream` object configures the authentication mechanism applied to downstream HTTP requests. Defining an authentication mechanism is required, but can be opted-out by explicitely configuring `disabled`.
+  """
+  @type t :: disabled() | mtls()
+
   def config_from_json("disabled") do
     %__MODULE__{
       auth_type: "disabled",
