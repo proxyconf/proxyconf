@@ -17,15 +17,20 @@ defmodule ProxyConf.ConfigCache do
   @spec_table :config_cache_tbl_specs
   @resources_table :config_cache_tbl_resources
   @valid_oas3_file_extensions [".json", ".yaml", ".yml"]
-  @ext_schema File.read!("priv/schemas/config/config.json") |> Jason.decode!()
+  @external_resource "priv/schemas/proxyconf.json"
+  @ext_schema File.read!("priv/schemas/proxyconf.json") |> Jason.decode!()
+
+  @merge_resolver fn
+    _, l, r when is_list(l) and is_list(r) ->
+      Enum.uniq(l ++ r)
+
+    _, _, _ ->
+      DeepMerge.continue_deep_merge()
+  end
 
   @oas3_0_schema File.read!("priv/schemas/oas3_0.json")
                  |> Jason.decode!()
-                 |> DeepMerge.deep_merge(@ext_schema)
-                 |> JsonXema.new()
-  @oas3_1_schema File.read!("priv/schemas/oas3_1.json")
-                 |> Jason.decode!()
-                 |> DeepMerge.deep_merge(@ext_schema)
+                 |> DeepMerge.deep_merge(@ext_schema, @merge_resolver)
                  |> JsonXema.new()
 
   def start_link(_args) do
@@ -247,19 +252,7 @@ defmodule ProxyConf.ConfigCache do
   defp validate_spec(filename, {:ok, spec}, data), do: validate_spec(filename, spec, data)
   defp validate_spec(_filename, {:error, reason}, _data), do: {:error, reason}
 
-  defp validate_spec(filename, %{"openapi" => "3.1" <> _} = spec, data) do
-    case JsonXema.validate(@oas3_1_schema, spec) do
-      :ok ->
-        Spec.from_oas3(filename, spec, data)
-
-      {:error, %JsonXema.ValidationError{} = error} ->
-        {:error, JsonXema.ValidationError.message(error)}
-    end
-  end
-
-  defp validate_spec(filename, %{"openapi" => "3.0" <> _} = spec, data) do
-    IO.inspect(spec |> Map.keys())
-
+  defp validate_spec(filename, %{"openapi" => "3" <> _} = spec, data) do
     case JsonXema.validate(@oas3_0_schema, spec) do
       :ok ->
         Spec.from_oas3(filename, spec, data)
@@ -287,14 +280,6 @@ defmodule ProxyConf.ConfigCache do
           }
           |> apply_static_patches()
           |> apply_config_extensions()
-          |> tap(fn config ->
-            File.mkdir_p!("/tmp/proxyconf")
-
-            File.write!(
-              "/tmp/proxyconf/#{cluster_id}.config.json",
-              Jason.encode!(config, pretty: true)
-            )
-          end)
 
         Enum.each(resources, fn {type, resources_for_type} ->
           hash = :erlang.phash2(resources_for_type)

@@ -3,7 +3,7 @@ x-proxyconf:
     auth:
       downstream:
         type: jwt
-        provider_config:
+        provider-config:
           issuer: proxyconf-exunit
           audiences: 
             - exunit
@@ -13,15 +13,14 @@ x-proxyconf:
               timeout: 1s
             cache_duration:
               seconds: 300
-  
 servers:
   - url: http://127.0.0.1
-openapi: 3.1.0
 paths:
   /test:
     get:
       responses:
         '200':
+          description: "OK"
           content:
             application/json:
               example: '{"hello":"world"}'

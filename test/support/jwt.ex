@@ -18,7 +18,7 @@ defmodule ProxyConf.TestSupport.Jwt do
             "auth" => %{
               "downstream" => %{
                 "type" => "jwt",
-                "provider_config" => %{
+                "provider-config" => %{
                   # issuer is ignored, this allows to check wrong issuer validation failure
                   "issuer" => _issuer,
                   "remote_jwks" => %{"http_uri" => %{"uri" => jwks_uri}}

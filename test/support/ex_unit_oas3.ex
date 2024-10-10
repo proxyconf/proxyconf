@@ -147,9 +147,11 @@ defmodule ProxyConf.TestSupport.Oas3Case do
     api_id = "api-#{:erlang.phash2(spec_file)}"
 
     overrides = %{
+      "openapi" => "3.0.1",
+      "info" => %{"title" => "ExUnitOas3", "version" => "0.1"},
       "x-proxyconf" => %{
         "url" => "#{ctx.http_schema}://localhost:#{ctx.listener_port}/#{api_id}",
-        "api_id" => api_id,
+        "api-id" => api_id,
         "cluster" => ctx.cluster_id,
         "listener" => %{
           "address" => "127.0.0.1",

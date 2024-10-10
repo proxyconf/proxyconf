@@ -34,6 +34,7 @@ defmodule ProxyConf.MixProject do
       {:jason, "~> 1.4"},
       {:yaml_elixir, "~> 2.9"},
       {:ymlr, "~> 5.1", only: [:test, :dev]},
+      {:gen_json_schema, git: "https://github.com/dergraf/gen_json_schema.git"},
       {:deep_merge, "~> 1.0"},
       {:file_system, "~> 1.0"},
       #      {:proxyconf_validator, path: "../proxyconf_validator", optional: true},

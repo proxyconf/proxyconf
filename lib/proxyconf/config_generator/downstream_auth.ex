@@ -24,6 +24,145 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
     :trusted_ca
   ])
 
+  @typedoc """
+    title: Disabled
+    description: Disabling any downstream authentication. This potentially allows untrusted traffic. It's recommended to further limit exposure by narrowing the `allowed-source-ips` as much as possible.
+    examples:
+      - security:
+          auth:
+            downstream: disabled
+  """
+  @type disabled :: :disabled
+
+  @typedoc """
+    title: Authentication Type
+    description: Constant `mtls` identifiying that mutual TLS is used for authenticating downstream HTTP requests.
+  """
+  @type mtls_type :: :mtls
+
+  @typedoc """
+    title: Trusted Certificate Authority (CA)
+    description: A path to a PEM encoded file containing the trusted CAs. This file must be readable by the ProxyConf server and is automatically distributed to the Envoy instances using the SDS mechanism
+  """
+  @type trusted_ca :: String.t()
+
+  @typedoc """
+    title: Certificate Subject / SubjectAlternativeName (SAN)
+    description: The clients are matches based on the client certificate subject or SAN
+    minLength: 1
+  """
+  @type mtls_subjects :: [String.t()]
+
+  @typedoc """
+    title: Allowed Clients
+    description: The clients are matches based on the client certificate subject or SAN
+  """
+  @type mtls_clients :: %{
+          String.t() => mtls_subjects()
+        }
+
+  @typedoc """
+    title: Mutual TLS
+    description: Enabling mutual TLS for all clients that access this API. The `subject` or `SAN` in the provided client certificate is matched against the list provided in the `clients` property.
+  """
+
+  @type mtls :: %{
+          type: mtls_type(),
+          trusted_ca: trusted_ca(),
+          clients: mtls_clients()
+        }
+
+  @typedoc """
+    title: Authentication Type
+    description: Constant `jwt` identifiying that JWT are used for authenticating downstream HTTP requests.
+  """
+  @type jwt_type :: :jwt
+
+  @typedoc """
+    title: Provider Configuration
+    additionalProperties: true
+    description: |
+      Configures how JWT should be verified. [See the Envoy documentation for configuration details](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/jwt_authn/v3/config.proto#envoy-v3-api-msg-extensions-filters-http-jwt-authn-v3-jwtprovider)
+
+      - `issuer`: the principal that issued the JWT, usually a URL or an email address.
+      - `audiences`: a list of JWT audiences allowed to access. A JWT containing any of these audiences will be accepted. If not specified, the audiences in JWT will not be checked.
+      - `local_jwks`: fetch JWKS in local data source, either in a local file or embedded in the inline string.
+      - `remote_jwks`: fetch JWKS from a remote HTTP server, also specify cache duration.
+      - `forward`: if true, JWT will be forwarded to the upstream.
+      - `from_headers`: extract JWT from HTTP headers.
+      - `from_params`: extract JWT from query parameters.
+      - `from_cookies`: extract JWT from HTTP request cookies.
+      - `forward_payload_header`: forward the JWT payload in the specified HTTP header.
+      - `claim_to_headers`: copy JWT claim to HTTP header.
+      - `jwt_cache_config`: Enables JWT cache, its size can be specified by jwt_cache_size. Only valid JWT tokens are cached.
+  """
+  @type jwt_provider_config :: %{}
+
+  @typedoc """
+    title: JSON Web Tokens (JWT)
+    description: Enabling JWT based authentication for all clients that access this API.The signature, audiences, and issuer claims are verified. It will also check its time restrictions, such as expiration and nbf (not before) time. If the JWT verification fails, its request will be rejected. If the JWT verification succeeds, its payload can be forwarded to the upstream for further authorization if desired.
+  """
+  @type jwt :: %{
+          type: jwt_type(),
+          provider_config: jwt_provider_config()
+        }
+
+  @typedoc """
+    title: Authentication Type
+    description: Constant `basic` identifiying that HTTP Basic Authentication is used for authenticating downstream HTTP requests.
+  """
+  @type basic_auth_type :: :basic
+
+  @typedoc """
+    title: Allowed Clients
+    description: The clients are matches based on the md5 hash.
+  """
+  @type basic_auth_clients :: %{
+          String.t() => [String.t()]
+        }
+
+  @typedoc """
+    title: Basic Authentication
+    description: Enabling basic authentication for all clients that access this API. The username and password in the `Authorization` header are matched against the md5 hashes provided in the `clients` property.
+  """
+  @type basic_auth :: %{
+          type: basic_auth_type(),
+          clients: basic_auth_clients()
+        }
+
+  @typedoc """
+    title: Parameter Type
+    description: The parameter type that is used to transport the credentials
+  """
+  @type api_key_type :: :header | :query
+
+  @typedoc """
+    title: Parameter Name
+    description: The parameter name (header or query string parameter name) where the credentials are provided.
+  """
+  @type api_key_name :: String.t()
+
+  @typedoc """
+    title: Allowed Clients
+    description: The clients are matches based on the md5 hash.
+  """
+  @type api_key_clients :: %{String.t() => [String.t()]}
+  @typedoc """
+    title: Header or Query Parameter
+    description: Enabling authentication for all clients that access this API using a header or query string parameter. The header or query string parameter is matched against the md5 hashes provided in the `clients` property.
+  """
+  @type api_key :: %{
+          type: api_key_type(),
+          name: api_key_name(),
+          clients: api_key_clients()
+        }
+
+  @typedoc """
+    title: Downstream Authentication
+    description: The `downstream` object configures the authentication mechanism applied to downstream HTTP requests. Defining an authentication mechanism is required, but can be opted-out by explicitely configuring `disabled`.
+  """
+  @type t :: disabled() | mtls() | jwt() | basic_auth() | api_key()
+
   def config_from_json("disabled") do
     %__MODULE__{
       auth_type: "disabled",
@@ -43,12 +182,12 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
       clients: Map.get(json, "clients"),
       jwt_provider_config:
         if auth_type == "jwt" do
-          Map.get(json, "provider_config")
+          Map.get(json, "provider-config")
           |> Map.put("payload_in_metadata", "jwt_payload")
         else
           nil
         end,
-      trusted_ca: Map.get(json, "trusted_ca")
+      trusted_ca: Map.get(json, "trusted-ca")
     }
   end
 
