@@ -7,19 +7,19 @@ x-proxyconf:
     auth:
       downstream:
         type: mtls
-        trusted_ca: /tmp/proxyconf/ca-cert.pem
+        trusted-ca: /tmp/proxyconf/ca-cert.pem
         clients:
           test_client:
             - exunit-good
 
 servers:
   - url: http://127.0.0.1
-openapi: 3.1.0
 paths:
   /test:
     get:
       responses:
         '200':
+          description: "OK"
           content:
             application/json:
               example: '{"hello":"world"}'

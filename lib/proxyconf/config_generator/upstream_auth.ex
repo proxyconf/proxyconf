@@ -12,6 +12,52 @@ defmodule ProxyConf.ConfigGenerator.UpstreamAuth do
     :overwrite
   ])
 
+  @typedoc """
+    title: Header Name
+    description: The header name where the credentials are injected.
+  """
+  @type header_name :: String.t()
+
+  @typedoc """
+    title: Header Value
+    description: The header value that is injected.
+  """
+  @type header_value :: String.t()
+
+  @typedoc """
+    title: Authentication Type
+    description:  Constant `header` identifiying that credentials should be injected in a header for authenticating upstream HTTP requests.
+  """
+  @type header_type :: :header
+
+  @typedoc """
+    title: Overwrite Header
+    description: If set to `true` an existing header is overwritten.
+    default: true
+  """
+  @type header_overwrite :: boolean()
+
+  @typedoc """
+    title: Upstream Authentication
+    description: Configure upstream authentication options.
+    required:
+      - name
+      - type
+      - value
+  """
+  @type header :: %{
+          name: header_name(),
+          type: header_type(),
+          value: header_value(),
+          overwrite: header_overwrite()
+        }
+
+  @typedoc """
+      title: Upstream Authentication
+      description: Configure upstream authentication options.
+  """
+  @type t :: header()
+
   def config_from_json(nil) do
     config_from_json(%{"type" => "disabled"})
   end

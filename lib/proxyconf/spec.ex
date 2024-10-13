@@ -23,22 +23,158 @@ defmodule ProxyConf.Spec do
     type: :oas3
   ])
 
+  @typedoc """
+    title: API Identifier
+    description: A unique identifier for the API, used for API-specific logging, monitoring, and identification in ProxyConf and Envoyproxy. This ID is essential for tracking and debugging API traffic across the system.
+  """
+  @type api_id :: GenJsonSchema.Type.string(minLength: 1)
+
+  @typedoc """
+    title: Cluster Identifier
+    description: The cluster identifier groups APIs for Envoy. This cluster name should also be reflected in the static `bootstrap` configuration of Envoy, ensuring that APIs are properly associated with the correct Envoy instances.
+  """
+  @type cluster :: GenJsonSchema.Type.string(minLength: 1)
+
+  @typedoc """
+    title: API URL
+    description: |
+      The API URL serves multiple functions:
+      - **Scheme**: Determines if TLS or non-TLS listeners are used (e.g., `http` or `https`).
+      - **Domain**: Used for virtual host matching in Envoy.
+      - **Path**: Configures prefix matching in Envoy's filter chain.
+      - **Port**: If specified, this overrides the default listener port. Ensure you explicitly configure HTTP ports `80` and `443`.
+  """
+  @type url :: GenJsonSchema.Type.string(format: :uri)
+
+  @typedoc """
+    title: Fail Fast on Missing Header Parameter
+    description: Reject requests that are missing required headers as defined in the OpenAPI spec. You can override this setting at the path level using the `x-proxyconf-fail-fast-on-missing-header-parameter` field in the OpenAPI path definition.
+    default: true
+  """
+  @type fail_fast_on_missing_header_parameter :: boolean()
+
+  @typedoc """
+    title: Fail Fast on Missing Query Parameter
+    description: Reject requests that are missing required query parameters. Similar to headers, this setting can be overridden at the path level with the `x-proxyconf-fail-fast-on-missing-query-parameter` field.
+    default: true
+  """
+  @type fail_fast_on_missing_query_parameter :: boolean()
+
+  @typedoc """
+    title: Fail Fast on Wrong Media Type
+    description: Reject requests where the `content-type` header doesn't match the media types specified in the OpenAPI request body spec. You can override this behavior at the path level using the `x-proxyconf-fail-fast-on-wrong-media-type` field.
+    default: true
+  """
+  @type fail_fast_on_wrong_media_type :: boolean()
+  @type routing :: %{
+          fail_fast_on_missing_header_parameter: fail_fast_on_missing_header_parameter(),
+          fail_fast_on_missing_query_parameter: fail_fast_on_missing_query_parameter(),
+          fail_fast_on_wrong_media_type: fail_fast_on_wrong_media_type()
+        }
+
+  @typedoc """
+    title: Downstream Authentication
+    description: Configuration for downstream client authentication. This typically involves specifying authentication types (e.g., API keys) and client credentials.
+  """
+  @type downstream_auth :: ProxyConf.ConfigGenerator.DownstreamAuth.t()
+
+  @typedoc """
+    title: Upstream Authentication
+    description: Configuration for upstream authentication.
+  """
+  @type upstream_auth :: ProxyConf.ConfigGenerator.UpstreamAuth.t()
+
+  @typedoc """
+    title: Authentication
+    description: The auth object handles authentication for both downstream and upstream requests. This allows you to specify client authentication requirements for incoming requests and credential injection for outgoing requests to upstream services.
+    required:
+      - downstream
+  """
+  @type authentication :: %{
+          downstream: downstream_auth(),
+          upstream: upstream_auth()
+        }
+
+  @typedoc """
+    title: IP Address Range
+    description: The IP address range in CIDR notation.
+    format: cidr
+  """
+  @type cidr :: String.t()
+
+  @typedoc """
+    title: Allowed Source IP Ranges
+    description: An array of allowed source IP ranges (in CIDR notation) that are permitted to access the API. This helps secure the API by ensuring only trusted IPs can communicate with it. For more details on CIDR notation, visit the [CIDR Documentation](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).
+  """
+  @type allowed_source_ips :: [cidr()]
+
+  @typedoc """
+    title: Security Configuration
+    description: The `security` object configures API-specific security features, such as IP filtering and authentication mechanisms. It supports both source IP filtering (allowing only specific IP ranges) and client authentication for downstream requests, as well as credential injection for upstream requests.
+    required:
+      - auth
+  """
+  @type security :: %{
+          auth: authentication(),
+          allowed_source_ips: allowed_source_ips()
+        }
+
+  @typedoc """
+    title: ProxyConf API Config
+    description: The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-specific configurations, enabling ProxyConf to generate the necessary resources to integrate with [Envoyproxy](https://www.envoyproxy.io/).
+    required:
+      - security
+  """
+  @type proxyconf :: %{
+          api_id: api_id(),
+          cluster: cluster(),
+          listener: ProxyConf.ConfigGenerator.Listener.t(),
+          url: url(),
+          routing: routing(),
+          security: security()
+        }
+
+  @typedoc """
+    title: OpenAPI Extension for ProxyConf
+    examples:
+      - x-proxyconf:
+          api-id: my-api
+          url: https://api.example.com:8080/my-api
+          cluster: proxyconf-envoy-cluster
+          listener:
+            address: 127.0.0.1
+            port: 8080
+          security:
+            allowed-source-ips:
+              - 192.168.0.0/16
+            auth:
+              downstream:
+                type: header
+                name: x-api-key
+                clients:
+                  testUser:
+                    - 9a618248b64db62d15b300a07b00580b
+  """
+  @type root :: %{
+          x_proxyconf: proxyconf()
+        }
+
   def from_oas3(filename, spec, data) do
     proxyconf = Map.fetch!(spec, "x-proxyconf")
 
     config_from_spec =
       defaults(filename)
       |> DeepMerge.deep_merge(proxyconf)
-      |> update_in(["security", "allowed_source_ips"], &to_cidrs/1)
+      |> update_in(["security", "allowed-source-ips"], &to_cidrs/1)
       |> update_in(["url"], &URI.parse/1)
 
     %{
       "cluster" => cluster_id,
       "url" => api_url,
-      "api_id" => api_id,
+      "api-id" => api_id,
       "listener" => %{"address" => address, "port" => port},
       "security" => %{
-        "allowed_source_ips" => allowed_source_ips,
+        "allowed-source-ips" => allowed_source_ips,
         "auth" => %{"downstream" => downstream_auth, "upstream" => upstream_auth}
       },
       "routing" => %{
@@ -84,14 +220,14 @@ defmodule ProxyConf.Spec do
       |> URI.parse()
 
     %{
-      "api_id" => api_id,
+      "api-id" => api_id,
       "url" => "#{api_url.scheme}://#{api_url.host}:#{api_url.port}/#{api_id}",
       "cluster" => default(:default_cluster_id, "proxyconf-cluster"),
       "listener" => %{
         "address" => "127.0.0.1",
         "port" => api_url.port
       },
-      "security" => %{"allowed_source_ips" => ["127.0.0.1/8"], "auth" => %{"upstream" => nil}},
+      "security" => %{"allowed-source-ips" => ["127.0.0.1/8"], "auth" => %{"upstream" => nil}},
       "routing" => %{
         "fail-fast-on-missing-query-parameter" => true,
         "fail-fast-on-missing-header-parameter" => true,

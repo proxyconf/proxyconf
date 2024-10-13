@@ -5,7 +5,7 @@ defmodule Mix.Tasks.GenMarkdown do
     To generate ProxyConf documentation one should execute this task
     as follows:
 
-      mix gen_markdown priv/schemas/config docs/config
+      mix gen_markdow
 
   """
   @shortdoc "JsonSchema to Markdown"
@@ -14,98 +14,167 @@ defmodule Mix.Tasks.GenMarkdown do
   @requirements ["app.config"]
 
   @impl Mix.Task
-  def run([jsonschema_path, out_path]) do
-    Path.wildcard(Path.join(jsonschema_path, "/**/*.json"))
-    |> Enum.each(fn p ->
-      try do
-        Process.put(:schema_file, p)
-        schema = File.read!(p) |> Jason.decode!()
-        name = String.replace_prefix(p, jsonschema_path, out_path)
-        name = name <> ".md"
-        md = to_md_("root", schema, 0, []) |> Enum.reverse()
-        md = Enum.join(md, "\n")
-        File.mkdir_p!(Path.dirname(name))
-        File.write!(name, md)
-      rescue
-        e ->
-          IO.puts("Error generating markdown from #{p} due to #{Exception.message(e)}")
-          :ok
-      end
-    end)
+  def run([]) do
+    schema =
+      GenJsonSchema.gen(ProxyConf.Spec, :root, case: :to_kebab)
+      |> Jason.encode!(pretty: true)
+
+    %JsonXema{} = JsonXema.new(Jason.decode!(schema))
+
+    File.write!(Path.join([:code.priv_dir(:proxyconf), "schemas", "proxyconf.json"]), schema)
+    schema = Jason.decode!(schema)
+
+    to_md("config", schema, Map.get(schema, "definitions", %{}))
   end
 
-  defp to_md_(current_prop_name, %{"type" => "object"} = schema, level, acc)
+  @out "docs/config"
+  defp to_md(root_schema_name, schema, defs) do
+    md = to_md_(root_schema_name, schema, 0, defs, []) |> Enum.reverse()
+    md = Enum.join(md, "\n")
+    name = Path.join(@out, "#{root_schema_name}.md")
+    File.write!(name, md)
+  end
+
+  defp to_md_(current_prop_name, %{"type" => "object"} = schema, level, defs, acc)
        when is_map(schema) do
-    properties = Map.get(schema, "properties", %{})
+    properties =
+      Map.get(schema, "properties", %{})
+      |> Map.merge(
+        case Map.get(schema, "additionalProperties") do
+          %{} = ap -> %{"additional property" => ap}
+          _ -> %{}
+        end
+      )
 
     acc = [
-      md_title_and_description(current_prop_name, schema, level)
+      md_title_and_description(current_prop_name, schema, level, defs)
       | acc
     ]
 
     Enum.reduce(properties, acc, fn {prop_name, prop}, acc ->
-      to_md_(prop_name, prop, level + 1, acc)
+      to_md_(prop_name, prop, level + 1, defs, acc)
     end)
   end
 
-  defp to_md_(current_prop_name, %{"type" => "array"} = schema, level, acc)
+  defp to_md_(current_prop_name, %{"type" => "array"} = schema, level, defs, acc)
        when is_map(schema) do
-    items = Map.get(schema, "items", %{})
-
-    acc = [
-      md_title_and_description(current_prop_name, schema, level)
+    [
+      md_title_and_description(current_prop_name, schema, level, defs)
       | acc
     ]
-
-    to_md_("Array Item", items, level + 1, acc)
   end
 
-  defp to_md_(current_prop_name, %{"oneOf" => items} = schema, level, acc) do
+  defp to_md_(current_prop_name, %{"oneOf" => items} = schema, level, defs, acc) do
     acc =
       [
-        md_title_and_description(current_prop_name, schema, level)
+        md_title_and_description(current_prop_name, schema, level, defs)
         | acc
       ]
 
     Enum.reduce(items, acc, fn i, acc ->
-      to_md_(current_prop_name, i, level + 1, acc)
+      to_md_(
+        current_prop_name,
+        i |> Map.put("x-option-for", current_prop_name),
+        level + 1,
+        defs,
+        acc
+      )
     end)
   end
 
-  defp to_md_(current_prop_name, %{"$ref" => "file:" <> _name} = schema, level, acc) do
-    [md_title_and_description(current_prop_name, schema, level) | acc]
+  defp to_md_(
+         current_prop_name,
+         %{"$ref" => "#/definitions/Elixir." <> module} = schema,
+         level,
+         defs,
+         acc
+       ) do
+    new_root =
+      String.split(module, ".")
+      |> List.last()
+      |> String.split("_")
+      |> List.first()
+
+    remote_schema = Map.fetch!(defs, "Elixir." <> module)
+    to_md(new_root, remote_schema, defs)
+
+    [
+      md_title_and_description(
+        current_prop_name,
+        schema
+        |> Map.merge(remote_schema |> Map.take(["title", "description"])),
+        level,
+        defs
+      )
+      | acc
+    ]
   end
 
-  defp to_md_(prop_name, schema, level, acc) do
-    [md_title_and_description(prop_name, schema, level) | acc]
+  defp to_md_(current_prop_name, %{"$ref" => "#/definitions/" <> name} = schema, level, defs, acc) do
+    to_md_(
+      current_prop_name,
+      Map.fetch!(defs, name) |> Map.merge(Map.take(schema, ["x-option-for"])),
+      level,
+      defs,
+      acc
+    )
   end
 
-  require Logger
+  defp to_md_(current_prop_name, %{"$ref" => "file:" <> _name} = schema, level, defs, acc) do
+    [md_title_and_description(current_prop_name, schema, level, defs) | acc]
+  end
 
-  defp md_title_and_description(prop_name, schema, level) when is_map(schema) do
+  defp to_md_(prop_name, schema, level, defs, acc) do
+    [md_title_and_description(prop_name, schema, level, defs) | acc]
+  end
+
+  defp md_title_and_description(prop_name, schema, level, defs) when is_map(schema) do
     title = Map.get(schema, "title", "")
     description = Map.get(schema, "description", "")
-
-    if title == "" do
-      Logger.warning("#{Process.get(:schema_file)}:#{prop_name} missing title")
-    end
-
-    if description == "" do
-      Logger.warning("#{Process.get(:schema_file)}: #{prop_name} missing description")
-    end
 
     [
       "\n",
       "#{Enum.map(0..level, fn _ -> "#" end)} #{title}",
       "\n\n",
-      md_table(prop_name, schema),
+      md_table(prop_name, schema, defs),
       "\n",
-      md_example(schema),
-      description
+      description,
+      "\n",
+      md_example(schema)
     ]
   end
 
-  defp md_table(prop_name, schema) when is_map(schema) do
+  defp type(schema, defs) do
+    type = Map.get(schema, "type")
+    const? = Map.has_key?(schema, "const")
+    remote? = Map.has_key?(schema, "$ref")
+    oneOf = Map.has_key?(schema, "oneOf")
+    oneOfOption? = Map.has_key?(schema, "x-option-for")
+
+    cond do
+      oneOf ->
+        "choice"
+
+      oneOfOption? and const? ->
+        "option #{Map.get(schema, "const")}"
+
+      oneOfOption? ->
+        "option #{type}"
+
+      const? ->
+        "constant #{Map.get(schema, "const")}"
+
+      remote? ->
+        %{"$ref" => "#/definitions/" <> ref} = schema
+        schema = Map.fetch!(defs, ref)
+        type(schema, defs)
+
+      true ->
+        type
+    end
+  end
+
+  defp md_table(prop_name, schema, defs) when is_map(schema) do
     table_rows =
       Map.drop(schema, [
         "$id",
@@ -113,69 +182,118 @@ defmodule Mix.Tasks.GenMarkdown do
         "type",
         "description",
         "examples",
-        "additional_properties"
+        "x-option-for"
       ])
       |> Enum.flat_map(fn
-        {"$ref", "file://" <> file_ref} ->
-          link_name = Map.get(schema, "title", file_ref)
-          ["| **$ref** | <a href=\"/#{file_ref}\">#{link_name}</a> |\n"]
-
         {"oneOf", schemas} ->
           schemas =
-            Enum.map(schemas, fn schema ->
-              "<tr><td>#{Map.get(schema, "title", "TODO: Untitled OneOf")}</td></tr>"
+            Enum.map(schemas, fn
+              %{"title" => _title} = s ->
+                "<li>#{md_link(s, defs)}</li>"
+
+              %{"$ref" => "#/definitions/" <> ref} ->
+                schema = Map.fetch!(defs, ref)
+                "<li>#{md_link(schema, defs)}</li>"
+
+              _ ->
+                "<li>TODO: Untitled OneOf</li>"
             end)
 
-          ["| **oneOf** | <table>#{schemas}</table> |\n"]
+          ["| **options** | <ul>#{schemas}</ul> |\n"]
 
-        {"properties", properties} ->
-          ["| **properties** | #{md_table("", Map.keys(properties))} |\n"]
+        {"properties", properties} when map_size(properties) > 0 ->
+          links =
+            Enum.map(properties, fn {k, s} ->
+              md_link(s, defs, "`#{k}`")
+            end)
+
+          ["| **properties** | #{Enum.join(links, ", ")} |\n"]
+
+        {"properties", _} ->
+          []
+
+        {"required", required_properties} when is_list(required_properties) ->
+          links =
+            Map.get(schema, "properties", %{})
+            |> Enum.reject(fn {k, _s} -> k in required_properties end)
+            |> Enum.map(fn {k, s} ->
+              md_link(s, defs, "`#{k}`")
+            end)
+
+          if links == [] do
+            []
+          else
+            ["| **optional** | #{Enum.join(links, ", ")} |\n"]
+          end
+
+        {"additionalProperties", v} when is_map(v) ->
+          generic_property_type =
+            case v do
+              %{"type" => t} ->
+                "`#{t}`"
+
+              %{"$ref" => _ref} = s ->
+                md_link(s, defs)
+            end
+
+          ["| **generic properties** | #{generic_property_type} |\n"]
+
+        {"items", schema} ->
+          item_type =
+            case schema do
+              %{"type" => t} ->
+                t
+
+              %{"$ref" => ref} ->
+                ref
+            end
+
+          ["| **Array Item** | #{md_table("", item_type, defs)} |\n"]
 
         {k, v} when not is_map(v) ->
-          ["| **#{k}** | #{md_table("", v)} |\n"]
+          ["| **#{k}** | #{md_table("", v, defs)} |\n"]
 
         _ ->
           []
       end)
 
-    if table_rows == [] do
-      []
-    else
-      type = Map.get(schema, "type")
-      const? = Map.has_key?(schema, "const")
-      oneOf? = Map.has_key?(schema, "oneOf")
-      object? = Map.has_key?(schema, "object")
+    type = type(schema, defs)
 
-      cond do
-        object? ->
-          ["| *`#{type}`* with the following constraints: |   |\n | --- | --- |\n" | table_rows]
+    case type do
+      "constant " <> const ->
+        "<table><tr><th>Constant</th><th><code>#{const} <i>(string)</i></code></th></tr></table>"
 
-        oneOf? ->
-          [
-            "|  |  |\n | --- | --- |\n"
-            | table_rows
-          ]
+      "option " <> type when type not in ["object"] ->
+        "<table><tr><th>Choice Option</th><th><code>#{prop_name} <i>(#{type})</i></code></th></tr></table>"
 
-        const? ->
-          "<table><tr><th>Constant</th><th><code>#{Map.get(schema, "const")} <i>(string)</i></code></th></tr></table>"
+      "option " <> type ->
+        [
+          "| Choice Option | `#{prop_name}` *`(#{type})`* |\n | --- | --- |\n"
+          | table_rows
+        ]
 
-        true ->
-          [
-            "| Property | `#{prop_name}` *`(#{type})`* |\n | --- | --- |\n"
-            | table_rows
-          ]
-      end
+      type when prop_name == "additional property" ->
+        [
+          "| Generic Property | *`#{type}`* |\n | --- | --- |\n"
+          | table_rows
+        ]
+
+      type ->
+        [
+          "| Property | `#{prop_name}` *`(#{type})`* |\n | --- | --- |\n"
+          | table_rows
+        ]
     end
   end
 
-  defp md_table(prop_name, list) when is_list(list) do
+  defp md_table(prop_name, list, defs) when is_list(list) do
     Enum.map(list, fn e ->
-      "#{md_table(prop_name, e)}"
+      "#{md_table(prop_name, e, defs)}"
     end)
     |> Enum.join(", ")
   end
 
-  defp md_table(_, e) do
+  defp md_table(_, e, _defs) do
     "`#{e}`"
   end
 
@@ -193,5 +311,23 @@ defmodule Mix.Tasks.GenMarkdown do
         """
       end)
     end
+  end
+
+  defp md_link(schema, defs, name \\ nil)
+
+  @splitter ~r/[[:punct:]|[:space:]]/
+  defp md_link(%{"title" => title} = _schema, _defs, name) do
+    link =
+      Regex.split(@splitter, title)
+      |> Enum.reject(fn s -> s == "" end)
+      |> Enum.join("-")
+      |> String.downcase()
+
+    "[#{name || title}](##{link})"
+  end
+
+  defp md_link(%{"$ref" => "#/definitions/" <> ref}, defs, name) do
+    schema = Map.fetch!(defs, ref)
+    md_link(schema, defs, name)
   end
 end

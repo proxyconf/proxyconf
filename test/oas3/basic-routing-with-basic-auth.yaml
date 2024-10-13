@@ -7,10 +7,8 @@ x-proxyconf:
           myUser:
             # echo "myuser:mysecret" | md5sum
             - c1380f318aa8d769323574b15d84986d
-  
 servers:
   - url: http://127.0.0.1
-openapi: 3.1.0
 paths:
   /test:
     get:
@@ -19,8 +17,11 @@ paths:
           in: header
           # echo "myuser:mysecret" | base64
           example: "Basic bXl1c2VyOm15c2VjcmV0Cg=="
+          schema:
+            type: string
       responses:
         '200':
+          description: "OK"
           content:
             application/json:
               example: '{"hello":"world"}'
