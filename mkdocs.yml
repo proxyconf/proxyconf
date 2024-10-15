@@ -13,7 +13,14 @@ markdown_extensions:
   - admonition
   - pymdownx.details
   - pymdownx.superfences
-#nav:
+nav:
+  - index.md
+  - Getting Started: get_started/index.md
+  - Configuration Reference:
+    - OpenAPI Extension: config/config.md
+    - Listener Configuration: config/Listener.md
+    - Downstream Authentication: config/DownstreamAuth.md
+    - Upstream Authentication: config/UpstreamAuth.md
 #  - Home: index.md
 #  - Get Started: get_started/index.md
 #  - Configuration: configuration/index.md
@@ -22,6 +29,7 @@ theme:
   logo: assets/logo.svg
   features:
     - navigation.tracking
+    - navigation.path
     - navigation.tabs
     - navigation.footer
     - navigation.prune

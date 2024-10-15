@@ -1,381 +1,22 @@
 {
   "definitions": {
-    "mtls_subjects": {
-      "description": "The clients are matches based on the client certificate subject or SAN",
-      "items": {
-        "type": "string"
-      },
-      "minLength": 1,
-      "title": "Certificate Subject / SubjectAlternativeName (SAN)",
-      "type": "array"
-    },
-    "proxyconf": {
-      "additionalProperties": false,
-      "description": "The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-specific configurations, enabling ProxyConf to generate the necessary resources to integrate with [Envoyproxy](https://www.envoyproxy.io/).",
-      "properties": {
-        "api-id": {
-          "$ref": "#/definitions/api_id"
-        },
-        "cluster": {
-          "$ref": "#/definitions/cluster"
-        },
-        "listener": {
-          "$ref": "#/definitions/Elixir.ProxyConf.ConfigGenerator.Listener_t"
-        },
-        "routing": {
-          "$ref": "#/definitions/routing"
-        },
-        "security": {
-          "$ref": "#/definitions/security"
-        },
-        "url": {
-          "$ref": "#/definitions/url"
-        }
-      },
-      "required": [
-        "security"
-      ],
-      "title": "ProxyConf API Config",
-      "type": "object"
-    },
-    "allowed_source_ips": {
-      "description": "An array of allowed source IP ranges (in CIDR notation) that are permitted to access the API. This helps secure the API by ensuring only trusted IPs can communicate with it. For more details on CIDR notation, visit the [CIDR Documentation](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).",
-      "items": {
-        "$ref": "#/definitions/cidr"
-      },
-      "title": "Allowed Source IP Ranges",
-      "type": "array"
-    },
-    "api_id": {
-      "minLength": 1,
-      "description": "A unique identifier for the API, used for API-specific logging, monitoring, and identification in ProxyConf and Envoyproxy. This ID is essential for tracking and debugging API traffic across the system.",
-      "title": "API Identifier",
-      "type": "string"
-    },
-    "api_key_name": {
-      "description": "The parameter name (header or query string parameter name) where the credentials are provided.",
-      "title": "Parameter Name",
-      "type": "string"
-    },
-    "header_type": {
-      "const": "header",
-      "description": "Constant `header` identifiying that credentials should be injected in a header for authenticating upstream HTTP requests.",
-      "title": "Authentication Type"
-    },
-    "mtls": {
-      "additionalProperties": false,
-      "description": "Enabling mutual TLS for all clients that access this API. The `subject` or `SAN` in the provided client certificate is matched against the list provided in the `clients` property.",
-      "properties": {
-        "clients": {
-          "$ref": "#/definitions/mtls_clients"
-        },
-        "trusted-ca": {
-          "$ref": "#/definitions/trusted_ca"
-        },
-        "type": {
-          "$ref": "#/definitions/mtls_type"
-        }
-      },
-      "required": [
-        "clients",
-        "trusted-ca",
-        "type"
-      ],
-      "title": "Mutual TLS",
-      "type": "object"
-    },
-    "security": {
-      "additionalProperties": false,
-      "description": "The `security` object configures API-specific security features, such as IP filtering and authentication mechanisms. It supports both source IP filtering (allowing only specific IP ranges) and client authentication for downstream requests, as well as credential injection for upstream requests.",
-      "properties": {
-        "allowed-source-ips": {
-          "$ref": "#/definitions/allowed_source_ips"
-        },
-        "auth": {
-          "$ref": "#/definitions/authentication"
-        }
-      },
-      "required": [
-        "auth"
-      ],
-      "title": "Security Configuration",
-      "type": "object"
-    },
-    "Elixir.ProxyConf.ConfigGenerator.UpstreamAuth_t": {
-      "$ref": "#/definitions/header",
-      "description": "Configure upstream authentication options.",
-      "title": "Upstream Authentication"
-    },
-    "trusted_ca": {
-      "description": "A path to a PEM encoded file containing the trusted CAs. This file must be readable by the ProxyConf server and is automatically distributed to the Envoy instances using the SDS mechanism",
-      "title": "Trusted Certificate Authority (CA)",
-      "type": "string"
-    },
-    "mtls_clients": {
-      "additionalProperties": {
-        "$ref": "#/definitions/mtls_subjects"
-      },
-      "description": "The clients are matches based on the client certificate subject or SAN",
-      "properties": {},
-      "title": "Allowed Clients",
-      "type": "object"
-    },
-    "authentication": {
-      "additionalProperties": false,
-      "description": "The auth object handles authentication for both downstream and upstream requests. This allows you to specify client authentication requirements for incoming requests and credential injection for outgoing requests to upstream services.",
-      "properties": {
-        "downstream": {
-          "$ref": "#/definitions/downstream_auth"
-        },
-        "upstream": {
-          "$ref": "#/definitions/upstream_auth"
-        }
-      },
-      "required": [
-        "downstream"
-      ],
-      "title": "Authentication",
-      "type": "object"
-    },
-    "api_key": {
-      "additionalProperties": false,
-      "description": "Enabling authentication for all clients that access this API using a header or query string parameter. The header or query string parameter is matched against the md5 hashes provided in the `clients` property.",
-      "properties": {
-        "clients": {
-          "$ref": "#/definitions/api_key_clients"
-        },
-        "name": {
-          "$ref": "#/definitions/api_key_name"
-        },
-        "type": {
-          "$ref": "#/definitions/api_key_type"
-        }
-      },
-      "required": [
-        "clients",
-        "name",
-        "type"
-      ],
-      "title": "Header or Query Parameter",
-      "type": "object"
-    },
-    "api_key_clients": {
-      "additionalProperties": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "description": "The clients are matches based on the md5 hash.",
-      "properties": {},
-      "title": "Allowed Clients",
-      "type": "object"
-    },
-    "tcp_port": {
-      "default": 8080,
-      "description": "The port is extracted from the `api_url` if it is explicitely provided as part of the url. E.g. the implicit ports 80/443 for http/https are replaced by the default `8080`.",
-      "maximum": 65535,
-      "minimum": 1,
-      "title": "Listener Port",
-      "type": "integer"
-    },
-    "upstream_auth": {
-      "$ref": "#/definitions/Elixir.ProxyConf.ConfigGenerator.UpstreamAuth_t",
-      "description": "Configuration for upstream authentication.",
-      "title": "Upstream Authentication"
-    },
-    "mtls_type": {
-      "const": "mtls",
-      "description": "Constant `mtls` identifiying that mutual TLS is used for authenticating downstream HTTP requests.",
-      "title": "Authentication Type"
-    },
-    "jwt_type": {
-      "const": "jwt",
-      "description": "Constant `jwt` identifiying that JWT are used for authenticating downstream HTTP requests.",
-      "title": "Authentication Type"
-    },
-    "basic_auth": {
-      "additionalProperties": false,
-      "description": "Enabling basic authentication for all clients that access this API. The username and password in the `Authorization` header are matched against the md5 hashes provided in the `clients` property.",
-      "properties": {
-        "clients": {
-          "$ref": "#/definitions/basic_auth_clients"
-        },
-        "type": {
-          "$ref": "#/definitions/basic_auth_type"
-        }
-      },
-      "required": [
-        "clients",
-        "type"
-      ],
-      "title": "Basic Authentication",
-      "type": "object"
-    },
-    "jwt": {
-      "additionalProperties": false,
-      "description": "Enabling JWT based authentication for all clients that access this API.The signature, audiences, and issuer claims are verified. It will also check its time restrictions, such as expiration and nbf (not before) time. If the JWT verification fails, its request will be rejected. If the JWT verification succeeds, its payload can be forwarded to the upstream for further authorization if desired.",
-      "properties": {
-        "provider-config": {
-          "$ref": "#/definitions/jwt_provider_config"
-        },
-        "type": {
-          "$ref": "#/definitions/jwt_type"
-        }
-      },
-      "required": [
-        "provider-config",
-        "type"
-      ],
-      "title": "JSON Web Tokens (JWT)",
-      "type": "object"
-    },
-    "fail_fast_on_wrong_media_type": {
-      "default": true,
-      "description": "Reject requests where the `content-type` header doesn't match the media types specified in the OpenAPI request body spec. You can override this behavior at the path level using the `x-proxyconf-fail-fast-on-wrong-media-type` field.",
-      "title": "Fail Fast on Wrong Media Type",
-      "type": "boolean"
-    },
-    "Elixir.ProxyConf.ConfigGenerator.Listener_t": {
-      "additionalProperties": false,
-      "description": "The `listener` object configures the Envoy listener used to serve this API. Depending on the provided `api_url` a TLS context is configured.",
-      "properties": {
-        "address": {
-          "$ref": "#/definitions/ip_address"
-        },
-        "port": {
-          "$ref": "#/definitions/tcp_port"
-        }
-      },
-      "required": [
-        "port",
-        "address"
-      ],
-      "title": "Listener Configuration",
-      "type": "object"
-    },
-    "cluster": {
-      "minLength": 1,
-      "description": "The cluster identifier groups APIs for Envoy. This cluster name should also be reflected in the static `bootstrap` configuration of Envoy, ensuring that APIs are properly associated with the correct Envoy instances.",
-      "title": "Cluster Identifier",
-      "type": "string"
-    },
-    "header_overwrite": {
-      "default": true,
-      "description": "If set to `true` an existing header is overwritten.",
-      "title": "Overwrite Header",
-      "type": "boolean"
-    },
-    "disabled": {
-      "const": "disabled",
-      "description": "Disabling any downstream authentication. This potentially allows untrusted traffic. It's recommended to further limit exposure by narrowing the `allowed-source-ips` as much as possible.",
-      "examples": [
-        {
-          "security": {
-            "auth": {
-              "downstream": "disabled"
-            }
-          }
-        }
-      ],
-      "title": "Disabled"
-    },
-    "ip_address": {
-      "default": "127.0.0.1",
-      "description": "The IP address Envoy listens for new TCP connections",
-      "oneOf": [
-        {
-          "$ref": "#/definitions/ipv6"
-        },
-        {
-          "$ref": "#/definitions/ipv4"
-        }
-      ],
-      "title": "Listener Address"
-    },
-    "jwt_provider_config": {
-      "additionalProperties": true,
-      "description": "Configures how JWT should be verified. [See the Envoy documentation for configuration details](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/jwt_authn/v3/config.proto#envoy-v3-api-msg-extensions-filters-http-jwt-authn-v3-jwtprovider)\n\n- `issuer`: the principal that issued the JWT, usually a URL or an email address.\n- `audiences`: a list of JWT audiences allowed to access. A JWT containing any of these audiences will be accepted. If not specified, the audiences in JWT will not be checked.\n- `local_jwks`: fetch JWKS in local data source, either in a local file or embedded in the inline string.\n- `remote_jwks`: fetch JWKS from a remote HTTP server, also specify cache duration.\n- `forward`: if true, JWT will be forwarded to the upstream.\n- `from_headers`: extract JWT from HTTP headers.\n- `from_params`: extract JWT from query parameters.\n- `from_cookies`: extract JWT from HTTP request cookies.\n- `forward_payload_header`: forward the JWT payload in the specified HTTP header.\n- `claim_to_headers`: copy JWT claim to HTTP header.\n- `jwt_cache_config`: Enables JWT cache, its size can be specified by jwt_cache_size. Only valid JWT tokens are cached.\n",
-      "properties": {},
-      "title": "Provider Configuration",
-      "type": "object"
-    },
     "fail_fast_on_missing_header_parameter": {
       "default": true,
       "description": "Reject requests that are missing required headers as defined in the OpenAPI spec. You can override this setting at the path level using the `x-proxyconf-fail-fast-on-missing-header-parameter` field in the OpenAPI path definition.",
       "title": "Fail Fast on Missing Header Parameter",
       "type": "boolean"
     },
-    "cidr": {
-      "description": "The IP address range in CIDR notation.",
-      "format": "cidr",
-      "title": "IP Address Range",
-      "type": "string"
+    "fail_fast_on_missing_query_parameter": {
+      "default": true,
+      "description": "Reject requests that are missing required query parameters. Similar to headers, this setting can be overridden at the path level with the `x-proxyconf-fail-fast-on-missing-query-parameter` field.",
+      "title": "Fail Fast on Missing Query Parameter",
+      "type": "boolean"
     },
-    "downstream_auth": {
-      "$ref": "#/definitions/Elixir.ProxyConf.ConfigGenerator.DownstreamAuth_t",
-      "description": "Configuration for downstream client authentication. This typically involves specifying authentication types (e.g., API keys) and client credentials.",
-      "title": "Downstream Authentication"
-    },
-    "header_value": {
-      "description": "The header value that is injected.",
-      "title": "Header Value",
-      "type": "string"
-    },
-    "header_name": {
-      "description": "The header name where the credentials are injected.",
-      "title": "Header Name",
-      "type": "string"
-    },
-    "api_key_type": {
-      "description": "The parameter type that is used to transport the credentials",
-      "enum": [
-        "query",
-        "header"
-      ],
-      "title": "Parameter Type"
-    },
-    "header": {
-      "additionalProperties": false,
-      "description": "Configure upstream authentication options.",
-      "properties": {
-        "name": {
-          "$ref": "#/definitions/header_name"
-        },
-        "overwrite": {
-          "$ref": "#/definitions/header_overwrite"
-        },
-        "type": {
-          "$ref": "#/definitions/header_type"
-        },
-        "value": {
-          "$ref": "#/definitions/header_value"
-        }
-      },
-      "required": [
-        "name",
-        "type",
-        "value"
-      ],
-      "title": "Upstream Authentication",
-      "type": "object"
-    },
-    "ipv6": {
-      "description": "IPv6 TCP Listener Address",
-      "format": "ipv6",
-      "title": "IPv6",
-      "type": "string"
-    },
-    "ipv4": {
-      "description": "IPv4 TCP Listener Address",
-      "format": "ipv4",
-      "title": "IPv4",
-      "type": "string"
-    },
-    "basic_auth_type": {
-      "const": "basic",
-      "description": "Constant `basic` identifiying that HTTP Basic Authentication is used for authenticating downstream HTTP requests.",
-      "title": "Authentication Type"
+    "fail_fast_on_wrong_media_type": {
+      "default": true,
+      "description": "Reject requests where the `content-type` header doesn't match the media types specified in the OpenAPI request body spec. You can override this behavior at the path level using the `x-proxyconf-fail-fast-on-wrong-media-type` field.",
+      "title": "Fail Fast on Wrong Media Type",
+      "type": "boolean"
     },
     "Elixir.ProxyConf.ConfigGenerator.DownstreamAuth_t": {
       "description": "The `downstream` object configures the authentication mechanism applied to downstream HTTP requests. Defining an authentication mechanism is required, but can be opted-out by explicitely configuring `disabled`.",
@@ -398,17 +39,342 @@
       ],
       "title": "Downstream Authentication"
     },
-    "url": {
-      "format": "uri",
-      "description": "The API URL serves multiple functions:\n- **Scheme**: Determines if TLS or non-TLS listeners are used (e.g., `http` or `https`).\n- **Domain**: Used for virtual host matching in Envoy.\n- **Path**: Configures prefix matching in Envoy's filter chain.\n- **Port**: If specified, this overrides the default listener port. Ensure you explicitly configure HTTP ports `80` and `443`.\n",
-      "title": "API URL",
+    "mtls_subjects": {
+      "description": "The clients are matches based on the client certificate subject or SAN",
+      "items": {
+        "type": "string"
+      },
+      "minLength": 1,
+      "title": "Certificate Subject / SubjectAlternativeName (SAN)",
+      "type": "array"
+    },
+    "mtls_type": {
+      "const": "mtls",
+      "description": "Constant `mtls` identifiying that mutual TLS is used for authenticating downstream HTTP requests.",
+      "title": "Authentication Type"
+    },
+    "trusted_ca": {
+      "description": "A path to a PEM encoded file containing the trusted CAs. This file must be readable by the ProxyConf server and is automatically distributed to the Envoy instances using the SDS mechanism",
+      "title": "Trusted Certificate Authority (CA)",
       "type": "string"
     },
-    "fail_fast_on_missing_query_parameter": {
+    "mtls_clients": {
+      "additionalProperties": {
+        "$ref": "#/definitions/mtls_subjects"
+      },
+      "description": "The clients are matches based on the client certificate subject or SAN",
+      "properties": {},
+      "title": "Allowed Clients",
+      "type": "object"
+    },
+    "jwt_type": {
+      "const": "jwt",
+      "description": "Constant `jwt` identifiying that JWT are used for authenticating downstream HTTP requests.",
+      "title": "Authentication Type"
+    },
+    "jwt_provider_config": {
+      "additionalProperties": true,
+      "description": "Configures how JWT should be verified. [See the Envoy documentation for configuration details](https://www.envoyproxy.io/docs/envoy/latest/api-v3/extensions/filters/http/jwt_authn/v3/config.proto#envoy-v3-api-msg-extensions-filters-http-jwt-authn-v3-jwtprovider)\n\n- `issuer`: the principal that issued the JWT, usually a URL or an email address.\n- `audiences`: a list of JWT audiences allowed to access. A JWT containing any of these audiences will be accepted. If not specified, the audiences in JWT will not be checked.\n- `local_jwks`: fetch JWKS in local data source, either in a local file or embedded in the inline string.\n- `remote_jwks`: fetch JWKS from a remote HTTP server, also specify cache duration.\n- `forward`: if true, JWT will be forwarded to the upstream.\n- `from_headers`: extract JWT from HTTP headers.\n- `from_params`: extract JWT from query parameters.\n- `from_cookies`: extract JWT from HTTP request cookies.\n- `forward_payload_header`: forward the JWT payload in the specified HTTP header.\n- `claim_to_headers`: copy JWT claim to HTTP header.\n- `jwt_cache_config`: Enables JWT cache, its size can be specified by jwt_cache_size. Only valid JWT tokens are cached.\n",
+      "properties": {},
+      "title": "Provider Configuration",
+      "type": "object"
+    },
+    "basic_auth_type": {
+      "const": "basic",
+      "description": "Constant `basic` identifiying that HTTP Basic Authentication is used for authenticating downstream HTTP requests.",
+      "title": "Authentication Type"
+    },
+    "basic_auth_clients": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description": "The clients are matches based on the md5 hash.",
+      "properties": {},
+      "title": "Allowed Clients",
+      "type": "object"
+    },
+    "api_key_type": {
+      "description": "The parameter type that is used to transport the credentials",
+      "enum": [
+        "query",
+        "header"
+      ],
+      "title": "Parameter Type"
+    },
+    "api_key_name": {
+      "description": "The parameter name (header or query string parameter name) where the credentials are provided.",
+      "title": "Parameter Name",
+      "type": "string"
+    },
+    "api_key_clients": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "description": "The clients are matches based on the md5 hash.",
+      "properties": {},
+      "title": "Allowed Clients",
+      "type": "object"
+    },
+    "disabled": {
+      "const": "disabled",
+      "description": "Disabling any downstream authentication. This potentially allows untrusted traffic. It's recommended to further limit exposure by narrowing the `allowed-source-ips` as much as possible.",
+      "examples": [
+        {
+          "security": {
+            "auth": {
+              "downstream": "disabled"
+            }
+          }
+        }
+      ],
+      "title": "Disabled"
+    },
+    "mtls": {
+      "additionalProperties": false,
+      "description": "Enabling mutual TLS for all clients that access this API. The `subject` or `SAN` in the provided client certificate is matched against the list provided in the `clients` property.",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/mtls_type"
+        },
+        "trusted-ca": {
+          "$ref": "#/definitions/trusted_ca"
+        },
+        "clients": {
+          "$ref": "#/definitions/mtls_clients"
+        }
+      },
+      "required": [
+        "clients",
+        "trusted-ca",
+        "type"
+      ],
+      "title": "Mutual TLS",
+      "type": "object"
+    },
+    "jwt": {
+      "additionalProperties": false,
+      "description": "Enabling JWT based authentication for all clients that access this API.The signature, audiences, and issuer claims are verified. It will also check its time restrictions, such as expiration and nbf (not before) time. If the JWT verification fails, its request will be rejected. If the JWT verification succeeds, its payload can be forwarded to the upstream for further authorization if desired.",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/jwt_type"
+        },
+        "provider-config": {
+          "$ref": "#/definitions/jwt_provider_config"
+        }
+      },
+      "required": [
+        "provider-config",
+        "type"
+      ],
+      "title": "JSON Web Tokens (JWT)",
+      "type": "object"
+    },
+    "basic_auth": {
+      "additionalProperties": false,
+      "description": "Enabling basic authentication for all clients that access this API. The username and password in the `Authorization` header are matched against the md5 hashes provided in the `clients` property.",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/basic_auth_type"
+        },
+        "clients": {
+          "$ref": "#/definitions/basic_auth_clients"
+        }
+      },
+      "required": [
+        "clients",
+        "type"
+      ],
+      "title": "Basic Authentication",
+      "type": "object"
+    },
+    "api_key": {
+      "additionalProperties": false,
+      "description": "Enabling authentication for all clients that access this API using a header or query string parameter. The header or query string parameter is matched against the md5 hashes provided in the `clients` property.",
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/api_key_type"
+        },
+        "name": {
+          "$ref": "#/definitions/api_key_name"
+        },
+        "clients": {
+          "$ref": "#/definitions/api_key_clients"
+        }
+      },
+      "required": [
+        "clients",
+        "name",
+        "type"
+      ],
+      "title": "Header or Query Parameter",
+      "type": "object"
+    },
+    "Elixir.ProxyConf.ConfigGenerator.UpstreamAuth_t": {
+      "$ref": "#/definitions/header",
+      "description": "Configure upstream authentication options.",
+      "title": "Upstream Authentication"
+    },
+    "header_name": {
+      "description": "The header name where the credentials are injected.",
+      "title": "Header Name",
+      "type": "string"
+    },
+    "header_type": {
+      "const": "header",
+      "description": "Constant `header` identifiying that credentials should be injected in a header for authenticating upstream HTTP requests.",
+      "title": "Authentication Type"
+    },
+    "header_value": {
+      "description": "The header value that is injected.",
+      "title": "Header Value",
+      "type": "string"
+    },
+    "header_overwrite": {
       "default": true,
-      "description": "Reject requests that are missing required query parameters. Similar to headers, this setting can be overridden at the path level with the `x-proxyconf-fail-fast-on-missing-query-parameter` field.",
-      "title": "Fail Fast on Missing Query Parameter",
+      "description": "If set to `true` an existing header is overwritten.",
+      "title": "Overwrite Header",
       "type": "boolean"
+    },
+    "header": {
+      "additionalProperties": false,
+      "description": "Configure upstream authentication options.",
+      "properties": {
+        "name": {
+          "$ref": "#/definitions/header_name"
+        },
+        "type": {
+          "$ref": "#/definitions/header_type"
+        },
+        "value": {
+          "$ref": "#/definitions/header_value"
+        },
+        "overwrite": {
+          "$ref": "#/definitions/header_overwrite"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "value"
+      ],
+      "title": "Upstream Authentication",
+      "type": "object"
+    },
+    "downstream_auth": {
+      "$ref": "#/definitions/Elixir.ProxyConf.ConfigGenerator.DownstreamAuth_t",
+      "description": "Configuration for downstream client authentication. This typically involves specifying authentication types (e.g., API keys) and client credentials.",
+      "title": "Downstream Authentication"
+    },
+    "upstream_auth": {
+      "$ref": "#/definitions/Elixir.ProxyConf.ConfigGenerator.UpstreamAuth_t",
+      "description": "Configuration for upstream authentication.",
+      "title": "Upstream Authentication"
+    },
+    "cidr": {
+      "description": "The IP address range in CIDR notation.",
+      "format": "cidr",
+      "title": "IP Address Range",
+      "type": "string"
+    },
+    "authentication": {
+      "additionalProperties": false,
+      "description": "The auth object handles authentication for both downstream and upstream requests. This allows you to specify client authentication requirements for incoming requests and credential injection for outgoing requests to upstream services.",
+      "properties": {
+        "downstream": {
+          "$ref": "#/definitions/downstream_auth"
+        },
+        "upstream": {
+          "$ref": "#/definitions/upstream_auth"
+        }
+      },
+      "required": [
+        "downstream"
+      ],
+      "title": "Authentication",
+      "type": "object"
+    },
+    "allowed_source_ips": {
+      "description": "An array of allowed source IP ranges (in CIDR notation) that are permitted to access the API. This helps secure the API by ensuring only trusted IPs can communicate with it. For more details on CIDR notation, visit the [CIDR Documentation](https://en.wikipedia.org/wiki/Classless_Inter-Domain_Routing).",
+      "items": {
+        "$ref": "#/definitions/cidr"
+      },
+      "title": "Allowed Source IP Ranges",
+      "type": "array"
+    },
+    "api_id": {
+      "minLength": 1,
+      "description": "A unique identifier for the API, used for API-specific logging, monitoring, and identification in ProxyConf and Envoyproxy. This ID is essential for tracking and debugging API traffic across the system.",
+      "title": "API Identifier",
+      "type": "string"
+    },
+    "cluster": {
+      "minLength": 1,
+      "description": "The cluster identifier groups APIs for Envoy. This cluster name should also be reflected in the static `bootstrap` configuration of Envoy, ensuring that APIs are properly associated with the correct Envoy instances.",
+      "title": "Cluster Identifier",
+      "type": "string"
+    },
+    "Elixir.ProxyConf.ConfigGenerator.Listener_t": {
+      "additionalProperties": false,
+      "description": "The `listener` object configures the Envoy listener used to serve this API. Depending on the provided `api_url` a TLS context is configured.",
+      "properties": {
+        "address": {
+          "$ref": "#/definitions/ip_address"
+        },
+        "port": {
+          "$ref": "#/definitions/tcp_port"
+        }
+      },
+      "required": [
+        "port",
+        "address"
+      ],
+      "title": "Listener Configuration",
+      "type": "object"
+    },
+    "ipv4": {
+      "description": "IPv4 TCP Listener Address",
+      "format": "ipv4",
+      "title": "IPv4",
+      "type": "string"
+    },
+    "ipv6": {
+      "description": "IPv6 TCP Listener Address",
+      "format": "ipv6",
+      "title": "IPv6",
+      "type": "string"
+    },
+    "ip_address": {
+      "default": "127.0.0.1",
+      "description": "The IP address Envoy listens for new TCP connections",
+      "oneOf": [
+        {
+          "$ref": "#/definitions/ipv6"
+        },
+        {
+          "$ref": "#/definitions/ipv4"
+        }
+      ],
+      "title": "Listener Address"
+    },
+    "tcp_port": {
+      "default": 8080,
+      "description": "The port is extracted from the `api_url` if it is explicitely provided as part of the url. E.g. the implicit ports 80/443 for http/https are replaced by the default `8080`.",
+      "maximum": 65535,
+      "minimum": 1,
+      "title": "Listener Port",
+      "type": "integer"
+    },
+    "url": {
+      "format": "uri",
+      "description": "The API URL serves multiple functions:\n\n- **Scheme**: Determines if TLS or non-TLS listeners are used (e.g., `http` or `https`).\n- **Domain**: Used for virtual host matching in Envoy.\n- **Path**: Configures prefix matching in Envoy's filter chain.\n- **Port**: If specified, this overrides the default listener port. Ensure you explicitly configure HTTP ports `80` and `443`.\n",
+      "title": "API URL",
+      "type": "string"
     },
     "routing": {
       "additionalProperties": false,
@@ -431,16 +397,50 @@
       "title": "Routing",
       "type": "object"
     },
-    "basic_auth_clients": {
-      "additionalProperties": {
-        "items": {
-          "type": "string"
+    "security": {
+      "additionalProperties": false,
+      "description": "The `security` object configures API-specific security features, such as IP filtering and authentication mechanisms. It supports both source IP filtering (allowing only specific IP ranges) and client authentication for downstream requests, as well as credential injection for upstream requests.",
+      "properties": {
+        "auth": {
+          "$ref": "#/definitions/authentication"
         },
-        "type": "array"
+        "allowed-source-ips": {
+          "$ref": "#/definitions/allowed_source_ips"
+        }
       },
-      "description": "The clients are matches based on the md5 hash.",
-      "properties": {},
-      "title": "Allowed Clients",
+      "required": [
+        "auth"
+      ],
+      "title": "Security Configuration",
+      "type": "object"
+    },
+    "proxyconf": {
+      "additionalProperties": false,
+      "description": "The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-specific configurations, enabling ProxyConf to generate the necessary resources to integrate with [Envoyproxy](https://www.envoyproxy.io/).",
+      "properties": {
+        "api-id": {
+          "$ref": "#/definitions/api_id"
+        },
+        "cluster": {
+          "$ref": "#/definitions/cluster"
+        },
+        "listener": {
+          "$ref": "#/definitions/Elixir.ProxyConf.ConfigGenerator.Listener_t"
+        },
+        "url": {
+          "$ref": "#/definitions/url"
+        },
+        "routing": {
+          "$ref": "#/definitions/routing"
+        },
+        "security": {
+          "$ref": "#/definitions/security"
+        }
+      },
+      "required": [
+        "security"
+      ],
+      "title": "ProxyConf API Config",
       "type": "object"
     }
   },

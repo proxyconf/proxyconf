@@ -39,6 +39,7 @@ defmodule ProxyConf.Spec do
     title: API URL
     description: |
       The API URL serves multiple functions:
+
       - **Scheme**: Determines if TLS or non-TLS listeners are used (e.g., `http` or `https`).
       - **Domain**: Used for virtual host matching in Envoy.
       - **Path**: Configures prefix matching in Envoy's filter chain.
