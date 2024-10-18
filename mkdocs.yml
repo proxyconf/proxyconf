@@ -26,7 +26,7 @@ nav:
 #  - Configuration: configuration/index.md
 theme:
   name: material
-  logo: assets/logo.svg
+  logo: assets/logo.png
   features:
     - navigation.tracking
     - navigation.path
@@ -45,9 +45,9 @@ theme:
     text: Fira Sans
     code: Fira Code
   palette:
-    scheme: slate
-    primary: black
-    accent: green
+    scheme: default
+    primary: indigo
+    accent: deep orange
 extra_css:
   - stylesheets/extra.css
 extra:

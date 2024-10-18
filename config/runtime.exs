@@ -32,7 +32,10 @@ config :proxyconf,
       "PROXYCONF_CONTROL_PLANE_PRIVATE_KEY",
       Path.join(downstream_tls_path, "proxyconf-ctrlplane.key")
     ),
-  downstream_tls_path: downstream_tls_path
+  downstream_tls_path: downstream_tls_path,
+  # At this point it is expected that the following CA Bundle is available in the Envoy container
+  upstream_ca_bundle:
+    System.get_env("PROXYCONF_UPSTREAM_CA_BUNDLE", "/etc/ssl/certs/ca-certificates.crt")
 
 # config :proxyconf_validator,
 #  http_endpoint_name: System.get_env("PROXYCONF_VALIDATOR_HTTP_ENDPOINT_NAME", "localhost"),
