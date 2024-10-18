@@ -186,7 +186,7 @@ defmodule ProxyConf.Spec do
     } = config_from_spec
 
     {:ok,
-     %__MODULE__{
+     %ProxyConf.Spec{
        filename: filename,
        hash: gen_hash(data),
        cluster_id: cluster_id,
@@ -244,8 +244,6 @@ defmodule ProxyConf.Spec do
       default
     )
   end
-
-  defp to_cidrs(subnet) when is_binary(subnet), do: to_cidrs([subnet])
 
   defp to_cidrs(subnets) when is_list(subnets) do
     Enum.flat_map(subnets, fn subnet ->

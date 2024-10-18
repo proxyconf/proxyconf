@@ -5,7 +5,12 @@ x-proxyconf:
     port: 44444
   security:
     auth:
-      downstream: disabled
+      downstream:
+        type: mtls
+        trusted-ca: /tmp/proxyconf/ca-cert.pem
+        clients:
+          test_client:
+            - exunit-good
 
 servers:
   - url: http://127.0.0.1

@@ -21,29 +21,10 @@ defmodule ProxyConf.ConfigGenerator.Route do
         path_prefix,
         %Spec{
           type: :oas3,
-          spec: %{"paths" => paths_object, "servers" => servers} = oas3_spec
+          spec: %{"paths" => paths_object, "servers" => servers}
         } = spec
       ) do
     Enum.flat_map_reduce(paths_object, [], fn
-      {path, %{"$ref" => ref_to_path_item_object}}, clusters_acc ->
-        path_item_object = resolve_ref(ref_to_path_item_object, oas3_spec)
-
-        inherited_config =
-          Map.merge(%{"servers" => servers}, path_item_object)
-          |> Map.take(["parameters", "servers"])
-
-        Enum.filter(path_item_object, fn {k, _} -> k in @operations end)
-        |> Enum.map_reduce(clusters_acc, fn {operation, operation_object}, clusters_acc ->
-          operation_to_route_match(
-            path_prefix,
-            path,
-            operation,
-            DeepMerge.deep_merge(inherited_config, operation_object),
-            clusters_acc,
-            spec
-          )
-        end)
-
       {path, path_item_object}, clusters_acc ->
         inherited_config =
           Map.merge(%{"servers" => servers}, path_item_object)
@@ -314,15 +295,6 @@ defmodule ProxyConf.ConfigGenerator.Route do
            }
            |> Map.merge(cluster_route_config)
        }, clusters}
-    end
-  end
-
-  defp resolve_ref(ref, oas3spec) do
-    ["#" | ref_path] = Path.split(ref)
-
-    case get_in(oas3spec, ref_path) do
-      nil -> %{}
-      value -> value
     end
   end
 end

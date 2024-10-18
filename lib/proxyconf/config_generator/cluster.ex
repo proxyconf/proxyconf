@@ -39,7 +39,7 @@ defmodule ProxyConf.ConfigGenerator.Cluster do
                   "common_tls_context" => %{
                     "validation_context" => %{
                       "trusted_ca" => %{
-                        "filename" => "/etc/ssl/certs/ca-certificates.crt"
+                        "filename" => Application.fetch_env!(:proxyconf, :upstream_ca_bundle)
                       }
                     }
                   }

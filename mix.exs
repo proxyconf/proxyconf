@@ -11,7 +11,12 @@ defmodule ProxyConf.MixProject do
       aliases: aliases(),
       elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [
-        ignore_modules: [Jason.Encoder.URI, Inspect.ProxyConf.MapTemplate, ~r/\.TestSupport\./]
+        ignore_modules: [
+          Jason.Encoder.URI,
+          Mix.Tasks.GenMarkdown,
+          Inspect.ProxyConf.MapTemplate,
+          ~r/\.TestSupport\./
+        ]
       ]
     ]
   end

@@ -48,10 +48,6 @@ defmodule ProxyConf.AggregatedDiscoveryServiceServer do
     ProxyConf.Stream.event(stream, node_info, type_url, version)
   end
 
-  def nonce do
-    "#{node()}#{DateTime.utc_now() |> DateTime.to_unix(:nanosecond)}" |> Base.encode64()
-  end
-
   defp node_info(%DiscoveryRequest{node: %Node{id: node_id, cluster: cluster}}) do
     %{cluster: cluster, node_id: node_id}
   end
