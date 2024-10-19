@@ -1,16 +1,37 @@
 # Getting started with ProxyConf
 
-We recommend using Docker containers to quickly get started with ProxyConf. In the `demo` folder of the GitHub repository, you’ll find a working `docker-compose` example that sets up an Envoy proxy, ProxyConf, and an upstream Swagger Petstore backend.
+We recommend using Docker containers to quickly get started with ProxyConf.
 
-## Mutual TLS Setup
+## Demo Setup
 
-For secure communication between ProxyConf and Envoy, mutual TLS (mTLS) certificates are required. To make this process easier, a script for generating demo certificates is provided in the `demo` folder. Simply run the `setup-certificates.sh` script to generate the necessary certificates for your setup. In a production setup the certificates are typically issued by the corporate PKI or a specialized CA.
+To quickly explore the capabilities of **ProxyConf**, we provide a demo environment that can be easily launched using Docker Compose. The demo setup, located inside the [`demo` folder](https://github.com/proxyconf/proxyconf/demo), includes all the necessary components to run a local instance of Envoyproxy with ProxyConf, configured to proxy traffic to a local instance of the **Swagger Petstore** API.
 
-## Configuring Envoy
+### Steps to Run the Demo:
+1. **Generate TLS Certificates**: Before starting the demo, you need to generate the required TLS certificates by running the `setup-certificates.sh` script located in the `demo` folder:
+   ```bash
+   ./setup-certificates.sh
+   ```
+For secure communication between ProxyConf and Envoy, mutual TLS (mTLS) certificates are required. The `setup-certificates.sh` script generates the necessary certificates for the demo setup. In a production setup the certificates are typically issued by the corporate PKI or a specialized CA.
 
-Envoy needs to be started with a minimal configuration file to establish a connection with the ProxyConf control plane. A sample configuration file is available in the `demo` folder, and it may look like the following:
+2. **Start the Demo Environment**: Once the certificates are generated, you can bring up the environment with Docker Compose:
+   ```bash
+   docker-compose up --pull always
+   ```
 
-### Node Configuration
+3. **Explore the Setup**: The demo environment sets up **ProxyConf** to manage and secure Envoyproxy, which acts as a gateway proxying traffic to a local instance of the **Swagger Petstore**. The Swagger Petstore is a sample API, allowing you to test ProxyConf’s routing, security, and traffic management features in a real-world scenario. E.g.:
+  ```bash
+  curl -vv https://localhost:8080/petstore/pet/findByStatus --cacert demo/proxyconf/ca.crt -H "my-api-key: supersecret"
+  ``` 
+
+### Key Components:
+- **Envoyproxy**: Handles traffic routing and load balancing.
+- **ProxyConf**: Configures Envoyproxy using OpenAPI specs, providing centralized policy management and enhanced security features.
+- **Swagger Petstore**: A demo API specified in `demo/proxyconf/oas3specs/petstore.yaml` that Envoy proxies traffic to, allowing you to experiment with API management features such as routing, TLS termination, and request validation.
+
+This demo provides a hands-on way to see how **ProxyConf** simplifies the configuration and management of Envoyproxy.
+
+
+## Node Configuration
 
 The `node` section in an Envoy configuration file identifies the instance of Envoy within a larger system. It includes details like the node’s ID, cluster, and metadata that the control plane (such as ProxyConf) uses to manage and configure that particular Envoy instance. The information helps the control plane distinguish between different Envoy instances and apply the correct configuration dynamically.
 
@@ -28,7 +49,7 @@ node:
     The `proxyconf-cluster` is the default cluster name used by ProxyConf. See the configuration page regarding how to adjust this default.
 
 
-### Dynamic Resources Configuration
+## Dynamic Resources Configuration
 
 The `dynamic_resources` section in the Envoy configuration is used to define how Envoy dynamically fetches configuration data, such as clusters (upstream services) and listeners (network endpoints). It typically includes:
 
@@ -59,7 +80,7 @@ dynamic_resources:
     This config section doesn't need any other adjustments and can be used as is.
 
 
-### Static Resources Configuration
+## Static Resources Configuration
 
 The `static_resources` section in Envoy is used to define resources that are hardcoded and do not change dynamically. When connecting Envoy to a control plan, a single static cluster is typically defined within this section. This static cluster allows Envoy to communicate with the control plane to retrieve dynamic configurations for other resources.
 

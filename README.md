@@ -35,9 +35,12 @@ To quickly explore the capabilities of **ProxyConf**, we provide a demo environm
    ```
 2. **Start the Demo Environment**: Once the certificates are generated, you can bring up the environment with Docker Compose:
    ```bash
-   docker-compose up
+   docker-compose up --pull always
    ```
-3. **Explore the Setup**: The demo environment sets up **ProxyConf** to manage and secure Envoyproxy, which acts as a gateway proxying traffic to a local instance of the **Swagger Petstore**. The Swagger Petstore is a sample API, allowing you to test ProxyConf’s routing, security, and traffic management features in a real-world scenario.
+3. **Explore the Setup**: The demo environment sets up **ProxyConf** to manage and secure Envoyproxy, which acts as a gateway proxying traffic to a local instance of the **Swagger Petstore**. The Swagger Petstore is a sample API, allowing you to test ProxyConf’s routing, security, and traffic management features in a real-world scenario. E.g.:
+  ```bash
+  curl -vv https://localhost:8080/petstore/pet/findByStatus --cacert demo/proxyconf/ca.crt -H "my-api-key: supersecret"
+  ``` 
 
 ### Key Components:
 - **Envoyproxy**: Handles traffic routing and load balancing.

@@ -22,7 +22,7 @@ x-proxyconf:
 # The downstream authentication configuration for this API
   security:
 # configure the sllowed source IP ranges
-    allowed_source_ips:
+    allowed-source-ips:
       - 0.0.0.0/0
     auth:
       downstream:
@@ -57,7 +57,7 @@ x-proxyconf:
 # Envoy should check TLS client certificate (mTLS)
 # Request example: curl -vv https://localhost:8080/petstore/pet/1 --cert ./demo-client.crt --key ./demo-client.key -k
   #        type: mtls
-  #        trusted_ca: /etc/data/ca.crt
+  #        trusted-ca: /etc/data/ca.crt
   #        clients:
   #          testUser:
   #          - "CN=demo-client,OU=Demo Client,O=ProxyConf,L=Basel,ST=Basel,C=CH"
