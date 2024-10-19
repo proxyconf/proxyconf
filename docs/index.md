@@ -26,7 +26,7 @@
 
 - **Proprietary Extensions** (Available as Paid Add-ons, work in progress)
     - **Request and Response Validation:** Advanced validation mechanisms for API requests and responses, ensuring data integrity and compliance with specifications.
-  - **SOAP/WSDL Support:**  Support for SOAP-based APIs and WSDL specifications, enabling seamless integration with legacy systems.
+    - **SOAP/WSDL Support:**  Support for SOAP-based APIs and WSDL specifications, enabling seamless integration with legacy systems.
 
 
 ## Demo Setup
