@@ -1,6 +1,8 @@
 
 # ProxyConf
 
+![Image title](./docs/assets/logow.png){ align=center } 
+
 **ProxyConf** is a control plane for [Envoyproxy](https://www.envoyproxy.io/) that simplifies and secures API management in enterprise environments. It leverages the OpenAPI specification to streamline the configuration of Envoyproxy, providing a powerful yet user-friendly platform for managing, and securing API traffic at scale.
 
 > [!WARNING]
@@ -24,36 +26,6 @@
 - **Proprietary Extensions** (Available as Paid Add-ons, work in progress)
   - **Request and Response Validation:** Advanced validation mechanisms for API requests and responses, ensuring data integrity and compliance with specifications.
   - **SOAP/WSDL Support:**  Support for SOAP-based APIs and WSDL specifications, enabling seamless integration with legacy systems.
-
-### Feature Matrix
-
-| **Feature**                                         | **Implementation**                    | **Open Source** | **Paid Add-On** | **DONE** |
-|-----------------------------------------------------|---------------------------------------|-----------------|-----------------|----------|
-| [Downstream TLS](./config/url.md)                   | Envoy SDS                             | x               |                 | yes      |
-| [Downstream Static mTLS Authentication](./config/security.md) | Envoy TLS Inspector + RBAC Filter     | x               |                 | yes      |
-| [Downstream Static API Key Authentication](./config/security.md) | Custom Lua Filter + Envoy RBAC Filter | x               |                 | yes      |
-| [Downstream Static Basic Authentication](./config/security.md) | Custom Lua Filter + Envoy RBAC Filter | x               |                 | yes      |
-| [Downstream JWT based Authentication](./config/security.md) | Envoy JWT Filter                      | x               |                 | yes      |
-| [Source IP filtering](./config/listener.md)         | Envoy RBAC Filter                     | x               |                 | yes      |
-| [Multi-Cluster Support](./config/cluster.md)        | Envoy cluster id mapping              | x               |                 | yes      |
-| [Multi-Listener Support](./config/listener.md)      | Envoy listener                        | x               |                 | yes      |
-| [Virtual Hosts Support](./config/url.md)            | Envoy RDS                             | x               |                 | yes      |
-| Routing based on HTTP Method & Path                 | Envoy RDS                             | x               |                 | yes      |
-| Routing based on Path templates                     | Envoy RDS                             | x               |                 | yes      |
-| [Routing checks required request headers](./config/routing.md) | Envoy RDS                             | x               |                 | yes      |
-| [Routing checks required query parameters](./config/routing.md) | Envoy RDS                             | x               |                 | yes      |
-| [Routing checks required request content type header](./config/routing.md) | Envoy RDS                             | x               |                 | yes      |
-| [Upstream server load balancing](./config/upstream.md) | Envoy weighted cluster                | x               |                 | yes      |
-|                                                     |                                       |                 |                 |          |
-| Request header validation                           | Golang Envoy Plugin                   |                 | x               | yes      |
-| Response header validation                          | Golang Envoy Plugin                   |                 | x               | yes      |
-| Query parameter validation                          | Golang Envoy Plugin                   |                 | x               | yes      |
-| Request body validation JSON / Form-Data            | Golang Envoy Plugin                   |                 | x               | yes      |
-| Response body validation JSON / Form-Data           | Golang Envoy Plugin                   |                 | x               | yes      |
-| Vulnerability scanning                              | Golang Envoy Plugin                   |                 | ?               | no       |
-| Request body validation XML                         | Golang Envoy Plugin                   |                 | x               | no       |
-| Response body validation XML                        | Golang Envoy Plugin                   |                 | x               | no       |
-| SOAP & WSDL based configuration                     |                                       |                 | ?               | no       |
 
 ## 🔧 Demo Setup
 

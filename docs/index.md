@@ -1,5 +1,7 @@
 # ProxyConf
 
+![Image title](./assets/logow.png){ align=center } 
+
 **ProxyConf** is a control plane for [Envoyproxy](https://www.envoyproxy.io/) that simplifies and secures API management in enterprise environments. It leverages the OpenAPI specification to streamline the configuration of Envoyproxy, providing a powerful yet user-friendly platform for managing, and securing API traffic at scale.
 
 

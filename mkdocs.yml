@@ -45,8 +45,8 @@ theme:
     text: Fira Sans
     code: Fira Code
   palette:
-    scheme: default
-    primary: indigo
+    scheme: slate
+    primary: blue grey
     accent: deep orange
 extra_css:
   - stylesheets/extra.css
