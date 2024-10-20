@@ -17,6 +17,7 @@ nav:
   - index.md
   - Getting Started: get_started/index.md
   - Configuration Reference:
+    - Environment Variables: config/environment.md
     - OpenAPI Extension: config/config.md
     - Listener Configuration: config/Listener.md
     - Downstream Authentication: config/DownstreamAuth.md

@@ -41,3 +41,5 @@ config :proxyconf,
 #  http_endpoint_name: System.get_env("PROXYCONF_VALIDATOR_HTTP_ENDPOINT_NAME", "localhost"),
 #  http_endpoint_port:
 #    System.get_env("PROXYCONF_VALIDATOR_HTTP_ENDPOINT_PORT", "19000") |> String.to_integer()
+config :proxyconf, ProxyConf.Cron,
+  jobs: System.get_env("PROXYCONF_CRONTAB") |> File.read() |> ProxyConf.Cron.to_config()

@@ -27,14 +27,14 @@ defmodule ProxyConf.ConfigGenerator.Listener do
 
   @typedoc """
       title: Listener Port
-      description: The port is extracted from the `api_url` if it is explicitely provided as part of the url. E.g. the implicit ports 80/443 for http/https are replaced by the default `8080`.
+      description: The port is extracted from the specified `url` property if it is explicitely provided as part of the url. E.g. the implicit ports 80/443 for http/https are replaced by the default `8080`.
       default: 8080
   """
   @type tcp_port() :: 1..65535
 
   @typedoc """
       title: Listener Configuration
-      description: The `listener` object configures the Envoy listener used to serve this API. Depending on the provided `api_url` a TLS context is configured.
+      description: The `listener` object configures the Envoy listener used to serve this API. Depending on the specified `url` property a TLS context is configured.
   """
   @type t :: %{
           address: ip_address(),

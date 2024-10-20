@@ -14,6 +14,7 @@ defmodule ProxyConf.Application do
     LocalCA.control_plane_client_cert_setup()
 
     children = [
+      ProxyConf.Cron,
       DynamicSupervisor.child_spec(name: ProxyConf.StreamSupervisor),
       Registry.child_spec(keys: :unique, name: ProxyConf.StreamRegistry),
       ProxyConf.ConfigCache,
