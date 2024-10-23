@@ -37,7 +37,7 @@ x-proxyconf:
 | **properties** | [`api-id`](#api-identifier), [`cluster`](#cluster-identifier), [`listener`](#listener-configuration), [`routing`](#routing), [`security`](#security-configuration), [`url`](#api-url) |
 | **optional** | [`api-id`](#api-identifier), [`cluster`](#cluster-identifier), [`listener`](#listener-configuration), [`routing`](#routing), [`url`](#api-url) |
 
-The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-specific configurations, enabling ProxyConf to generate the necessary resources to integrate with [Envoyproxy](https://www.envoyproxy.io/).
+The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-specific configurations, enabling ProxyConf to generate the necessary resources to integrate with [Envoy Proxy](https://www.envoyproxy.io/).
 
 
 ### API Identifier
@@ -46,7 +46,7 @@ The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-spec
  | --- | --- |
 | **minLength** | `1` |
 
-A unique identifier for the API, used for API-specific logging, monitoring, and identification in ProxyConf and Envoyproxy. This ID is essential for tracking and debugging API traffic across the system.
+A unique identifier for the API, used for API-specific logging, monitoring, and identification in ProxyConf and Envoy. This ID is essential for tracking and debugging API traffic across the system.
 
 
 ### Cluster Identifier
@@ -64,7 +64,7 @@ The cluster identifier groups APIs for Envoy. This cluster name should also be r
  | --- | --- |
 | **$ref** | `#/definitions/Elixir.ProxyConf.ConfigGenerator.Listener_t` |
 
-The `listener` object configures the Envoy listener used to serve this API. Depending on the provided `api_url` a TLS context is configured.
+The `listener` object configures the Envoy listener used to serve this API. Depending on the specified `url` property a TLS context is configured.
 
 
 ### Routing

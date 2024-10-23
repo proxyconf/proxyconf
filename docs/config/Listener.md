@@ -6,7 +6,7 @@
 | **additionalProperties** | `false` |
 | **properties** | [`address`](#listener-address), [`port`](#listener-port) |
 
-The `listener` object configures the Envoy listener used to serve this API. Depending on the provided `api_url` a TLS context is configured.
+The `listener` object configures the Envoy listener used to serve this API. Depending on the specified `url` property a TLS context is configured.
 
 
 ## Listener Address
@@ -39,4 +39,4 @@ IPv4 TCP Listener Address
 | **maximum** | `65535` |
 | **minimum** | `1` |
 
-The port is extracted from the `api_url` if it is explicitely provided as part of the url. E.g. the implicit ports 80/443 for http/https are replaced by the default `8080`.
+The port is extracted from the specified `url` property if it is explicitely provided as part of the url. E.g. the implicit ports 80/443 for http/https are replaced by the default `8080`.
