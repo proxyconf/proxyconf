@@ -25,7 +25,7 @@ defmodule ProxyConf.Spec do
 
   @typedoc """
     title: API Identifier
-    description: A unique identifier for the API, used for API-specific logging, monitoring, and identification in ProxyConf and Envoyproxy. This ID is essential for tracking and debugging API traffic across the system.
+    description: A unique identifier for the API, used for API-specific logging, monitoring, and identification in ProxyConf and Envoy. This ID is essential for tracking and debugging API traffic across the system.
   """
   @type api_id :: GenJsonSchema.Type.string(minLength: 1)
 
@@ -122,7 +122,7 @@ defmodule ProxyConf.Spec do
 
   @typedoc """
     title: ProxyConf API Config
-    description: The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-specific configurations, enabling ProxyConf to generate the necessary resources to integrate with [Envoyproxy](https://www.envoyproxy.io/).
+    description: The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-specific configurations, enabling ProxyConf to generate the necessary resources to integrate with [Envoy Proxy](https://www.envoyproxy.io/).
     required:
       - security
   """
