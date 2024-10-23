@@ -164,7 +164,7 @@ defmodule ProxyConf.LocalCA do
 
       pk = X509.PrivateKey.new_ec(:secp256r1)
 
-      cert = X509.Certificate.self_signed(pk, @ca_subject, template: :root_ca)
+      cert = X509.Certificate.self_signed(pk, "/CN=#{@ca_subject}", template: :root_ca)
 
       File.write!(ca_certificate, X509.Certificate.to_pem(cert), [:exclusive])
       File.chmod!(ca_certificate, 0o444)
