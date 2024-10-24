@@ -21,21 +21,15 @@ defmodule ProxyConf.LocalCA do
 
   def init(_) do
     downstream_tls_path = Application.fetch_env!(:proxyconf, :downstream_tls_path)
+    ca_setup()
+    control_plane_server_cert_setup()
+    control_plane_client_cert_setup()
 
     {:ok, _pid} =
       FileSystem.start_link(dirs: [downstream_tls_path], name: :downstream_tls_watcher)
 
     FileSystem.subscribe(:downstream_tls_watcher)
     Process.send(self(), :reload, [])
-
-    Process.spawn(
-      fn ->
-        ca_setup()
-        control_plane_server_cert_setup()
-        control_plane_client_cert_setup()
-      end,
-      []
-    )
 
     {:ok,
      %{
@@ -51,25 +45,30 @@ defmodule ProxyConf.LocalCA do
   end
 
   def handle_call(
-        {:get_matching_certificate, common_name, certificate_gen, private_key_gen},
+        {:get_matching_certificate, common_name},
         _from,
         state
       ) do
-    reply =
+    downstream_tls_path = Application.fetch_env!(:proxyconf, :downstream_tls_path)
+    certificate_path = Path.join(downstream_tls_path, common_name <> ".crt")
+    private_key_path = Path.join(downstream_tls_path, common_name <> ".key")
+
+    {reply, state} =
       case Map.get_lazy(state.certs, common_name, fn ->
              [_subdomain | rest] = String.split(common_name, ".")
              wildcard_domain = "*." <> Enum.join(rest, ".")
              Map.get(state.certs, wildcard_domain)
            end) do
         nil ->
-          create_cert(common_name, certificate_gen, private_key_gen)
+          {create_cert(common_name, certificate_path, private_key_path),
+           %{state | certs: register_certs()}}
 
         {certificate, private_key} ->
           Logger.info(
             "using #{common_name} certificate (#{certificate}) and private key (#{private_key})"
           )
 
-          wrap_fn({File.read!(certificate), File.read!(private_key)})
+          {wrap_fn({File.read!(certificate), File.read!(private_key)}), state}
       end
 
     {:reply, reply, state}
@@ -182,7 +181,7 @@ defmodule ProxyConf.LocalCA do
   end
 
   defp control_plane_server_cert_setup do
-    cert_setup(
+    create_cert(
       @control_plane_subject,
       Application.get_env(:proxyconf, :control_plane_certificate),
       Application.get_env(:proxyconf, :control_plane_private_key)
@@ -192,7 +191,7 @@ defmodule ProxyConf.LocalCA do
   defp control_plane_client_cert_setup do
     downstream_tls_path = Application.fetch_env!(:proxyconf, :downstream_tls_path)
 
-    cert_setup(
+    create_cert(
       @client_subject,
       Path.join(downstream_tls_path, "client.crt"),
       Path.join(downstream_tls_path, "client.key")
@@ -200,71 +199,65 @@ defmodule ProxyConf.LocalCA do
   end
 
   def server_cert(hostname) do
-    downstream_tls_path = Application.fetch_env!(:proxyconf, :downstream_tls_path)
-
-    cert_setup(
-      hostname,
-      Path.join(downstream_tls_path, hostname <> ".crt"),
-      Path.join(downstream_tls_path, hostname <> ".key")
-    )
-  end
-
-  def cert_setup(hostname, certificate, private_key) do
     GenServer.call(
       __MODULE__,
-      {:get_matching_certificate, hostname, certificate, private_key},
+      {:get_matching_certificate, hostname},
       :infinity
     )
   end
 
   defp create_cert(hostname, certificate, private_key) do
-    subject = "/CN=#{hostname}"
-    ca_certificate = Application.get_env(:proxyconf, :ca_certificate)
-    ca_private_key = Application.get_env(:proxyconf, :ca_private_key)
-    File.mkdir_p!(Path.dirname(certificate))
-    File.mkdir_p!(Path.dirname(private_key))
+    if not File.exists?(certificate) or not File.exists?(private_key) do
+      subject = "/CN=#{hostname}"
+      ca_certificate = Application.get_env(:proxyconf, :ca_certificate)
+      ca_private_key = Application.get_env(:proxyconf, :ca_private_key)
+      File.mkdir_p!(Path.dirname(certificate))
+      File.mkdir_p!(Path.dirname(private_key))
 
-    issuer_cert = File.read!(ca_certificate) |> X509.Certificate.from_pem!()
-    issuer_key = File.read!(ca_private_key) |> X509.PrivateKey.from_pem!()
+      issuer_cert = File.read!(ca_certificate) |> X509.Certificate.from_pem!()
+      issuer_key = File.read!(ca_private_key) |> X509.PrivateKey.from_pem!()
 
-    key = X509.PrivateKey.new_ec(:secp256r1)
-    pub = X509.PublicKey.derive(key)
+      key = X509.PrivateKey.new_ec(:secp256r1)
+      pub = X509.PublicKey.derive(key)
 
-    [common_name] =
-      X509.RDNSequence.new(subject)
-      |> X509.RDNSequence.get_attr(:commonName)
+      [common_name] =
+        X509.RDNSequence.new(subject)
+        |> X509.RDNSequence.get_attr(:commonName)
 
-    import X509.Certificate.Extension
+      import X509.Certificate.Extension
 
-    template = %X509.Certificate.Template{
-      # 1 year, plus a 30 days grace period
-      validity: 365 + 30,
-      hash: :sha256,
-      extensions: [
-        basic_constraints: basic_constraints(false),
-        key_usage: key_usage([:digitalSignature, :keyEncipherment]),
-        ext_key_usage: ext_key_usage([:serverAuth, :clientAuth]),
-        subject_key_identifier: true,
-        authority_key_identifier: true,
-        subject_alt_name: subject_alt_name([common_name])
-      ]
-    }
+      template = %X509.Certificate.Template{
+        # 1 year, plus a 30 days grace period
+        validity: 365 + 30,
+        hash: :sha256,
+        extensions: [
+          basic_constraints: basic_constraints(false),
+          key_usage: key_usage([:digitalSignature, :keyEncipherment]),
+          ext_key_usage: ext_key_usage([:serverAuth, :clientAuth]),
+          subject_key_identifier: true,
+          authority_key_identifier: true,
+          subject_alt_name: subject_alt_name([common_name])
+        ]
+      }
 
-    crt = X509.Certificate.new(pub, subject, issuer_cert, issuer_key, template: template)
+      crt = X509.Certificate.new(pub, subject, issuer_cert, issuer_key, template: template)
 
-    private_key_pem = X509.PrivateKey.to_pem(key)
-    File.write!(private_key, private_key_pem, [:exclusive])
-    File.chmod!(private_key, 0o400)
+      private_key_pem = X509.PrivateKey.to_pem(key)
+      File.write!(private_key, private_key_pem, [:exclusive])
+      File.chmod!(private_key, 0o400)
 
-    certificate_pem = X509.Certificate.to_pem(crt)
-    File.write!(certificate, certificate_pem, [:exclusive])
-    File.chmod!(certificate, 0o444)
+      certificate_pem = X509.Certificate.to_pem(crt)
+      File.write!(certificate, certificate_pem, [:exclusive])
+      File.chmod!(certificate, 0o444)
 
-    Logger.info(
-      "created selfsigned #{subject} certificate (#{certificate}) and private key (#{private_key})"
-    )
+      Logger.info(
+        "created selfsigned #{subject} certificate (#{certificate}) and private key (#{private_key})"
+      )
 
-    wrap_fn({certificate_pem, private_key_pem})
+      wrap_fn({certificate_pem, private_key_pem})
+    else
+      wrap_fn({File.read!(certificate), File.read!(private_key)})
+    end
   end
 
   defp wrap_fn(res), do: fn -> res end
