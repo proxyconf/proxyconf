@@ -135,14 +135,8 @@ defmodule ProxyConf.ConfigCache do
         )
 
         insert_validated_spec(spec)
-
-        case cache_notify_resources(spec.cluster_id, %{spec_name => :external}) do
-          :ok ->
-            {:reply, {:ok, spec.cluster_id}, state}
-
-          :error ->
-            {:reply, :cant_load_spec, state}
-        end
+        cache_notify_resources(spec.cluster_id, %{spec_name => :external})
+        {:reply, {:ok, spec.cluster_id}, state}
 
       error ->
         Logger.error("Can't load external spec #{spec_name} due to #{inspect(error)}")
@@ -250,9 +244,9 @@ defmodule ProxyConf.ConfigCache do
     do: YamlElixir.read_from_string(data)
 
   defp validate_spec(filename, {:ok, spec}, data), do: validate_spec(filename, spec, data)
-  defp validate_spec(_filename, {:error, reason}, _data), do: {:error, reason}
+  defp validate_spec(_filename, {:error, reason}, _), do: {:error, reason}
 
-  defp validate_spec(filename, %{"openapi" => "3" <> _} = spec, data) do
+  defp validate_spec(filename, spec, data) do
     case JsonXema.validate(@oas3_0_schema, spec) do
       :ok ->
         Spec.from_oas3(filename, spec, data)
@@ -269,39 +263,30 @@ defmodule ProxyConf.ConfigCache do
   end
 
   defp cache_notify_resources(cluster_id, changed_files) do
-    case ConfigGenerator.from_oas3_specs(cluster_id, changed_files) do
-      {:ok, config} ->
-        resources =
-          %{
-            @listener => config.listeners,
-            @cluster => config.clusters,
-            @route_configuration => config.route_configurations,
-            @tls_secret => config.tls_secret
-          }
-          |> apply_static_patches()
-          |> apply_config_extensions()
+    {:ok, config} = ConfigGenerator.from_oas3_specs(cluster_id, changed_files)
 
-        Enum.each(resources, fn {type, resources_for_type} ->
-          hash = :erlang.phash2(resources_for_type)
+    resources =
+      %{
+        @listener => config.listeners,
+        @cluster => config.clusters,
+        @route_configuration => config.route_configurations,
+        @tls_secret => config.tls_secret
+      }
+      |> apply_static_patches()
+      |> apply_config_extensions()
 
-          :ets.insert(
-            @resources_table,
-            {{cluster_id, type}, resources_for_type}
-          )
+    Enum.each(resources, fn {type, resources_for_type} ->
+      hash = :erlang.phash2(resources_for_type)
 
-          # not sending the resources to the stream pid, instead let the
-          # the stream process fetch the resources if required
-          ProxyConf.Stream.push_resource_changes(cluster_id, type, hash)
-        end)
+      :ets.insert(
+        @resources_table,
+        {{cluster_id, type}, resources_for_type}
+      )
 
-      {:error, errored_files} ->
-        Logger.warning(
-          cluster: cluster_id,
-          message: "spec files with errors #{Enum.join(errored_files, ", ")}"
-        )
-
-        :error
-    end
+      # not sending the resources to the stream pid, instead let the
+      # the stream process fetch the resources if required
+      ProxyConf.Stream.push_resource_changes(cluster_id, type, hash)
+    end)
   end
 
   def get_resources(cluster_id, type_url) do

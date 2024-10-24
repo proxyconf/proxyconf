@@ -5,15 +5,11 @@ defmodule ProxyConf.Application do
 
   use Application
   require Logger
-  alias ProxyConf.LocalCA
 
   @impl true
   def start(_type, _args) do
-    LocalCA.ca_setup()
-    LocalCA.control_plane_server_cert_setup()
-    LocalCA.control_plane_client_cert_setup()
-
     children = [
+      ProxyConf.LocalCA,
       ProxyConf.Cron,
       DynamicSupervisor.child_spec(name: ProxyConf.StreamSupervisor),
       Registry.child_spec(keys: :unique, name: ProxyConf.StreamRegistry),

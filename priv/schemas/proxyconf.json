@@ -309,7 +309,7 @@
     },
     "api_id": {
       "minLength": 1,
-      "description": "A unique identifier for the API, used for API-specific logging, monitoring, and identification in ProxyConf and Envoyproxy. This ID is essential for tracking and debugging API traffic across the system.",
+      "description": "A unique identifier for the API, used for API-specific logging, monitoring, and identification in ProxyConf and Envoy. This ID is essential for tracking and debugging API traffic across the system.",
       "title": "API Identifier",
       "type": "string"
     },
@@ -321,7 +321,7 @@
     },
     "Elixir.ProxyConf.ConfigGenerator.Listener_t": {
       "additionalProperties": false,
-      "description": "The `listener` object configures the Envoy listener used to serve this API. Depending on the provided `api_url` a TLS context is configured.",
+      "description": "The `listener` object configures the Envoy listener used to serve this API. Depending on the specified `url` property a TLS context is configured.",
       "properties": {
         "address": {
           "$ref": "#/definitions/ip_address"
@@ -364,7 +364,7 @@
     },
     "tcp_port": {
       "default": 8080,
-      "description": "The port is extracted from the `api_url` if it is explicitely provided as part of the url. E.g. the implicit ports 80/443 for http/https are replaced by the default `8080`.",
+      "description": "The port is extracted from the specified `url` property if it is explicitely provided as part of the url. E.g. the implicit ports 80/443 for http/https are replaced by the default `8080`.",
       "maximum": 65535,
       "minimum": 1,
       "title": "Listener Port",
@@ -416,7 +416,7 @@
     },
     "proxyconf": {
       "additionalProperties": false,
-      "description": "The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-specific configurations, enabling ProxyConf to generate the necessary resources to integrate with [Envoyproxy](https://www.envoyproxy.io/).",
+      "description": "The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-specific configurations, enabling ProxyConf to generate the necessary resources to integrate with [Envoy Proxy](https://www.envoyproxy.io/).",
       "properties": {
         "api-id": {
           "$ref": "#/definitions/api_id"

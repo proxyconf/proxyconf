@@ -42,4 +42,7 @@ config :proxyconf,
 #  http_endpoint_port:
 #    System.get_env("PROXYCONF_VALIDATOR_HTTP_ENDPOINT_PORT", "19000") |> String.to_integer()
 config :proxyconf, ProxyConf.Cron,
-  jobs: System.get_env("PROXYCONF_CRONTAB") |> File.read() |> ProxyConf.Cron.to_config()
+  jobs:
+    System.get_env("PROXYCONF_CRONTAB", Path.join(:code.priv_dir(:proxyconf), "crontab"))
+    |> File.read()
+    |> ProxyConf.Cron.to_config()

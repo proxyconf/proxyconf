@@ -65,10 +65,10 @@ defmodule ProxyConf.TestSupport.Envoy do
                     "tls_certificates" => [
                       %{
                         "certificate_chain" => %{
-                          "filename" => "/tmp/proxyconf/client-cert.pem"
+                          "filename" => "/tmp/proxyconf/client.crt"
                         },
                         "private_key" => %{
-                          "filename" => "/tmp/proxyconf/client-key.pem"
+                          "filename" => "/tmp/proxyconf/client.key"
                         }
                       }
                     ]
