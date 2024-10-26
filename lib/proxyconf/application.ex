@@ -10,6 +10,7 @@ defmodule ProxyConf.Application do
   def start(_type, _args) do
     children = [
       ProxyConf.LocalCA,
+      ProxyConf.LocalJwtProvider,
       ProxyConf.Cron,
       DynamicSupervisor.child_spec(name: ProxyConf.StreamSupervisor),
       Registry.child_spec(keys: :unique, name: ProxyConf.StreamRegistry),
@@ -29,7 +30,8 @@ defmodule ProxyConf.Application do
              verify: :verify_peer,
              fail_if_no_peer_cert: true
            ]
-         )}
+         )},
+      {Plug.Cowboy, scheme: :http, plug: ProxyConf.Http, port: 4040}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

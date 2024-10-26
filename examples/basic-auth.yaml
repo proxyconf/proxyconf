@@ -1,0 +1,23 @@
+x-proxyconf:
+  url: http://localhost:8080/basic-auth
+  security:
+    auth:
+      downstream:
+        type: basic
+        clients:
+          myUser:
+            # echo -n "myuser:mysecret" | md5sum
+            - 25be91d02dbbf17aff80e21323cd0dc5
+
+openapi: 3.0.3
+info:
+  title: ProxyConf Example with Basic Auth
+  version: 0.1.0
+servers:
+  - url: http://127.0.0.1:4040/echo
+paths:
+  /test:
+    get:
+      responses:
+        '200':
+          description: "OK"

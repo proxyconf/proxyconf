@@ -1,0 +1,27 @@
+- op: merge_in
+  path: '*'
+  value:
+    connect_timeout:
+      seconds: 5
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        '@type': type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+        upstream_http_protocol_options: {}
+        common_http_protocol_options:
+          idle_timeout:
+            seconds: 1
+        explicit_http_config:
+          http_protocol_options: {}
+- op: merge_in
+  path: '*'
+  match:
+    transport_socket:
+      name: envoy.transport_sockets.tls
+  value:
+    typed_extension_protocol_options:
+      envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+        auto_config:
+          http_protocol_options: {}
+          http2_protocol_options:
+            initial_connection_window_size: 1048576.0
+            initial_stream_window_size: 65536.0

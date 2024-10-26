@@ -1,0 +1,29 @@
+x-proxyconf:
+  url: http://localhost:8080/api-key
+  security:
+    auth:
+      downstream:
+        type: header
+        name: my-api-key
+        clients:
+          testUser:
+            # md5sum of supersecret
+            - 9a618248b64db62d15b300a07b00580b
+
+openapi: 3.0.3
+info:
+  title: ProxyConf Example with API Key in Header
+  version: 0.1.0
+servers:
+  - url: http://127.0.0.1:4040/echo
+paths:
+  /test:
+    get:
+      parameters:
+        - name: my-api-key
+          in: header
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "OK"

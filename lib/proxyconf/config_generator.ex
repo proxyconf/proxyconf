@@ -153,13 +153,11 @@ defmodule ProxyConf.ConfigGenerator do
 
     listeners = materialize_group(listeners, [filter_chains_by_listener])
 
-    downstream_auth_clusters = List.flatten(downstream_auth_clusters) |> Enum.uniq()
-
     clusters = materialize_group(clusters, [all_clusters])
 
     {:ok,
      %{
-       clusters: List.flatten(Map.values(clusters) ++ downstream_auth_clusters),
+       clusters: List.flatten(Map.values(clusters) ++ downstream_auth_clusters) |> Enum.uniq(),
        listeners: Map.values(listeners) |> List.flatten(),
        route_configurations: Map.values(route_configurations) |> List.flatten(),
        tls_secret: List.flatten(secrets) |> Enum.uniq()

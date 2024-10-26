@@ -144,6 +144,11 @@ defmodule ProxyConf.ConfigCache do
     end
   end
 
+  def handle_call(req, _from, state) do
+    Logger.error("Unhandled Request #{inspect(req)}")
+    {:reply, {:error, :unhandled_request}, state}
+  end
+
   defp insert_validated_spec(%Spec{} = spec, no_delete \\ false) do
     :ets.insert(
       @spec_table,
@@ -167,7 +172,7 @@ defmodule ProxyConf.ConfigCache do
       :unchanged
     else
       {:hash, old_hash, data} when is_binary(old_hash) or is_nil(old_hash) ->
-        parse_result = parse_spec(extname, data)
+        parse_result = parse_doc(extname, data)
         result = validate_spec(filename, parse_result, data)
 
         case result do
@@ -227,7 +232,7 @@ defmodule ProxyConf.ConfigCache do
     with true <- File.exists?(spec_filename),
          ext <- Path.extname(spec_filename),
          {:ok, data} <- File.read(spec_filename),
-         {:ok, parsed} <- parse_spec(ext, data),
+         {:ok, parsed} <- parse_doc(ext, data),
          parsed <- DeepMerge.deep_merge(parsed, overrides),
          {:ok, internal_spec} <- validate_spec(spec_filename, parsed, data) do
       {:ok, internal_spec}
@@ -238,9 +243,9 @@ defmodule ProxyConf.ConfigCache do
     end
   end
 
-  defp parse_spec(".json", data), do: Jason.decode(data)
+  defp parse_doc(".json", data), do: Jason.decode(data)
 
-  defp parse_spec(yaml, data) when yaml in [".yaml", ".yml"],
+  defp parse_doc(yaml, data) when yaml in [".yaml", ".yml"],
     do: YamlElixir.read_from_string(data)
 
   defp validate_spec(filename, {:ok, spec}, data), do: validate_spec(filename, spec, data)
@@ -302,11 +307,11 @@ defmodule ProxyConf.ConfigCache do
 
     Enum.reduce(config, config, fn {type, configs_for_type}, acc ->
       patch_type = String.replace_prefix(type, "type.googleapis.com/", "")
-      patch_location = Path.join(patches_dir, patch_type <> ".json")
+      patch_location = Path.join(patches_dir, patch_type <> ".yaml")
 
       with true <- File.exists?(patch_location),
            {:ok, patch_data} <- File.read(patch_location),
-           {:ok, patch} <- Jason.decode(patch_data) do
+           {:ok, patch} <- parse_doc(".yaml", patch_data) do
         Logger.debug("patch exists #{patch_location}")
 
         Map.put(
@@ -316,7 +321,7 @@ defmodule ProxyConf.ConfigCache do
         )
       else
         false ->
-          Logger.error("no patch exists #{patch_location}")
+          Logger.debug("no patch exists #{patch_location}")
           acc
 
         {:error, reason} ->

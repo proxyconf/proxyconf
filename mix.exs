@@ -41,14 +41,14 @@ defmodule ProxyConf.MixProject do
       {:quantum, "~> 3.0"},
       {:deep_merge, "~> 1.0"},
       {:file_system, "~> 1.0"},
+      {:joken, "~> 2.6"},
       #      {:proxyconf_validator, path: "../proxyconf_validator", optional: true},
       {:x509, "~> 0.8.9"},
       {:ymlr, "~> 5.1", only: [:test, :dev]},
       {:gen_json_schema, git: "https://github.com/dergraf/gen_json_schema.git"},
       {:credo, "~> 1.7", only: [:test, :dev]},
       {:finch, "~> 0.19.0", only: :test},
-      {:bypass, "~> 2.1", only: :test},
-      {:joken, "~> 2.6", only: :test}
+      {:bypass, "~> 2.1", only: :test}
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]
   end
