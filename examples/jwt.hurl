@@ -23,7 +23,7 @@ body contains "Audiences in Jwt are not allowed"
 
 # fetch valid token (including audience specified in downstream auth config)
 GET http://localhost:4040/local-jwt-provider/access-token?aud=hurl-tester
-HTTP 201
+HTTP 200
 [Captures]
 valid_access_token: body
 

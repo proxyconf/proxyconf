@@ -25,6 +25,45 @@ defmodule Mix.Tasks.GenMarkdown do
     schema = Jason.decode!(schema)
 
     to_md("config", schema, Map.get(schema, "definitions", %{}))
+    hurl_examples_to_md()
+  end
+
+  def hurl_examples_to_md do
+    Path.wildcard("examples/*.yaml")
+    |> Enum.flat_map(fn example ->
+      case YamlElixir.read_from_file!(example) do
+        %{"openapi" => _, "info" => %{"title" => title} = info} = spec ->
+          summary = Map.get(info, "summary", "no-category")
+
+          {hurl, 0} =
+            System.cmd("hurlfmt", ["--out", "html", String.replace(example, ".yaml", ".hurl")])
+
+          doc = """
+          ## #{title}
+
+
+          #{Map.get(info, "description", "")}
+
+          ```yaml title="OpenAPI Specification"
+          #{Ymlr.document!(Map.put(spec, "info", %{"title" => title})) |> String.replace_prefix("---\n", "")}
+          ```
+
+          <h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
+          <div class="hurl">#{hurl}</div>
+          """
+
+          [{summary, doc}]
+
+        _ ->
+          []
+      end
+    end)
+    |> Enum.group_by(fn {summary, _} -> summary end, fn {_, doc} -> doc end)
+    |> Map.delete("no-category")
+    |> Enum.each(fn {summary, docs} ->
+      file_name = Recase.to_kebab(summary)
+      File.write!("docs/examples/#{file_name}.md", ["# #{summary}" | docs] |> Enum.join("\n"))
+    end)
   end
 
   @out "docs/config"

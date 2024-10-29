@@ -12,7 +12,10 @@ x-proxyconf:
 
 openapi: 3.0.3
 info:
-  title: ProxyConf Example with API Key in Query Parameter
+  title: API Key in Query Parameter
+  summary: Downstream Authentication
+  description: |
+    Authentication using an API key query parameter can be easily configured using the [Authentication with Header or Query Parameter or Header](../config/DownstreamAuth.md/#header-or-query-parameter) configuration.
   version: 0.1.0
 servers:
   - url: http://127.0.0.1:4040/echo
@@ -21,7 +24,7 @@ paths:
     get:
       parameters:
         - name: my-api-key
-          in: header
+          in: query
           schema:
             type: string
       responses:

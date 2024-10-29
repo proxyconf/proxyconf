@@ -28,6 +28,7 @@ defmodule ProxyConf.ConfigCache do
       DeepMerge.continue_deep_merge()
   end
 
+  @external_resource "priv/schemas/oas3_0.json"
   @oas3_0_schema File.read!("priv/schemas/oas3_0.json")
                  |> Jason.decode!()
                  |> DeepMerge.deep_merge(@ext_schema, @merge_resolver)

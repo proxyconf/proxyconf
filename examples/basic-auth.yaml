@@ -11,7 +11,10 @@ x-proxyconf:
 
 openapi: 3.0.3
 info:
-  title: ProxyConf Example with Basic Auth
+  title: Basic Authentication
+  summary: Downstream Authentication
+  description: |
+    Authentication using HTTP Basic Authentication can be easily configured using the [Basic Authentication](../config/DownstreamAuth.md/#basic-authentication) configuration.
   version: 0.1.0
 servers:
   - url: http://127.0.0.1:4040/echo

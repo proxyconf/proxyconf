@@ -1,0 +1,79 @@
+/* Light theme */
+div.hurl .comment {
+    color: #757575;
+}
+
+div.hurl .method {
+    color: #3f51b5; /* Indigo */
+    font-weight: bold;
+}
+
+div.hurl .url {
+    color: #1976d2; /* Blue */
+}
+
+div.hurl .version {
+    color: #424242;
+}
+
+div.hurl .number, div.hurl .boolean {
+    color: #0d47a1; /* Dark Blue */
+}
+
+div.hurl .section-header {
+    color: #7b1fa2; /* Purple */
+    font-weight: bold;
+}
+
+div.hurl .query-type {
+    color: #00796b; /* Teal */
+}
+
+div.hurl .filter-type, div.hurl .not, div.hurl .predicate-type {
+    color: #1565c0; /* Blue */
+}
+
+div.hurl .string, div.hurl .multiline, div.hurl .name, div.hurl .json, div.hurl .xml, div.hurl .base64, div.hurl .hex, div.hurl .filename, div.hurl .cookie-value, div.hurl .regex {
+    color: #2e7d32; /* Green */
+}
+
+/* Dark theme */
+@media (prefers-color-scheme: dark) {
+
+    div.hurl .comment {
+        color: #78909c;
+    }
+
+    div.hurl .method {
+        color: #7986cb; /* Light Indigo */
+    }
+
+    div.hurl .url {
+        color: #4fc3f7; /* Light Blue */
+    }
+
+    div.hurl .version {
+        color: #b0bec5;
+    }
+
+    div.hurl .number, div.hurl .boolean {
+        color: #64b5f6; /* Light Blue */
+    }
+
+    div.hurl .section-header {
+        color: #ba68c8; /* Light Purple */
+    }
+
+    div.hurl .query-type {
+        color: #4db6ac; /* Light Teal */
+    }
+
+    div.hurl .filter-type, div.hurl .not, div.hurl .predicate-type {
+        color: #90caf9; /* Very Light Blue */
+    }
+
+    div.hurl .string, div.hurl .multiline, div.hurl .name, div.hurl .json, div.hurl .xml, div.hurl .base64, div.hurl .hex, div.hurl .filename, div.hurl .cookie-value, div.hurl .regex {
+        color: #81c784; /* Light Green */
+    }
+}
+

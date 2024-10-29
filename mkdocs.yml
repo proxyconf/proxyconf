@@ -16,6 +16,9 @@ markdown_extensions:
 nav:
   - index.md
   - Getting Started: get_started/index.md
+  - Examples:
+    - Downstream Authentication: examples/downstream-authentication.md
+    - Misc: examples/misc.md
   - Configuration Reference:
     - Environment Variables: config/environment.md
     - OpenAPI Extension: config/config.md
