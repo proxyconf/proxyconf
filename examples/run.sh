@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
 
+
+if [[ -z "${EXUNIT_RUNNER}" ]]; then
+    echo "!!!!!!!!!!!!!! run.sh must be executed via 'mix test test/hurl_test.exs'"
+    exit 1
+fi
+
 set -eu
 
 wait_for_envoy () {
@@ -14,7 +20,6 @@ envoy -c $BASEDIR/envoy.server.yaml &
 # poll the admin ui address
 wait_for_envoy "http://localhost:9901" 60
 
-# hurl $BASEDIR/*.hurl --cacert /tmp/proxyconf/ca-cert.pem
 
 # reusing the client certs that were bootstrapped for envoy
-hurl $BASEDIR/mtls/*.hurl --file-root $BASEDIR --cacert /tmp/proxyconf/ca-cert.pem --cert /tmp/proxyconf/client.crt --key /tmp/proxyconf/client.key
+hurl $BASEDIR/*.hurl --file-root $BASEDIR --cacert /tmp/proxyconf/ca-cert.pem

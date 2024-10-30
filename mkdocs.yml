@@ -18,6 +18,7 @@ nav:
   - Getting Started: get_started/index.md
   - Examples:
     - Downstream Authentication: examples/downstream-authentication.md
+    - Upstream Authentication: examples/upstream-authentication.md
     - Misc: examples/misc.md
   - Configuration Reference:
     - Environment Variables: config/environment.md

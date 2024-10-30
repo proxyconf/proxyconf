@@ -1,5 +1,3 @@
 Application.load(:proxyconf)
 ExUnit.start()
-Application.ensure_all_started(:bypass)
-{:ok, _} = Finch.start_link(name: ProxyConfFinch)
 Application.ensure_all_started(:proxyconf)

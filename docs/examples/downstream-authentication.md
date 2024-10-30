@@ -5,7 +5,7 @@
 Authentication using an API key query parameter can be easily configured using the [Authentication with Header or Query Parameter or Header](../config/DownstreamAuth.md/#header-or-query-parameter) configuration.
 
 
-```yaml title="OpenAPI Specification: examples/api-key-in-query.yaml"
+```yaml title="OpenAPI Specification"
 info:
   title: API Key in Query Parameter
 openapi: 3.0.3
@@ -62,7 +62,7 @@ x-proxyconf:
 Authentication using an API key request header can be easily configured using the [Authentication with Header or Query Parameter or Header](../config/DownstreamAuth.md/#header-or-query-parameter) configuration.
 
 
-```yaml title="OpenAPI Specification: examples/api-key.yaml"
+```yaml title="OpenAPI Specification"
 info:
   title: API Key in Request Header
 openapi: 3.0.3
@@ -121,7 +121,7 @@ x-proxyconf:
 Authentication using HTTP Basic Authentication can be easily configured using the [Basic Authentication](../config/DownstreamAuth.md/#basic-authentication) configuration.
 
 
-```yaml title="OpenAPI Specification: examples/basic-auth.yaml"
+```yaml title="OpenAPI Specification"
 info:
   title: Basic Authentication
 openapi: 3.0.3
@@ -184,7 +184,7 @@ x-proxyconf:
 Opting out of downstream authentication by setting the [Disabled Flag](../config/DownstreamAuth.md/#disabled).
 
 
-```yaml title="OpenAPI Specification: examples/disabled.yaml"
+```yaml title="OpenAPI Specification"
 info:
   title: Disabled
 openapi: 3.0.3
@@ -221,7 +221,7 @@ x-proxyconf:
 Authentication using JWT can be easily configured using the [Authentication with JWT](../config/DownstreamAuth.md/#json-web-tokens-jwt) configuration.
 
 
-```yaml title="OpenAPI Specification: examples/jwt.yaml"
+```yaml title="OpenAPI Specification"
 info:
   title: JSON Web Tokens (JWT)
 openapi: 3.0.3
@@ -296,7 +296,7 @@ x-proxyconf:
 Authenticate using TLS client certificates (mTLS).
 
 
-```yaml title="OpenAPI Specification: examples/mtls.yaml"
+```yaml title="OpenAPI Specification"
 info:
   title: Mutual TLS (mTLS)
 openapi: 3.0.3
@@ -307,7 +307,7 @@ paths:
         '200':
           description: OK
 servers:
-  - url: http://127.0.0.14040/echo
+  - url: http://127.0.0.1:4040/echo
 x-proxyconf:
   listener:
     address: 127.0.0.1
@@ -317,7 +317,7 @@ x-proxyconf:
       downstream:
         clients:
           test_client:
-            - ProxyConf client
+            - exunit-good
         trusted-ca: /tmp/proxyconf/ca-cert.pem
         type: mtls
   url: https://localhost:44444/mtls
@@ -329,14 +329,21 @@ x-proxyconf:
 <span class="line">file,<span class="filename">mtls.yaml</span>;</span>
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
-<span class="line"><span class="method">POST</span> <span class="url">http://localhost:4040/upload/mtls-bad.yaml</span></span>
-<span class="line">file,<span class="filename">mtls-bad.yaml</span>;</span>
-</span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
+<span class="line"></span><span class="comment"># HTTP Request with an invalid client certificate</span>
+<span class="line"><span class="method">GET</span> <span class="url">https://localhost:44444/mtls/test</span></span>
+<span class="line"><span class="section-header">[Options]</span></span>
+<span class="line"><span class="string">cert</span>: <span class="filename">/tmp/proxyconf/exunit-bad.crt</span></span>
+<span class="line"><span class="string">key</span>: <span class="filename">/tmp/proxyconf/exunit-bad.key</span></span>
+</span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">403</span></span>
+<span class="line"><span class="section-header">[Asserts]</span></span>
+<span class="line"><span class="query-type">body</span> <span class="predicate-type">contains</span> <span class="string">"RBAC: access denied"</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
-<span class="line"><span class="method">GET</span> <span class="url">http://localhost:44444/mtls/test</span></span>
+<span class="line"></span><span class="comment"># HTTP Request with a valid client certificate</span>
+<span class="line"><span class="method">GET</span> <span class="url">https://localhost:44444/mtls/test</span></span>
+<span class="line"><span class="section-header">[Options]</span></span>
+<span class="line"><span class="string">cert</span>: <span class="filename">/tmp/proxyconf/exunit-good.crt</span></span>
+<span class="line"><span class="string">key</span>: <span class="filename">/tmp/proxyconf/exunit-good.key</span></span>
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
-</span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
-<span class="line"><span class="method">GET</span> <span class="url">http://localhost:44444/mtls-bad/test</span></span>
-</span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">443</span></span>
-</span></span></code></pre>
+</span></span><span class="line"></span>
+</code></pre>
 </div>

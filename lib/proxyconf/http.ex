@@ -43,7 +43,24 @@ defmodule ProxyConf.Http do
     case conn.request_path do
       "/echo/" <> _ ->
         {:ok, data, conn} = read_body(conn)
-        send_resp(conn, 200, data)
+
+        conn =
+          fetch_query_params(conn)
+
+        headers = conn.req_headers
+        query_params = conn.query_params
+
+        resp =
+          %{
+            headers: Map.new(headers),
+            query_params: Map.new(query_params),
+            body: data,
+            method: conn.method
+          }
+          |> Jason.encode!()
+
+        put_resp_header(conn, "Content-Type", "application/json")
+        |> send_resp(200, resp)
 
       _ ->
         send_resp(conn, 404, "Not Found")

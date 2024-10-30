@@ -5,7 +5,7 @@
 Downstream TLS is implicitely configured by providing a `https` URL in the `x-proxyconf.url` configuration. The server certificate used for the listener is selected by matching the `x-proxyconf.url` hostname with the TLS Common Name (CN) or TLS Subject Alternative Names (SAN) found in the TLS certificates available in [PROXYCONF_SERVER_DOWNSTREAM_TLS_PATH](../config/environment.md/#proxyconf_server_downstream_tls_path).
 
 
-```yaml title="OpenAPI Specification: examples/downstream-tls.yaml"
+```yaml title="OpenAPI Specification"
 info:
   title: Downstream TLS
 openapi: 3.0.3

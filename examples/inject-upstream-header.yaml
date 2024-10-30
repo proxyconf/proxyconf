@@ -1,0 +1,27 @@
+x-proxyconf:
+  url: http://localhost:8080/inject-upstream-header
+  security:
+    auth:
+      downstream: disabled
+      upstream:
+        type: header
+        overwrite: false
+        name: "upstream-api-key"
+        value: "upstream-secret"
+
+openapi: 3.0.3
+info:
+  title: Inject Upstream Header
+  summary: Upstream Authentication
+  description: |
+    Inject Upstream Header. This is useful if e.g. a static api key must provided that is not available by the client. Upstream Authentication can be easily configured using the [Upstream Authentication](../config/UpstreamAuth.md) configuration.
+  version: 0.1.0
+servers:
+  - url: http://127.0.0.1:4040/echo
+paths:
+  /test:
+    get:
+      responses:
+        '200':
+          description: "OK"
+

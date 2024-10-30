@@ -9,13 +9,11 @@ defmodule ProxyConf.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
-      elixirc_paths: elixirc_paths(Mix.env()),
       test_coverage: [
         ignore_modules: [
           Jason.Encoder.URI,
           Mix.Tasks.GenMarkdown,
-          Inspect.ProxyConf.MapTemplate,
-          ~r/\.TestSupport\./
+          Inspect.ProxyConf.MapTemplate
         ]
       ]
     ]
@@ -46,9 +44,7 @@ defmodule ProxyConf.MixProject do
       {:x509, "~> 0.8.9"},
       {:ymlr, "~> 5.1", only: [:test, :dev]},
       {:gen_json_schema, git: "https://github.com/dergraf/gen_json_schema.git"},
-      {:credo, "~> 1.7", only: [:test, :dev]},
-      {:finch, "~> 0.19.0", only: :test},
-      {:bypass, "~> 2.1", only: :test}
+      {:credo, "~> 1.7", only: [:test, :dev]}
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"}
     ]
   end
@@ -58,7 +54,4 @@ defmodule ProxyConf.MixProject do
       test: "test --no-start"
     ]
   end
-
-  defp elixirc_paths(:test), do: ["lib", "test/support"]
-  defp elixirc_paths(_), do: ["lib"]
 end
