@@ -53,7 +53,7 @@ theme:
     code: Fira Code
   palette:
     scheme: slate
-    primary: blue grey
+    primary: black
     accent: deep orange
 extra_css:
   - stylesheets/extra.css
