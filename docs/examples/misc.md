@@ -1,4 +1,71 @@
 # Misc
+## Cross-Origin Resource Sharing
+
+
+Configuring Cross-Origin Resource Sharing (CORS) for this API.
+
+
+```yaml title="OpenAPI Specification"
+info:
+  title: Cross-Origin Resource Sharing
+openapi: 3.0.3
+paths:
+  /test:
+    get:
+      responses:
+        '200':
+          description: OK
+servers:
+  - url: http://127.0.0.1:4040/echo
+x-proxyconf:
+  cors:
+    access-control-allow-methods:
+      - GET
+      - POST
+    access-control-allow-origins:
+      - http://*.foo.com
+    access-control-max-age: 600
+  security:
+    auth:
+      downstream:
+        clients:
+          testUser:
+            - 9a618248b64db62d15b300a07b00580b
+        name: my-api-key
+        type: header
+  url: http://localhost:8080/cors
+
+```
+
+<h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
+<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:4040/upload/cors.yaml</span></span>
+<span class="line">file,<span class="filename">cors.yaml</span>;</span>
+</span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
+</span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
+<span class="line"></span><span class="comment"># CORS Preflight Requests are unauthenticated</span>
+<span class="line"><span class="method">OPTIONS</span> <span class="url">http://localhost:8080/cors/test</span></span>
+<span class="line"><span class="string">Origin</span>: <span class="string">http://cors.foo.com</span></span>
+<span class="line"><span class="string">Access-Control-Request-Method</span>: <span class="string">Get</span></span>
+</span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
+<span class="line"><span class="string">Access-Control-Allow-Origin</span>: <span class="string">http://cors.foo.com</span></span>
+<span class="line"><span class="string">Access-Control-Allow-Methods</span>: <span class="string">GET,POST</span></span>
+<span class="line"><span class="string">Access-Control-Max-Age</span>: <span class="string">600</span></span>
+<span class="line"><span class="section-header">[Asserts]</span></span>
+<span class="line"><span class="query-type">bytes</span> <span class="filter-type">count</span> <span class="predicate-type">==</span> <span class="number">0</span></span>
+</span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
+<span class="line"></span><span class="comment"># Accessing the actual resource must be authenticatied - negative test</span>
+<span class="line"><span class="method">GET</span> <span class="url">http://localhost:8080/cors/test</span></span>
+</span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">403</span></span>
+<span class="line"><span class="section-header">[Asserts]</span></span>
+<span class="line"><span class="query-type">body</span> <span class="predicate-type">contains</span> <span class="string">"RBAC: access denied"</span></span>
+</span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
+<span class="line"></span><span class="comment"># Accessing the actual resource must be authenticatied - positive test</span>
+<span class="line"><span class="method">GET</span> <span class="url">http://localhost:8080/cors/test</span></span>
+<span class="line"><span class="string">my-api-key</span>: <span class="string">supersecret</span></span>
+</span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
+</span></span></code></pre>
+</div>
+
 ## Downstream TLS
 
 

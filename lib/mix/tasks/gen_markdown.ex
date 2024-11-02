@@ -149,10 +149,33 @@ defmodule Mix.Tasks.GenMarkdown do
     ]
   end
 
+  defp to_md_(
+         current_prop_name,
+         %{"title" => _, "$ref" => "#/definitions/" <> local_def} = schema,
+         level,
+         defs,
+         acc
+       ) do
+    def = Map.fetch!(defs, local_def)
+
+    acc = [
+      md_title_and_description(
+        current_prop_name,
+        schema,
+        level,
+        defs
+      )
+      | acc
+    ]
+
+    to_md_(current_prop_name, def, level + 1, defs, acc)
+  end
+
   defp to_md_(current_prop_name, %{"$ref" => "#/definitions/" <> name} = schema, level, defs, acc) do
     to_md_(
       current_prop_name,
-      Map.fetch!(defs, name) |> Map.merge(Map.take(schema, ["x-option-for"])),
+      Map.fetch!(defs, name)
+      |> Map.merge(Map.take(schema, ["x-option-for"])),
       level,
       defs,
       acc
@@ -288,6 +311,10 @@ defmodule Mix.Tasks.GenMarkdown do
             end
 
           ["| **Array Item** | #{md_table("", item_type, defs)} |\n"]
+
+        {"$ref", "#/definitions/" <> ref} ->
+          schema = Map.fetch!(defs, ref)
+          ["| **$ref** | #{md_link(schema, defs)} |\n"]
 
         {k, v} when not is_map(v) ->
           ["| **#{k}** | #{md_table("", v, defs)} |\n"]

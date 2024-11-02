@@ -3,6 +3,15 @@
 
 | Property | `UpstreamAuth` *`(object)`* |
  | --- | --- |
+| **$ref** | [Upstream Authentication](#upstream-authentication) |
+
+Configure upstream authentication options.
+
+
+## Upstream Authentication
+
+| Property | `UpstreamAuth` *`(object)`* |
+ | --- | --- |
 | **additionalProperties** | `false` |
 | **properties** | [`name`](#header-name), [`overwrite`](#overwrite-header), [`type`](#authentication-type), [`value`](#header-value) |
 | **optional** | [`overwrite`](#overwrite-header) |
@@ -10,7 +19,7 @@
 Configure upstream authentication options.
 
 
-## Header Name
+### Header Name
 
 | Property | `name` *`(string)`* |
  | --- | --- |
@@ -18,7 +27,7 @@ Configure upstream authentication options.
 The header name where the credentials are injected.
 
 
-## Overwrite Header
+### Overwrite Header
 
 | Property | `overwrite` *`(boolean)`* |
  | --- | --- |
@@ -27,13 +36,13 @@ The header name where the credentials are injected.
 If set to `true` an existing header is overwritten.
 
 
-## Authentication Type
+### Authentication Type
 
 <table><tr><th>Constant</th><th><code>header <i>(string)</i></code></th></tr></table>
 Constant `header` identifiying that credentials should be injected in a header for authenticating upstream HTTP requests.
 
 
-## Header Value
+### Header Value
 
 | Property | `value` *`(string)`* |
  | --- | --- |

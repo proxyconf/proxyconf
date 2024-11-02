@@ -34,8 +34,8 @@ x-proxyconf:
 | Property | `x-proxyconf` *`(object)`* |
  | --- | --- |
 | **additionalProperties** | `false` |
-| **properties** | [`api-id`](#api-identifier), [`cluster`](#cluster-identifier), [`listener`](#listener-configuration), [`routing`](#routing), [`security`](#security-configuration), [`url`](#api-url) |
-| **optional** | [`api-id`](#api-identifier), [`cluster`](#cluster-identifier), [`listener`](#listener-configuration), [`routing`](#routing), [`url`](#api-url) |
+| **properties** | [`api-id`](#api-identifier), [`cluster`](#cluster-identifier), [`cors`](#cors-policy), [`listener`](#listener-configuration), [`routing`](#routing), [`security`](#security-configuration), [`url`](#api-url) |
+| **optional** | [`api-id`](#api-identifier), [`cluster`](#cluster-identifier), [`cors`](#cors-policy), [`listener`](#listener-configuration), [`routing`](#routing), [`url`](#api-url) |
 
 The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-specific configurations, enabling ProxyConf to generate the necessary resources to integrate with [Envoy Proxy](https://www.envoyproxy.io/).
 
@@ -58,11 +58,20 @@ A unique identifier for the API, used for API-specific logging, monitoring, and 
 The cluster identifier groups APIs for Envoy. This cluster name should also be reflected in the static `bootstrap` configuration of Envoy, ensuring that APIs are properly associated with the correct Envoy instances.
 
 
+### CORS Policy
+
+| Property | `cors` *`(object)`* |
+ | --- | --- |
+| **$ref** | [CORS Policy](#cors-policy) |
+
+Defines the Cross-Origin Resource Sharing (CORS) policy configured for this API.
+
+
 ### Listener Configuration
 
 | Property | `listener` *`(object)`* |
  | --- | --- |
-| **$ref** | `#/definitions/Elixir.ProxyConf.ConfigGenerator.Listener_t` |
+| **$ref** | [Listener Configuration](#listener-configuration) |
 
 The `listener` object configures the Envoy listener used to serve this API. Depending on the specified `url` property a TLS context is configured.
 
@@ -139,7 +148,7 @@ The auth object handles authentication for both downstream and upstream requests
 
 | Property | `downstream` *`(choice)`* |
  | --- | --- |
-| **$ref** | `#/definitions/Elixir.ProxyConf.ConfigGenerator.DownstreamAuth_t` |
+| **$ref** | [Downstream Authentication](#downstream-authentication) |
 
 The `downstream` object configures the authentication mechanism applied to downstream HTTP requests. Defining an authentication mechanism is required, but can be opted-out by explicitely configuring `disabled`.
 
@@ -148,7 +157,7 @@ The `downstream` object configures the authentication mechanism applied to downs
 
 | Property | `upstream` *`(object)`* |
  | --- | --- |
-| **$ref** | `#/definitions/Elixir.ProxyConf.ConfigGenerator.UpstreamAuth_t` |
+| **$ref** | [Upstream Authentication](#upstream-authentication) |
 
 Configure upstream authentication options.
 

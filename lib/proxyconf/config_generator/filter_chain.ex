@@ -39,6 +39,12 @@ defmodule ProxyConf.ConfigGenerator.FilterChain do
             [
               :http_filters,
               %{
+                "name" => "envoy.filters.http.cors",
+                "typed_config" => %{
+                  "@type" => "type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors"
+                }
+              },
+              %{
                 "name" => "envoy.filters.http.router",
                 "typed_config" => %{
                   "@type" => "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router",

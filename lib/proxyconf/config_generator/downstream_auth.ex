@@ -21,7 +21,8 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
     :clients,
     :allowed_source_ips,
     :jwt_provider_config,
-    :trusted_ca
+    :trusted_ca,
+    :cors
   ])
 
   @typedoc """
@@ -197,7 +198,8 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
         downstream_auth
         | api_id: spec.api_id,
           api_url: spec.api_url,
-          allowed_source_ips: spec.allowed_source_ips
+          allowed_source_ips: spec.allowed_source_ips,
+          cors: spec.cors
       }
       |> wrap_gen()
 
@@ -327,6 +329,27 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
   end
 
   defp to_envoy_rbac_filter(configs) do
+    cors_policies =
+      Enum.reject(configs, &is_nil(&1.cors))
+      |> Map.new(fn config ->
+        {config.api_id <> "-CORS",
+         %{
+           "permissions" => [
+             %{
+               "and_rules" => %{
+                 "rules" => [
+                   %{
+                     "header" => %{"name" => ":method", "string_match" => %{"exact" => "OPTIONS"}}
+                   },
+                   %{"url_path" => %{"path" => %{"prefix" => config.api_url.path}}}
+                 ]
+               }
+             }
+           ],
+           "principals" => rbac_source_ip_principals(config) |> ensure_no_empty_principals()
+         }}
+      end)
+
     %{
       "name" => "envoy.filters.http.rbac",
       "typed_config" => %{
@@ -361,6 +384,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
                  ]
                }}
             end)
+            |> Map.merge(cors_policies)
         }
       }
     }

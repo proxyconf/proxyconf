@@ -4,6 +4,7 @@ defmodule ProxyConf.ConfigGenerator.Route do
   """
   alias ProxyConf.Spec
   alias ProxyConf.ConfigGenerator.Cluster
+  alias ProxyConf.ConfigGenerator.Cors
   alias ProxyConf.ConfigGenerator.DownstreamAuth
 
   def from_spec_gen(spec) do
@@ -21,14 +22,29 @@ defmodule ProxyConf.ConfigGenerator.Route do
         path_prefix,
         %Spec{
           type: :oas3,
+          cors: cors,
           spec: %{"paths" => paths_object, "servers" => servers}
         } = spec
       ) do
     Enum.flat_map_reduce(paths_object, [], fn
       {path, path_item_object}, clusters_acc ->
+        path_level_cors_policy =
+          Cors.config_from_json(Map.get(path_item_object, "x-proxyconf-cors"))
+
+        cors =
+          Cors.merge_policy(cors, path_level_cors_policy)
+
         inherited_config =
           Map.merge(%{"servers" => servers}, path_item_object)
           |> Map.take(["parameters", "servers"])
+
+        # path cors local response
+        path_item_object =
+          if is_nil(cors) do
+            path_item_object
+          else
+            Map.put_new(path_item_object, "options", %{})
+          end
 
         Enum.filter(path_item_object, fn {k, _} -> k in @operations end)
         |> Enum.map_reduce(clusters_acc, fn {operation, operation_object}, clusters_acc ->
@@ -37,6 +53,7 @@ defmodule ProxyConf.ConfigGenerator.Route do
             path,
             operation,
             DeepMerge.deep_merge(inherited_config, operation_object),
+            cors,
             clusters_acc,
             spec
           )
@@ -62,6 +79,7 @@ defmodule ProxyConf.ConfigGenerator.Route do
          path,
          operation,
          path_item_object,
+         cors,
          clusters,
          %Spec{} = spec
        ) do
@@ -227,6 +245,8 @@ defmodule ProxyConf.ConfigGenerator.Route do
              "envoy.filters.http.lua" => DownstreamAuth.to_filter_metadata(spec)
            }
          },
+         "typed_per_filter_config" =>
+           typed_per_filter_config(%{"envoy.filters.http.cors" => cors}),
          "route" =>
            %{
              "prefix_rewrite" => Path.join(server_path, path),
@@ -270,6 +290,8 @@ defmodule ProxyConf.ConfigGenerator.Route do
              "envoy.filters.http.lua" => DownstreamAuth.to_filter_metadata(spec)
            }
          },
+         "typed_per_filter_config" =>
+           typed_per_filter_config(%{"envoy.filters.http.cors" => cors}),
          "route" =>
            %{
              "auto_host_rewrite" => true,
@@ -296,5 +318,15 @@ defmodule ProxyConf.ConfigGenerator.Route do
            |> Map.merge(cluster_route_config)
        }, clusters}
     end
+  end
+
+  defp typed_per_filter_config(configs) do
+    Enum.reduce(configs, %{}, fn {config_key, config}, acc ->
+      if config do
+        Map.put(acc, config_key, config)
+      else
+        acc
+      end
+    end)
   end
 end

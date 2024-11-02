@@ -4,6 +4,7 @@ defmodule ProxyConf.Spec do
     containing the ProxyConf specific extensions.
   """
   require Logger
+  alias ProxyConf.ConfigGenerator.Cors
   alias ProxyConf.ConfigGenerator.DownstreamAuth
   alias ProxyConf.ConfigGenerator.UpstreamAuth
 
@@ -19,6 +20,7 @@ defmodule ProxyConf.Spec do
     :downstream_auth,
     :upstream_auth,
     :routing,
+    :cors,
     :spec,
     type: :oas3
   ])
@@ -132,7 +134,8 @@ defmodule ProxyConf.Spec do
           listener: ProxyConf.ConfigGenerator.Listener.t(),
           url: url(),
           routing: routing(),
-          security: security()
+          security: security(),
+          cors: ProxyConf.ConfigGenerator.Cors.t()
         }
 
   @typedoc """
@@ -182,7 +185,8 @@ defmodule ProxyConf.Spec do
         "fail-fast-on-missing-query-parameter" => fail_fast_on_missing_query_parameter,
         "fail-fast-on-missing-header-parameter" => fail_fast_on_missing_header_parameter,
         "fail-fast-on-wrong-request-media_type" => fail_fast_on_wrong_request_media_type
-      }
+      },
+      "cors" => cors
     } = config_from_spec
 
     {:ok,
@@ -202,6 +206,7 @@ defmodule ProxyConf.Spec do
          fail_fast_on_missing_header_parameter: fail_fast_on_missing_header_parameter,
          fail_fast_on_wrong_request_media_type: fail_fast_on_wrong_request_media_type
        },
+       cors: Cors.config_from_json(cors),
        spec: spec
      }}
   end
@@ -233,7 +238,8 @@ defmodule ProxyConf.Spec do
         "fail-fast-on-missing-query-parameter" => true,
         "fail-fast-on-missing-header-parameter" => true,
         "fail-fast-on-wrong-request-media_type" => true
-      }
+      },
+      "cors" => nil
     }
   end
 

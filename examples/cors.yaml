@@ -1,0 +1,31 @@
+x-proxyconf:
+  url: http://localhost:8080/cors
+  cors:
+    access-control-allow-origins: ["http://*.foo.com"]
+    access-control-allow-methods: ["GET", "POST"]
+    access-control-max-age: 600
+  security:
+    auth: 
+      downstream:
+        type: header
+        name: my-api-key
+        clients:
+          testUser:
+            # md5sum of supersecret
+            - 9a618248b64db62d15b300a07b00580b
+
+openapi: 3.0.3
+info:
+  title: Cross-Origin Resource Sharing
+  summary: Misc
+  description: |
+    Configuring Cross-Origin Resource Sharing (CORS) for this API.
+  version: 0.1.0
+servers:
+  - url: http://127.0.0.1:4040/echo
+paths:
+  /test:
+    get:
+      responses:
+        '200':
+          description: "OK"

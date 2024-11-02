@@ -26,6 +26,7 @@ nav:
     - Listener Configuration: config/Listener.md
     - Downstream Authentication: config/DownstreamAuth.md
     - Upstream Authentication: config/UpstreamAuth.md
+    - Cross-Origin Resource Sharing: config/Cors.md
 #  - Home: index.md
 #  - Get Started: get_started/index.md
 #  - Configuration: configuration/index.md
