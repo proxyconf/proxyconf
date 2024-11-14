@@ -5,15 +5,18 @@
     nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
     nix2container.url = "github:nlewo/nix2container";
     flake-utils.url = "github:numtide/flake-utils";
+    devenv.url = "github:cachix/devenv";
 
   };
 
   outputs =
-    inputs@{ self
+    { self
     , nixpkgs
     , nix2container
     , flake-utils
-    }:
+    , devenv
+    , ...
+    } @ inputs:
     flake-utils.lib.eachDefaultSystem (system:
     let
       inherit (pkgs.lib) optional optionals;
@@ -67,7 +70,57 @@
         mix test
       '';
 
-      devShell = pkgs.mkShell {
+
+
+        devenvShell = devenv.lib.mkShell {
+          inherit inputs pkgs;
+          modules = [
+            ({ pkgs, config, ...}: {
+              packages = [
+                pkgs.elixir
+                pkgs.elixir_ls
+                pkgs.envoy
+                pkgs.hurl
+                pkgs.docker-compose
+                pkgs.python312Packages.mkdocs-material
+                pkgs.python312Packages.pillow
+                pkgs.python312Packages.cairosvg
+                pkgs.python312Packages.mkdocs-rss-plugin
+                pkgs.python312Packages.filelock
+                run_ci
+              ] ++ optional pkgs.stdenv.isLinux pkgs.inotify-tools
+                ++ optional pkgs.stdenv.isDarwin pkgs.terminal-notifier;
+
+              services.postgres = {
+                enable = true;
+                package = pkgs.postgresql_16;
+                initialDatabases = [{ 
+                  name = "proxyconf_dev"; 
+                  pass = "postgres"; 
+                  user = "postgres";
+                }
+                { 
+                  name = "proxyconf_test"; 
+                  pass = "postgres"; 
+                  user = "postgres";
+                }
+                ];
+                initialScript = ''
+                  CREATE ROLE postgres SUPERUSER;
+                '';
+              };
+
+              enterShell = ''
+                echo "hello from devenv shell"
+
+              '';
+            })
+          ];
+
+        };
+
+
+        devShell = pkgs.mkShell {
         buildInputs = [
           pkgs.elixir
           pkgs.elixir_ls
@@ -121,9 +174,12 @@
         default = pkg;
         image = image;
         run_ci = run_ci;
+        devenv-up = devenvShell.config.procfileScript;
+        devenv-test = devenvShell.config.test;
       };
       devShells = {
-        default = devShell;
+        default = devenvShell;
+          #default = devShell;
       };
     }
     );

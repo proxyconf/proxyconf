@@ -1,4 +1,5 @@
-POST http://localhost:4040/upload/api-key.yaml
+POST http://localhost:4000/api/upload/api-key
+Content-Type: application/yaml
 file,api-key.yaml;
 HTTP 200
 

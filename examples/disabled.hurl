@@ -1,5 +1,6 @@
 # see routing-misc.hurl for more examples that use "disabled" auth
-POST http://localhost:4040/upload/disabled.yaml
+POST http://localhost:4000/api/upload/disabled
+Content-Type: application/yaml
 file,disabled.yaml;
 HTTP 200
 

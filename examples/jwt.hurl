@@ -1,4 +1,5 @@
-POST http://localhost:4040/upload/jwt.yaml
+POST http://localhost:4000/api/upload/jwt
+Content-Type: application/yaml
 file,jwt.yaml;
 HTTP 200
 

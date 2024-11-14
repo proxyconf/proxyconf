@@ -84,11 +84,10 @@ defmodule ProxyConf.ConfigGenerator do
           Logger.warning(
             cluster: cluster_id,
             api_id: spec.api_id,
-            filename: spec.filename,
             message: "Skipping OpenAPI spec due to: #{Exception.message(e)}"
           )
 
-          %__MODULE__{config | errors: [spec.filename | config.errors]}
+          %__MODULE__{config | errors: [spec.api_id | config.errors]}
       end
     end)
     |> generate()

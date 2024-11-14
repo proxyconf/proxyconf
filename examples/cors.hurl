@@ -1,4 +1,5 @@
-POST http://localhost:4040/upload/cors.yaml
+POST http://localhost:4000/api/upload/cors
+Content-Type: application/yaml
 file,cors.yaml;
 HTTP 200
 

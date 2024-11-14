@@ -1,4 +1,5 @@
-POST http://localhost:4040/upload/routing-misc.yaml
+POST http://localhost:4000/api/upload/routing-misc
+Content-Type: application/yaml
 file,routing-misc.yaml;
 HTTP 200
 
