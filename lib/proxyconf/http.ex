@@ -8,24 +8,6 @@ defmodule ProxyConf.Http do
   plug(:match)
   plug(:dispatch)
 
-  post "/upload/:spec_name" do
-    {:ok, data, conn} = read_body(conn)
-
-    spec =
-      case Path.extname(spec_name) do
-        ".json" -> Jason.decode!(data)
-        ".yaml" -> YamlElixir.read_from_string!(data)
-      end
-
-    case ConfigCache.load_external_spec(spec_name, spec) do
-      :ok ->
-        send_resp(conn, 200, "OK")
-
-      {:error, _} ->
-        send_resp(conn, 400, "Bad Spec")
-    end
-  end
-
   get "/local-jwt-provider/jwks.json" do
     jwks = LocalJwtProvider.jwks()
 

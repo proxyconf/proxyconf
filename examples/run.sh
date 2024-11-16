@@ -22,4 +22,5 @@ wait_for_envoy "http://localhost:9901" 60
 
 
 # reusing the client certs that were bootstrapped for envoy
-hurl $BASEDIR/*.hurl --file-root $BASEDIR --cacert /tmp/proxyconf/ca-cert.pem
+hurl $BASEDIR/*.hurl --file-root $BASEDIR --cacert /tmp/proxyconf/ca-cert.pem \
+    --variable port=4002  # configured in config/test.exs

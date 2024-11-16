@@ -18,7 +18,7 @@ config :proxyconf, ProxyConf.Repo,
 config :proxyconf, ProxyConfWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "dJfSBc9SJvihaGuOREDm2P6UQrST8z4qum6XCnf/i4XIYEPTF7VtfE9q5KrEyg1Q",
-  server: false
+  server: true
 
 # Print only warnings and errors during test
 config :logger, level: :warning

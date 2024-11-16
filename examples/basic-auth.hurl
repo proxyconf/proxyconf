@@ -1,4 +1,4 @@
-POST http://localhost:4000/api/upload/basic-auth
+POST http://localhost:{{port}}/api/upload/basic-auth
 Content-Type: application/yaml
 file,basic-auth.yaml;
 HTTP 200

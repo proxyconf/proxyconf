@@ -1,4 +1,4 @@
-POST http://localhost:4000/api/upload/routing-misc
+POST http://localhost:{{port}}/api/upload/routing-misc
 Content-Type: application/yaml
 file,routing-misc.yaml;
 HTTP 200

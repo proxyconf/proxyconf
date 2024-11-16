@@ -10,6 +10,7 @@ defmodule ProxyConf.MixProject do
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       aliases: aliases(),
+      compilers: [:yecc] ++ Mix.compilers(),
       test_coverage: [
         ignore_modules: [
           Jason.Encoder.URI,
@@ -66,6 +67,7 @@ defmodule ProxyConf.MixProject do
       ######################################################
       # ProxyConf Deps
       {:envoy_xds, git: "https://github.com/proxyconf/envoy_xds_ex.git"},
+      {:warpath, "~> 0.6.3"},
       {:json_xema, "~> 0.6.2"},
       {:plug_cowboy, "~> 2.7"},
       {:yaml_elixir, "~> 2.9"},

@@ -37,7 +37,7 @@ defmodule ProxyConf.Db do
     case tx_result do
       {:ok, {cluster_id, events}} ->
         events = Enum.reject(events, fn {event, _api_id} -> event == :unchanged end)
-        ConfigCache.load_events({cluster_id, events})
+        ConfigCache.load_events(cluster_id, events)
 
         :ok
 

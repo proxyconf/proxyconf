@@ -33,6 +33,20 @@ defmodule ProxyConf.ConfigCache do
     end
   end
 
+  def load_events(cluster_id, events) do
+    case GenServer.multi_call(
+           [node() | Node.list()],
+           __MODULE__,
+           {:load_events, cluster_id, events}
+         ) do
+      {_, []} ->
+        wait_until_in_sync(cluster_id)
+
+      _ ->
+        :ok
+    end
+  end
+
   defp wait_until_in_sync(cluster_id) do
     if ProxyConf.Stream.in_sync(cluster_id) do
       :ok
@@ -58,7 +72,7 @@ defmodule ProxyConf.ConfigCache do
     {:noreply, state}
   end
 
-  def handle_cast({:load_events, {cluster_id, events}}, state) do
+  def handle_call({:load_events, cluster_id, events}, _from, state) do
     Enum.each(events, fn {event, api_id} ->
       update_spec_table(cluster_id, api_id, event)
       Logger.info(cluster: cluster_id, api_id: api_id, message: "Spec #{event}")
@@ -70,7 +84,7 @@ defmodule ProxyConf.ConfigCache do
 
     cache_notify_resources(cluster_id, changed_apis)
 
-    {:noreply, state}
+    {:reply, :ok, state}
   end
 
   def handle_call(req, _from, state) do
@@ -134,11 +148,6 @@ defmodule ProxyConf.ConfigCache do
 
   defp validate_spec(filename, spec, data) do
     Spec.from_oas3(filename, spec, data)
-  end
-
-  def load_events(events) do
-    [node() | Node.list()]
-    |> Enum.map(fn n -> GenServer.cast({__MODULE__, n}, {:load_events, events}) end)
   end
 
   defp cache_notify_resources(cluster_id, changed_apis) do

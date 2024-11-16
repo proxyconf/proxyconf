@@ -18,6 +18,8 @@ defmodule ProxyConfWeb.Router do
     pipe_through :api
     post "/upload/:spec_name", ApiController, :upload_spec
     post "/upload_bundle/:cluster_id", ApiController, :upload_bundle
+
+    match :*, "/echo/:echo", ApiController, :echo
   end
 
   scope "/", ProxyConfWeb do

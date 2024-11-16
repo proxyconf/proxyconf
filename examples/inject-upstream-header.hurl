@@ -1,4 +1,4 @@
-POST http://localhost:4000/api/upload/inject-upstream-header
+POST http://localhost:{{port}}/api/upload/inject-upstream-header
 Content-Type: application/yaml
 file,inject-upstream-header.yaml;
 HTTP 200
