@@ -80,6 +80,7 @@
                 pkgs.elixir
                 pkgs.elixir_ls
                 pkgs.envoy
+                pkgs.jq
                 pkgs.hurl
                 pkgs.docker-compose
                 pkgs.python312Packages.mkdocs-material

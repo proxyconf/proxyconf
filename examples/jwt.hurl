@@ -1,5 +1,6 @@
-POST http://localhost:{{port}}/api/upload/jwt?api-port={{port}}
+POST http://localhost:{{port}}/api/upload/jwt?api-port={{port}}&envoy-cluster={{envoy-cluster}}
 Content-Type: application/yaml
+Authorization: Bearer {{admin-access-token}}
 file,jwt.yaml;
 HTTP 200
 
@@ -10,10 +11,14 @@ HTTP 401
 body contains "Jwt is missing"
 
 # fetch invalid token (missing correct audience claim)
-GET http://localhost:4040/local-jwt-provider/access-token
+POST http://localhost:{{port}}/api/access-token
+[QueryStringParams]
+client_id: {{oauth-client-id-other}}
+client_secret: {{oauth-client-secret-other}}
+grant_type: client_credentials
 HTTP 200
 [Captures]
-invalid_access_token: body
+invalid_access_token: jsonpath "$['access_token']"
 
 # Invalid JWT is provided
 GET http://localhost:8080/jwt/test
@@ -23,10 +28,14 @@ HTTP 403
 body contains "Audiences in Jwt are not allowed"
 
 # fetch valid token (including audience specified in downstream auth config)
-GET http://localhost:4040/local-jwt-provider/access-token?aud=hurl-tester
+POST http://localhost:{{port}}/api/access-token
+[QueryStringParams]
+client_id: {{oauth-client-id}}
+client_secret: {{oauth-client-secret}}
+grant_type: client_credentials
 HTTP 200
 [Captures]
-valid_access_token: body
+valid_access_token: jsonpath "$['access_token']"
 
 # Valid JWT is provided
 GET http://localhost:8080/jwt/test

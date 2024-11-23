@@ -12,6 +12,7 @@ defmodule ProxyConf.Application do
       ProxyConf.Repo,
       ProxyConf.LocalCA,
       ProxyConf.LocalJwtProvider,
+      ProxyConf.OAuth.JwtSigner,
       ProxyConf.Cron,
       DynamicSupervisor.child_spec(name: ProxyConf.StreamSupervisor),
       Registry.child_spec(keys: :unique, name: ProxyConf.StreamRegistry),

@@ -1,16 +1,17 @@
 x-proxyconf:
+  cluster: {{envoy-cluster}}
   url: http://localhost:8080/jwt
   security:
     auth:
       downstream:
         type: jwt
         provider-config:
-          issuer: localjwtprovider
+          issuer: proxyconf
           audiences: 
-            - hurl-tester
+            - {{envoy-cluster}}
           remote_jwks:
             http_uri:
-              uri: http://127.0.0.1:{{api-port}}/local-jwt-provider/jwks.json
+              uri: http://127.0.0.1:{{api-port}}/api/jwks.json
               timeout: 1s
             cache_duration:
               seconds: 300

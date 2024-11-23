@@ -1,5 +1,6 @@
-POST http://localhost:{{port}}/api/upload/downstream-tls?api-port={{port}}
+POST http://localhost:{{port}}/api/upload/downstream-tls?api-port={{port}}&envoy-cluster={{envoy-cluster}}
 Content-Type: application/yaml
+Authorization: Bearer {{admin-access-token}}
 file,downstream-tls.yaml;
 HTTP 200
 

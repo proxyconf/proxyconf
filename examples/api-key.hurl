@@ -1,5 +1,6 @@
-POST http://localhost:{{port}}/api/upload/api-key?api-port={{port}}?api-port={{port}}
+POST http://localhost:{{port}}/api/upload/api-key?api-port={{port}}&envoy-cluster={{envoy-cluster}}
 Content-Type: application/yaml
+Authorization: Bearer {{admin-access-token}}
 file,api-key.yaml;
 HTTP 200
 

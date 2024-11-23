@@ -14,12 +14,30 @@ defmodule ProxyConfWeb.Router do
     plug :accepts, ["json", "yaml", "octet-stream"]
   end
 
+  pipeline :authenticated_api do
+    plug :accepts, ["json", "yaml", "octet-stream"]
+    plug ExOauth2Provider.Plug.VerifyHeader, otp_app: :proxyconf, realm: "Bearer"
+    plug ExOauth2Provider.Plug.EnsureAuthenticated
+    plug ExOauth2Provider.Plug.EnsureScopes, scopes: ~w(cluster-admin)
+  end
+
+  scope "/api", ProxyConfWeb do
+    pipe_through :authenticated_api
+    post "/upload/:spec_name", ApiController, :upload_spec
+    post "/upload_bundle", ApiController, :upload_bundle
+    post "/rotate-client-secret", OAuthController, :rotate_cluster_secret
+  end
+
   scope "/api", ProxyConfWeb do
     pipe_through :api
-    post "/upload/:spec_name", ApiController, :upload_spec
-    post "/upload_bundle/:cluster_id", ApiController, :upload_bundle
-
+    post "/create-config/:cluster_name", OAuthController, :create_cluster
+    post "/access-token", OAuthController, :issue_token
+    get "/jwks.json", OAuthController, :jwks
     match :*, "/echo/:echo", ApiController, :echo
+  end
+
+  scope "/" do
+    pipe_through :browser
   end
 
   scope "/", ProxyConfWeb do

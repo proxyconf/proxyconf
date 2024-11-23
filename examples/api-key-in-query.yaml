@@ -1,4 +1,5 @@
 x-proxyconf:
+  cluster: {{envoy-cluster}}
   url: http://localhost:8080/api-key-in-query
   security:
     auth:

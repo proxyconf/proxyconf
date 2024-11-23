@@ -5,22 +5,42 @@ defmodule ProxyConfWeb.ApiController do
   alias ProxyConf.OaiOverlay
 
   def upload_spec(conn, %{"spec_name" => spec_name} = _params) do
+    access_token =
+      ExOauth2Provider.Plug.current_access_token(conn) |> ProxyConf.Repo.preload([:application])
+
+    cluster_id = access_token.application.name
+    conn = fetch_query_params(conn)
+
     with {:ok, data, conn} <- read_all_body(conn),
          [content_type | _] <- get_req_header(conn, "content-type"),
+         qs_params <- Enum.map(conn.query_params, fn {k, v} -> {String.to_charlist(k), v} end),
+         data <- :bbmustache.render(data, qs_params),
          {:ok, spec} <- decode(content_type, data),
-         {:ok, %Spec{} = spec} <- Spec.from_oas3(spec_name, spec, data),
+         {:ok, %Spec{cluster_id: ^cluster_id} = spec} <- Spec.from_oas3(spec_name, spec, data),
          :ok <- Db.create_or_update([spec]) do
       send_resp(conn, 200, "OK")
     else
+      {:ok, %Spec{cluster_id: _invalid_cluster_id}} ->
+        send_resp(conn, 400, "Spec is not part of cluster")
+        |> halt
+
       {:error, reason} ->
         send_resp(conn, 400, "Bad Request: #{reason}")
         |> halt
     end
   end
 
-  def upload_bundle(conn, %{"cluster_id" => cluster_id} = _params) do
+  def upload_bundle(conn, _params) do
+    access_token =
+      ExOauth2Provider.Plug.current_access_token(conn) |> ProxyConf.Repo.preload([:application])
+
+    cluster_id = access_token.application.name
+
+    conn = fetch_query_params(conn)
+
     with {:ok, data, conn} <- read_all_body(conn),
-         {specs, []} <- iterate_zip_contents(data, cluster_id),
+         qs_params <- Enum.map(conn.query_params, fn {k, v} -> {String.to_charlist(k), v} end),
+         {specs, []} <- iterate_zip_contents(data, qs_params, cluster_id),
          :ok <- Db.create_or_update(specs, sync: cluster_id) do
       send_resp(conn, 200, "OK")
     else
@@ -75,7 +95,7 @@ defmodule ProxyConfWeb.ApiController do
     end
   end
 
-  defp iterate_zip_contents(zip_data, cluster_id) do
+  defp iterate_zip_contents(zip_data, query_params, cluster_id) do
     result =
       :zip.foldl(
         fn filename, _fileinfo_fn, filedata_fn, {spec_acc, overlay_acc, error_acc} ->
@@ -83,6 +103,7 @@ defmodule ProxyConfWeb.ApiController do
 
           with true <- ext in [".json", ".yaml"],
                data_raw <- filedata_fn.(),
+               data_raw <- :bbmustache.render(data_raw, query_params),
                {:ok, data} <- decode(ext, data_raw) do
             cond do
               Map.has_key?(data, "openapi") ->

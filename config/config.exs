@@ -23,6 +23,17 @@ config :proxyconf, ProxyConfWeb.Endpoint,
   pubsub_server: ProxyConf.PubSub,
   live_view: [signing_salt: "ge5FWLzc"]
 
+config :proxyconf, ExOauth2Provider,
+  otp_app: :proxyconf,
+  repo: ProxyConf.Repo,
+  resource_owner: ProxyConf.Users.User,
+  access_grant: ProxyConf.OAuth.AccessGrant,
+  access_token: ProxyConf.OAuth.AccessToken,
+  access_token_generator: {ProxyConf.OAuth.AccessToken, :generate},
+  application: ProxyConf.OAuth.Application,
+  grant_flows: ~w(client_credentials),
+  default_scopes: ~w(cluster-admin)
+
 # Configure esbuild (the version is required)
 config :esbuild,
   version: "0.17.11",
