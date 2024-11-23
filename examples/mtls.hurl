@@ -1,4 +1,4 @@
-POST http://localhost:{{port}}/api/upload/mtls
+POST http://localhost:{{port}}/api/upload/mtls?api-port={{port}}
 Content-Type: application/yaml
 file,mtls.yaml;
 HTTP 200

@@ -1,4 +1,4 @@
-POST http://localhost:{{port}}/api/upload/downstream-tls
+POST http://localhost:{{port}}/api/upload/downstream-tls?api-port={{port}}
 Content-Type: application/yaml
 file,downstream-tls.yaml;
 HTTP 200

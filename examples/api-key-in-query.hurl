@@ -1,4 +1,4 @@
-POST http://localhost:{{port}}/api/upload/api-key-in-query
+POST http://localhost:{{port}}/api/upload/api-key-in-query?api-port={{port}}
 Content-Type: application/yaml
 file,api-key-in-query.yaml;
 HTTP 200

@@ -1,4 +1,4 @@
-POST http://localhost:{{port}}/api/upload/jwt
+POST http://localhost:{{port}}/api/upload/jwt?api-port={{port}}
 Content-Type: application/yaml
 file,jwt.yaml;
 HTTP 200

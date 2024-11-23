@@ -6,5 +6,5 @@ extends: '*'
 actions:
   - target: $.servers
     update:
-      - url: http://127.0.0.1:4002/api/echo
+      - url: http://127.0.0.1:4002/api/api/echo
 
