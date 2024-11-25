@@ -3,6 +3,7 @@ defmodule ProxyConfWeb.ApiController do
   alias ProxyConf.Db
   alias ProxyConf.Spec
   alias ProxyConf.OaiOverlay
+  require Logger
 
   def upload_spec(conn, %{"spec_name" => spec_name} = _params) do
     access_token =
@@ -14,7 +15,7 @@ defmodule ProxyConfWeb.ApiController do
     with {:ok, data, conn} <- read_all_body(conn),
          [content_type | _] <- get_req_header(conn, "content-type"),
          qs_params <- Enum.map(conn.query_params, fn {k, v} -> {String.to_charlist(k), v} end),
-         data <- :bbmustache.render(data, qs_params),
+         {:ok, data} <- render_mustache(data, qs_params),
          {:ok, spec} <- decode(content_type, data),
          {:ok, %Spec{cluster_id: ^cluster_id} = spec} <- Spec.from_oas3(spec_name, spec, data),
          :ok <- Db.create_or_update([spec]) do
@@ -25,6 +26,8 @@ defmodule ProxyConfWeb.ApiController do
         |> halt
 
       {:error, reason} ->
+        Logger.warning(reason)
+
         send_resp(conn, 400, "Bad Request: #{reason}")
         |> halt
     end
@@ -45,6 +48,8 @@ defmodule ProxyConfWeb.ApiController do
       send_resp(conn, 200, "OK")
     else
       {:error, reason} ->
+        Logger.warning(reason)
+
         send_resp(conn, 400, "Bad Request: #{reason}")
         |> halt
 
@@ -54,6 +59,8 @@ defmodule ProxyConfWeb.ApiController do
             "- #{filename}: #{reason}"
           end)
           |> Enum.join("\n")
+
+        Logger.warning(error_summary)
 
         send_resp(conn, 400, "Bad Request:\n#{error_summary}")
         |> halt
@@ -103,7 +110,7 @@ defmodule ProxyConfWeb.ApiController do
 
           with true <- ext in [".json", ".yaml"],
                data_raw <- filedata_fn.(),
-               data_raw <- :bbmustache.render(data_raw, query_params),
+               {:ok, data_raw} <- render_mustache(data_raw, query_params),
                {:ok, data} <- decode(ext, data_raw) do
             cond do
               Map.has_key?(data, "openapi") ->
@@ -164,5 +171,18 @@ defmodule ProxyConfWeb.ApiController do
       true ->
         {:error, "invalid content type"}
     end
+  end
+
+  defp render_mustache(data, context) do
+    {:ok, :bbmustache.render(data, context, raise_on_context_miss: true)}
+  rescue
+    e in ErlangError ->
+      case e do
+        %ErlangError{original: {:context_missing, {:key, key}}} ->
+          {:error, "missing template variable {{#{key}}}"}
+
+        %ErlangError{original: o} ->
+          {:error, "Mustache templating error #{inspect(o)}"}
+      end
   end
 end

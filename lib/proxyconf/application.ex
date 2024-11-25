@@ -9,9 +9,9 @@ defmodule ProxyConf.Application do
   @impl true
   def start(_type, _args) do
     children = [
+      ProxyConf.Vault,
       ProxyConf.Repo,
       ProxyConf.LocalCA,
-      ProxyConf.LocalJwtProvider,
       ProxyConf.OAuth.JwtSigner,
       ProxyConf.Cron,
       DynamicSupervisor.child_spec(name: ProxyConf.StreamSupervisor),

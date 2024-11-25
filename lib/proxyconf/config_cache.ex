@@ -129,7 +129,7 @@ defmodule ProxyConf.ConfigCache do
          {:ok, data} <- File.read(spec_filename),
          {:ok, parsed} <- parse_doc(ext, data),
          parsed <- DeepMerge.deep_merge(parsed, overrides),
-         {:ok, internal_spec} <- validate_spec(spec_filename, parsed, data) do
+         {:ok, internal_spec} <- Spec.from_oas3(spec_filename, parsed, data) do
       {:ok, internal_spec}
     else
       false -> {:error, :file_not_found}
@@ -142,13 +142,6 @@ defmodule ProxyConf.ConfigCache do
 
   defp parse_doc(yaml, data) when yaml in [".yaml", ".yml"],
     do: YamlElixir.read_from_string(data)
-
-  defp validate_spec(filename, {:ok, spec}, data), do: validate_spec(filename, spec, data)
-  defp validate_spec(_filename, {:error, reason}, _), do: {:error, reason}
-
-  defp validate_spec(filename, spec, data) do
-    Spec.from_oas3(filename, spec, data)
-  end
 
   defp cache_notify_resources(cluster_id, changed_apis) do
     {:ok, config} = ConfigGenerator.from_oas3_specs(cluster_id, changed_apis)

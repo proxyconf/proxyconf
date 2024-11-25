@@ -5,7 +5,7 @@ defmodule ProxyConf.Api.DbSpec do
   schema "api_specs" do
     field :api_id, :string
     field :cluster, :string
-    field :data, :binary
+    field :data, ProxyConf.Vault.EncryptedBinary
 
     timestamps(type: :utc_datetime)
   end
