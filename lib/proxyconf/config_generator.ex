@@ -156,7 +156,9 @@ defmodule ProxyConf.ConfigGenerator do
 
     {:ok,
      %{
-       clusters: List.flatten(Map.values(clusters) ++ downstream_auth_clusters) |> Enum.uniq(),
+       clusters:
+         List.flatten(Map.values(clusters) ++ downstream_auth_clusters)
+         |> Enum.uniq(),
        listeners: Map.values(listeners) |> List.flatten(),
        route_configurations: Map.values(route_configurations) |> List.flatten(),
        tls_secret: List.flatten(secrets) |> Enum.uniq()
@@ -185,12 +187,21 @@ defmodule ProxyConf.ConfigGenerator do
 
     Map.update!(group, unifier, fn items ->
       items =
-        Enum.map(items, fn
+        Enum.flat_map(items, fn
           item when is_function(item) ->
-            apply(item, args)
+            try do
+              [apply(item, args)]
+            rescue
+              e ->
+                Logger.error(
+                  "Can't materialize config item in group #{inspect(unifier)} due to #{inspect(e)}"
+                )
+
+                []
+            end
 
           item ->
-            item
+            [item]
         end)
         |> List.flatten()
 

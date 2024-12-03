@@ -1,4 +1,4 @@
-POST http://localhost:{{port}}/api/upload/jwt?api-port={{port}}&envoy-cluster={{envoy-cluster}}
+POST https://localhost:{{port}}/api/upload/jwt?api-port={{port}}&envoy-cluster={{envoy-cluster}}
 Content-Type: application/yaml
 Authorization: Bearer {{admin-access-token}}
 file,jwt.yaml;
@@ -11,7 +11,7 @@ HTTP 401
 body contains "Jwt is missing"
 
 # fetch invalid token (missing correct audience claim)
-POST http://localhost:{{port}}/api/access-token
+POST https://localhost:{{port}}/api/access-token
 [QueryStringParams]
 client_id: {{oauth-client-id-other}}
 client_secret: {{oauth-client-secret-other}}
@@ -28,7 +28,7 @@ HTTP 403
 body contains "Audiences in Jwt are not allowed"
 
 # fetch valid token (including audience specified in downstream auth config)
-POST http://localhost:{{port}}/api/access-token
+POST https://localhost:{{port}}/api/access-token
 [QueryStringParams]
 client_id: {{oauth-client-id}}
 client_secret: {{oauth-client-secret}}

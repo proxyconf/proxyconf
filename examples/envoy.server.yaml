@@ -36,9 +36,9 @@ static_resources:
           common_tls_context:
             tls_certificates:
             - certificate_chain:
-                filename: /tmp/proxyconf/client.crt
+                filename: test/support/certs/snakeoil-envoy.crt
               private_key:
-                filename: /tmp/proxyconf/client.key
+                filename: test/support/certs/snakeoil-envoy.key
       load_assignment:
         cluster_name: proxyconf-xds-cluster
         endpoints:

@@ -1,5 +1,9 @@
 import Config
 
+if Config.config_env() in [:test, :dev] do
+  DotenvParser.load_file(".proxyconf.env")
+end
+
 # config/runtime.exs is executed for all environments, including
 # during releases. It is executed after compilation and before the
 # system starts, so it is typically used to load production configuration
@@ -15,10 +19,11 @@ import Config
 #     PHX_SERVER=true bin/proxyconf start
 #
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
-# script that automatically sets the env var above.
-if System.get_env("PHX_SERVER") do
-  config :proxyconf, ProxyConfWeb.Endpoint, server: true
-end
+# script that automatically setsthe env var above.
+
+proxyconf_hostname = System.get_env("PROXYCONF_HOSTNAME") || "localhost"
+
+config :proxyconf, :hostname, proxyconf_hostname
 
 if config_env() == :prod do
   database_url =
@@ -54,62 +59,96 @@ if config_env() == :prod do
     You can generte one by calling: openssl rand 32 | base64
     """
 
-  host = System.get_env("PHX_HOST") || "example.com"
-  port = String.to_integer(System.get_env("PORT") || "4000")
-
   config :proxyconf, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   config :proxyconf, ProxyConfWeb.Endpoint,
-    url: [host: host, port: 443, scheme: "https"],
-    http: [
-      # Enable IPv6 and bind on all interfaces.
-      # Set it to  {0, 0, 0, 0, 0, 0, 0, 1} for local network only access.
-      # See the documentation on https://hexdocs.pm/bandit/Bandit.html#t:options/0
-      # for details about using IPv6 vs IPv4 and loopback vs public addresses.
-      ip: {0, 0, 0, 0, 0, 0, 0, 0},
-      port: port
+    url: [host: proxyconf_hostname, port: 443, scheme: "https"],
+    https: [
+      port: String.to_integer(System.get_env("HTTP_API_PORT") || "4000")
     ],
     secret_key_base: secret_key_base
-
-  # ## SSL Support
-  #
-  # To get SSL working, you will need to add the `https` key
-  # to your endpoint configuration:
-  #
-  #     config :proxyconf, ProxyConfWeb.Endpoint,
-  #       https: [
-  #         ...,
-  #         port: 443,
-  #         cipher_suite: :strong,
-  #         keyfile: System.get_env("SOME_APP_SSL_KEY_PATH"),
-  #         certfile: System.get_env("SOME_APP_SSL_CERT_PATH")
-  #       ]
-  #
-  # The `cipher_suite` is set to `:strong` to support only the
-  # latest and more secure SSL ciphers. This means old browsers
-  # and clients may not be supported. You can set it to
-  # `:compatible` for wider support.
-  #
-  # `:keyfile` and `:certfile` expect an absolute path to the key
-  # and cert in disk or a relative path inside priv, for example
-  # "priv/ssl/server.key". For all supported SSL configuration
-  # options, see https://hexdocs.pm/plug/Plug.SSL.html#configure/1
-  #
-  # We also recommend setting `force_ssl` in your config/prod.exs,
-  # ensuring no data is ever sent via http, always redirecting to https:
-  #
-  #     config :proxyconf, ProxyConfWeb.Endpoint,
-  #       force_ssl: [hsts: true]
-  #
-  # Check `Plug.SSL` for all available options in `force_ssl`.
 end
 
 downstream_tls_path = System.get_env("PROXYCONF_SERVER_DOWNSTREAM_TLS_PATH", "/tmp/proxyconf")
 
+control_plane_ca_certificate =
+  System.get_env("PROXYCONF_CA_CERTIFICATE") ||
+    raise "environment variable PROXYCONF_CA_CERTIFICATE is missing!"
+
+File.exists?(control_plane_ca_certificate) ||
+  raise "File stored in environment variable PROXYCONF_CA_CERTIFICATE does not exist or is not accessible by ProxyConf"
+
+control_plane_certificate =
+  System.get_env("PROXYCONF_CONTROL_PLANE_CERTIFICATE") ||
+    raise "environment variable PROXYCONF_CONTROL_PLANE_CERTIFICATE is missing!"
+
+File.exists?(control_plane_certificate) ||
+  raise "File stored in environment variable PROXYCONF_CONTROL_PLANE_CERTIFICATE does not exist or is not accessible by ProxyConf"
+
+control_plane_key =
+  System.get_env("PROXYCONF_CONTROL_PLANE_PRIVATE_KEY") ||
+    raise "environment variable PROXYCONF_CONTROL_PLANE_PRIVATE_KEY is missing!"
+
+File.exists?(control_plane_key) ||
+  raise "File stored in environment variable PROXYCONF_CONTROL_PLANE_PRIVATE_KEY does not exist or is not accessible by ProxyConf"
+
+mgmt_api_ca_certificate =
+  System.get_env("PROXYCONF_MGMT_API_CA_CERTIFICATE", control_plane_ca_certificate)
+
+File.exists?(mgmt_api_ca_certificate) ||
+  raise "File stored in environment variable PROXYCONF_MGMT_API_CA_CERTIFICATE does not exist or is not accessible by ProxyConf"
+
+mgmt_api_certificate =
+  System.get_env("PROXYCONF_MGMT_API_CERTIFICATE", control_plane_certificate)
+
+File.exists?(mgmt_api_certificate) ||
+  raise "File stored in environment variable PROXYCONF_MGMT_API_CERTIFICATE does not exist or is not accessible by ProxyConf"
+
+mgmt_api_key =
+  System.get_env("PROXYCONF_MGMT_API_PRIVATE_KEY", control_plane_key)
+
+File.exists?(mgmt_api_key) ||
+  raise "File stored in environment variable PROXYCONF_MGMT_API_PRIVATE_KEY does not exist or is not accessible by ProxyConf"
+
+upstream_ca_bundle =
+  System.get_env("PROXYCONF_UPSTREAM_CA_BUNDLE") ||
+    raise "environment variable PROXYCONF_UPSTREAM_CA_BUNDLE is missing!"
+
+File.exists?(upstream_ca_bundle) ||
+  raise "File stored in environment variable PROXYCONF_UPSTREAM_CA_BUNDLE does not exist or is not accessible by ProxyConf"
+
+mgmt_api_jwt_signer_key = System.get_env("PROXYCONF_MGMT_API_JWT_SIGNER_KEY", mgmt_api_key)
+
+File.exists?(mgmt_api_jwt_signer_key) ||
+  raise "File stored in environment variable PROXYCONF_MGMT_API_JWT_SIGNER_KEY does not exist or is not accessible by ProxyConf"
+
+config :proxyconf, ProxyConfWeb.Endpoint,
+  server: true,
+  https: [
+    ip: {0, 0, 0, 0},
+    keyfile: Path.absname(mgmt_api_key),
+    certfile: Path.absname(mgmt_api_certificate),
+    cacertfile: Path.absname(mgmt_api_ca_certificate),
+    cipher_suite: :strong,
+    secure_renegotiate: true,
+    reuse_sessions: true
+  ]
+
+config :proxyconf, ProxyConf.GRPC.Credential,
+  ssl: [
+    certfile: Path.absname(control_plane_certificate),
+    keyfile: Path.absname(control_plane_key),
+    cacertfile: Path.absname(control_plane_ca_certificate),
+    verify: :verify_peer,
+    fail_if_no_peer_cert: true
+  ]
+
+config :proxyconf, ProxyConf.OAuth.JwtSigner,
+  keyfile: Path.absname(mgmt_api_jwt_signer_key),
+  kid: "proxyconf",
+  issuer: "proxyconf"
+
 config :proxyconf,
-  config_directories:
-    System.get_env("PROXYCONF_CONFIG_DIRS", "examples")
-    |> String.split(",", trim: true),
   grpc_endpoint_port:
     System.get_env("PROXYCONF_GRPC_ENDPOINT_PORT", "18000") |> String.to_integer(),
   #  config_extensions:
@@ -120,27 +159,8 @@ config :proxyconf,
   #    System.get_env("PROXYCONF_EXTERNAL_SPEC_HANDLERS", "Elixir.ProxyConfValidator.Store")
   #    |> String.split(",", trim: true)
   #    |> Enum.map(fn module -> {String.to_atom(module), :handle_spec} end),
-  ca_certificate:
-    System.get_env("PROXYCONF_CA_CERTIFICATE", Path.join(downstream_tls_path, "ca-cert.pem")),
-  ca_private_key:
-    System.get_env(
-      "PROXYCONF_CA_PRIVATE_KEY",
-      Path.join(downstream_tls_path, "ca-private-key.pem")
-    ),
-  control_plane_certificate:
-    System.get_env(
-      "PROXYCONF_CONTROL_PLANE_CERTIFICATE",
-      Path.join(downstream_tls_path, "proxyconf-ctrlplane.crt")
-    ),
-  control_plane_private_key:
-    System.get_env(
-      "PROXYCONF_CONTROL_PLANE_PRIVATE_KEY",
-      Path.join(downstream_tls_path, "proxyconf-ctrlplane.key")
-    ),
-  downstream_tls_path: downstream_tls_path,
-  # At this point it is expected that the following CA Bundle is available in the Envoy container
-  upstream_ca_bundle:
-    System.get_env("PROXYCONF_UPSTREAM_CA_BUNDLE", "/etc/ssl/certs/ca-certificates.crt")
+  # upstream_ca_bundle must point to cert bundle that the envoy process has access to
+  upstream_ca_bundle: upstream_ca_bundle
 
 # config :proxyconf_validator,
 #  http_endpoint_name: System.get_env("PROXYCONF_VALIDATOR_HTTP_ENDPOINT_NAME", "localhost"),

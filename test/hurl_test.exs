@@ -25,9 +25,6 @@ defmodule ProxyConf.Hurl do
   end
 
   test "run hurl suite", config do
-    ProxyConf.LocalCA.server_cert("exunit-good")
-    ProxyConf.LocalCA.server_cert("exunit-bad")
-
     {res, rc} =
       System.shell("./examples/run.sh",
         env: [

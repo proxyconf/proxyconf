@@ -18,7 +18,7 @@ info:
     Authentication using HTTP Basic Authentication can be easily configured using the [Basic Authentication](../config/DownstreamAuth.md/#basic-authentication) configuration.
   version: 0.1.0
 servers:
-  - url: http://127.0.0.1:{{api-port}}/api/echo
+  - url: https://127.0.0.1:{{api-port}}/api/echo
 paths:
   /test:
     get:

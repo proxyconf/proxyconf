@@ -19,7 +19,7 @@ info:
     Authentication using an API key request header can be easily configured using the [Authentication with Header or Query Parameter or Header](../config/DownstreamAuth.md/#header-or-query-parameter) configuration.
   version: 0.1.0
 servers:
-  - url: http://127.0.0.1:{{api-port}}/api/echo
+  - url: https://127.0.0.1:{{api-port}}/api/echo
 paths:
   /test:
     get:

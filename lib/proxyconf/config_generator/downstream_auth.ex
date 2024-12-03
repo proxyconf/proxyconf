@@ -11,7 +11,6 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
   require Logger
   alias ProxyConf.Spec
   alias ProxyConf.ConfigGenerator.Cluster
-  alias ProxyConf.ConfigGenerator.ClusterLbEndpoint
 
   defstruct([
     :api_id,
@@ -425,12 +424,8 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
 
             {put_in(provider_config, ["remote_jwks", "http_uri", "cluster"], cluster_name),
              [
-               Cluster.eval(%{
-                 name: cluster_name,
-                 endpoints: [
-                   ClusterLbEndpoint.eval(%{host: cluster_uri.host, port: cluster_uri.port})
-                 ]
-               })
+               # reusing logic from Cluster generator to generate JWKS cluster
+               Cluster.from_spec_gen(nil).([{cluster_name, cluster_uri}])
                | remote_jwks_acc
              ]}
           end

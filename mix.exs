@@ -36,6 +36,7 @@ defmodule ProxyConf.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:dotenv_parser, "~> 2.0"},
       ######################################################
       # Phoenix Deps
       {:phoenix, "~> 1.7.14"},

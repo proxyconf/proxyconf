@@ -12,7 +12,7 @@ defmodule ProxyConf.Application do
       ProxyConf.Vault,
       ProxyConf.Repo,
       ProxyConf.LocalCA,
-      ProxyConf.OAuth.JwtSigner,
+      {ProxyConf.OAuth.JwtSigner, Application.fetch_env!(:proxyconf, ProxyConf.OAuth.JwtSigner)},
       ProxyConf.Cron,
       DynamicSupervisor.child_spec(name: ProxyConf.StreamSupervisor),
       Registry.child_spec(keys: :unique, name: ProxyConf.StreamRegistry),
@@ -25,17 +25,7 @@ defmodule ProxyConf.Application do
        port: Application.fetch_env!(:proxyconf, :grpc_endpoint_port),
        start_server: true,
        cred:
-         GRPC.Credential.new(
-           ssl: [
-             certfile: Application.fetch_env!(:proxyconf, :control_plane_certificate),
-             keyfile: Application.fetch_env!(:proxyconf, :control_plane_private_key),
-             cacertfile: Application.fetch_env!(:proxyconf, :ca_certificate),
-             secure_renegotiate: true,
-             reuse_sessions: true,
-             verify: :verify_peer,
-             fail_if_no_peer_cert: true
-           ]
-         )},
+         Application.fetch_env!(:proxyconf, ProxyConf.GRPC.Credential) |> GRPC.Credential.new()},
       ProxyConfWeb.Endpoint
     ]
 

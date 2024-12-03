@@ -72,7 +72,7 @@ defmodule ProxyConf.ConfigGenerator.Cluster do
         raise("invalid upstream server port in server url '#{url}'")
 
       %URI{} = uri ->
-        {"#{uri.host}:#{uri.port}", uri}
+        {"#{uri.scheme}://#{uri.host}:#{uri.port}", uri}
     end
   end
 end

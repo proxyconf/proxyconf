@@ -11,10 +11,10 @@ defmodule ProxyConf.OAuth.JwtSigner do
     use Joken.Config
   end
 
-  @kid "proxyconf"
-  @issuer "proxyconf"
-  def start_link(_args) do
-    pem = Application.fetch_env!(:proxyconf, :control_plane_private_key) |> File.read!()
+  def start_link(opts) do
+    pem = Keyword.fetch!(opts, :keyfile) |> File.read!()
+    kid = Keyword.fetch!(opts, :kid)
+    issuer = Keyword.fetch!(opts, :issuer)
 
     alg =
       case X509.PrivateKey.from_pem!(pem) |> elem(0) do
@@ -22,18 +22,18 @@ defmodule ProxyConf.OAuth.JwtSigner do
         :RSAPrivateKey -> "RS256"
       end
 
-    signer = Joken.Signer.create(alg, %{"pem" => pem}, %{"kid" => @kid})
+    signer = Joken.Signer.create(alg, %{"pem" => pem}, %{"kid" => kid})
     {_, jwk} = JOSE.JWK.to_map(signer.jwk)
 
     jwks = %{
       "keys" => [
-        %{"alg" => alg, "kid" => @kid, "use" => "sig"} |> Map.merge(jwk) |> Map.drop(["crv"])
+        %{"alg" => alg, "kid" => kid, "use" => "sig"} |> Map.merge(jwk) |> Map.drop(["crv"])
       ]
     }
 
     Agent.start_link(
       fn ->
-        %{signer: signer, jwks: jwks}
+        %{signer: signer, jwks: jwks, issuer: issuer}
       end,
       name: __MODULE__
     )
@@ -49,7 +49,7 @@ defmodule ProxyConf.OAuth.JwtSigner do
 
     {:ok, jwt, _} =
       JWT.generate_and_sign(
-        Map.put_new(claims, "iss", @issuer),
+        Map.put_new(claims, "iss", value.issuer),
         value.signer
       )
 

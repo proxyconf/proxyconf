@@ -53,9 +53,9 @@ defmodule ProxyConfWeb.ApiController do
         send_resp(conn, 400, "Bad Request: #{reason}")
         |> halt
 
-      {_specs, errors} ->
+      {_specs, [{_filename, _reason} | _] = errors} ->
         error_summary =
-          Enum.map(errors, fn {filename, reason} ->
+          Enum.map(errors |> IO.inspect(), fn {filename, reason} ->
             "- #{filename}: #{reason}"
           end)
           |> Enum.join("\n")
@@ -63,6 +63,12 @@ defmodule ProxyConfWeb.ApiController do
         Logger.warning(error_summary)
 
         send_resp(conn, 400, "Bad Request:\n#{error_summary}")
+        |> halt
+
+      {_, zip_error} ->
+        Logger.warning(zip_error)
+
+        send_resp(conn, 400, "Bad Request:\n#{zip_error}")
         |> halt
     end
   end

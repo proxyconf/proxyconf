@@ -18,7 +18,7 @@ info:
     Inject Upstream Header. This is useful if e.g. a static api key must provided that is not available by the client. Upstream Authentication can be easily configured using the [Upstream Authentication](../config/UpstreamAuth.md) configuration.
   version: 0.1.0
 servers:
-  - url: http://127.0.0.1:{{api-port}}/api/echo
+  - url: https://127.0.0.1:{{api-port}}/api/echo
 paths:
   /test:
     get:

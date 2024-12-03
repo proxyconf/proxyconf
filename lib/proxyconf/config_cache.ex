@@ -65,8 +65,16 @@ defmodule ProxyConf.ConfigCache do
   end
 
   def handle_continue(_continue, state) do
-    Spec.db_map(fn %Spec{cluster_id: cluster_id, api_id: api_id} ->
-      update_spec_table(cluster_id, api_id, :init)
+    {:ok, res} =
+      Spec.db_map(fn %Spec{cluster_id: cluster_id, api_id: api_id} ->
+        update_spec_table(cluster_id, api_id, :init)
+        Logger.info(cluster: cluster_id, api_id: api_id, message: "Spec init")
+        {cluster_id, api_id}
+      end)
+
+    Enum.group_by(res, fn {cluster_id, _} -> cluster_id end, fn {_, api_id} -> api_id end)
+    |> Enum.each(fn {cluster_id, api_ids} ->
+      cache_notify_resources(cluster_id, api_ids)
     end)
 
     {:noreply, state}
