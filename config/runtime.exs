@@ -122,6 +122,16 @@ mgmt_api_jwt_signer_key = System.get_env("PROXYCONF_MGMT_API_JWT_SIGNER_KEY", mg
 File.exists?(mgmt_api_jwt_signer_key) ||
   raise "File stored in environment variable PROXYCONF_MGMT_API_JWT_SIGNER_KEY does not exist or is not accessible by ProxyConf"
 
+certificate_issuer_cert = System.fetch_env!("PROXYCONF_CERTIFICATE_ISSUER_CERT")
+
+File.exists?(certificate_issuer_cert) ||
+  raise "File stored in environment variable PROXYCONF_CERTIFICATE_ISSUER_CERT does not exist or is not accessible by ProxyConf"
+
+certificate_issuer_key = System.fetch_env!("PROXYCONF_CERTIFICATE_ISSUER_KEY")
+
+File.exists?(certificate_issuer_key) ||
+  raise "File stored in environment variable PROXYCONF_CERTIFICATE_ISSUER_KEY does not exist or is not accessible by ProxyConf"
+
 config :proxyconf, ProxyConfWeb.Endpoint,
   server: true,
   https: [
@@ -160,7 +170,9 @@ config :proxyconf,
   #    |> String.split(",", trim: true)
   #    |> Enum.map(fn module -> {String.to_atom(module), :handle_spec} end),
   # upstream_ca_bundle must point to cert bundle that the envoy process has access to
-  upstream_ca_bundle: upstream_ca_bundle
+  upstream_ca_bundle: upstream_ca_bundle,
+  certificate_issuer_cert: certificate_issuer_cert,
+  certificate_issuer_key: certificate_issuer_key
 
 # config :proxyconf_validator,
 #  http_endpoint_name: System.get_env("PROXYCONF_VALIDATOR_HTTP_ENDPOINT_NAME", "localhost"),

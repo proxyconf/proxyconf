@@ -12,9 +12,6 @@ defmodule ProxyConf.LocalCA do
   use GenServer
   alias ProxyConf.Api.DbTlsCert
 
-  @ca_subject "ProxyConf self-signed issuer"
-  @issuer_prefix "proxyconf-cluster-issuer-"
-
   def start_link(_opts) do
     GenServer.start_link(__MODULE__, [], name: __MODULE__)
   end
@@ -81,8 +78,6 @@ defmodule ProxyConf.LocalCA do
     end)
   end
 
-  defp register_cert(%DbTlsCert{cluster: @issuer_prefix <> _}), do: %{}
-
   defp register_cert(%DbTlsCert{} = db_cert) do
     import X509.ASN1
 
@@ -132,37 +127,12 @@ defmodule ProxyConf.LocalCA do
     )
   end
 
-  defp issuer_db_cert(cluster) do
-    cluster_issuer_key = @issuer_prefix <> cluster
-
-    case ProxyConf.Repo.get_by(DbTlsCert, cluster: cluster_issuer_key) do
-      nil ->
-        key =
-          X509.PrivateKey.new_ec(:secp256r1)
-
-        cert =
-          X509.Certificate.self_signed(key, "/CN=#{@ca_subject} - #{cluster}", template: :root_ca)
-          |> X509.Certificate.to_pem()
-
-        db_cert =
-          %DbTlsCert{
-            cluster: cluster_issuer_key,
-            cert_pem: cert,
-            key_pem: key |> X509.PrivateKey.to_pem()
-          }
-          |> DbTlsCert.changeset(%{})
-          |> ProxyConf.Repo.insert!()
-
-        Logger.info("created selfsigned issuer certificate for cluster #{cluster}")
-        db_cert
-
-      db_cert ->
-        db_cert
-    end
-  end
-
   defp create_cert(cluster, hostname) do
-    issuer_db_cert = issuer_db_cert(cluster)
+    issuer_key = Application.fetch_env!(:proxyconf, :certificate_issuer_key) |> File.read!()
+
+    issuer_cert =
+      Application.fetch_env!(:proxyconf, :certificate_issuer_cert) |> File.read!()
+
     subject = "/CN=#{hostname}"
     key = X509.PrivateKey.new_ec(:secp256r1)
     pub = X509.PublicKey.derive(key)
@@ -191,8 +161,8 @@ defmodule ProxyConf.LocalCA do
       X509.Certificate.new(
         pub,
         subject,
-        issuer_db_cert.cert_pem |> X509.Certificate.from_pem!(),
-        issuer_db_cert.key_pem |> X509.PrivateKey.from_pem!(),
+        issuer_cert |> X509.Certificate.from_pem!(),
+        issuer_key |> X509.PrivateKey.from_pem!(),
         template: template
       )
       |> X509.Certificate.to_pem()

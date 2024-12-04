@@ -11,7 +11,7 @@ x-proxyconf:
         trusted-ca: test/support/certs/snakeoil-ca.crt
         clients:
           test_client:
-            - demo-client
+            - "CN=demo-client-a,OU=Snakeoil Client,O=ProxyConf,L=Basel,ST=Basel,C=CH"
 
 openapi: 3.0.3
 info:
