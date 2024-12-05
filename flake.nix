@@ -34,7 +34,7 @@
         TOP_SRC = src;
         pname = "${pname}-mix-deps";
         inherit src version;
-        hash = "sha256-I9cQqJPH7aGJ96ntPxOUOVYd2y0BYY4zyjXfqHHGh8Q=";
+        hash = "sha256-FbkScSYFPn50WW8K0ztHUrRrfksjZPETB7QuWGvL+J8=";
           # hash = pkgs.lib.fakeHash;
       };
 
@@ -92,6 +92,10 @@
               ] ++ optional pkgs.stdenv.isLinux pkgs.inotify-tools
                 ++ optional pkgs.stdenv.isDarwin pkgs.terminal-notifier;
 
+              process.managers.process-compose = {
+                tui.enable = false;
+              };
+
               services.postgres = {
                 enable = true;
                 package = pkgs.postgresql_16;
@@ -113,7 +117,10 @@
 
               enterShell = ''
                 echo "hello from devenv shell"
-
+              '';
+              enterTest = ''
+                wait_for_port 5432 6u
+                run-ci
               '';
             })
           ];

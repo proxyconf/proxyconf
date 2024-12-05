@@ -43,7 +43,6 @@ defmodule ProxyConfWeb do
         layouts: [html: ProxyConfWeb.Layouts]
 
       import Plug.Conn
-      import ProxyConfWeb.Gettext
 
       unquote(verified_routes())
     end
@@ -85,7 +84,6 @@ defmodule ProxyConfWeb do
       import Phoenix.HTML
       # Core UI components and translation
       import ProxyConfWeb.CoreComponents
-      import ProxyConfWeb.Gettext
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS

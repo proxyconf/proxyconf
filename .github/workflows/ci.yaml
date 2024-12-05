@@ -11,9 +11,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@v10
       - uses: DeterminateSystems/magic-nix-cache-action@v4
+      - name: Run Processes
+        run: |
+          nix develop --impure --command -- devenv up &
       - name: Run CI
-        run: nix develop --command -- run-ci
+        run: |
+          cp demo/.proxyconf.env .
+          export DB_ENCRYPTION_KEY=$(openssl rand 32 | base64)
+          nix develop --impure --command -- run-ci
       - name: Check release
         run: nix build
       - name: Check fixture derivations
-        run: nix flake check
+        run: nix flake check --impure

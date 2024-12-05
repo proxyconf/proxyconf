@@ -1,6 +1,6 @@
 import Config
 
-if Config.config_env() in [:test, :dev] do
+if Config.config_env() in [:test, :dev] and File.exists?(".proxyconf.env") do
   DotenvParser.load_file(".proxyconf.env")
 end
 
@@ -26,21 +26,6 @@ proxyconf_hostname = System.get_env("PROXYCONF_HOSTNAME") || "localhost"
 config :proxyconf, :hostname, proxyconf_hostname
 
 if config_env() == :prod do
-  database_url =
-    System.get_env("DATABASE_URL") ||
-      raise """
-      environment variable DATABASE_URL is missing.
-      For example: ecto://USER:PASS@HOST/DATABASE
-      """
-
-  maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
-
-  config :proxyconf, Proxyconf.Repo,
-    # ssl: true,
-    url: database_url,
-    pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
-    socket_options: maybe_ipv6
-
   # The secret key base is used to sign/encrypt cookies and other secrets.
   # A default value is used in config/dev.exs and config/test.exs but you
   # want to use a different value for prod and you most likely don't want
@@ -68,6 +53,15 @@ if config_env() == :prod do
     ],
     secret_key_base: secret_key_base
 end
+
+database_url =
+  System.get_env("PROXYCONF_DATABASE_URL") ||
+    raise """
+    environment variable PROXYCONF_DATABASE_URL is missing.
+    For example: ecto://USER:PASS@HOST/DATABASE
+    """
+
+maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
 downstream_tls_path = System.get_env("PROXYCONF_SERVER_DOWNSTREAM_TLS_PATH", "/tmp/proxyconf")
 
@@ -131,6 +125,12 @@ certificate_issuer_key = System.fetch_env!("PROXYCONF_CERTIFICATE_ISSUER_KEY")
 
 File.exists?(certificate_issuer_key) ||
   raise "File stored in environment variable PROXYCONF_CERTIFICATE_ISSUER_KEY does not exist or is not accessible by ProxyConf"
+
+config :proxyconf, ProxyConf.Repo,
+  # ssl: true,
+  url: database_url,
+  pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
+  socket_options: maybe_ipv6
 
 config :proxyconf, ProxyConfWeb.Endpoint,
   server: true,
