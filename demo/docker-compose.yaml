@@ -1,9 +1,16 @@
 services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_DB: proxyconf_demo
   envoy:
     image: envoyproxy/envoy:v1.31.0
-    command: envoy -c /etc/data/envoy.demo.yaml
+    command: envoy -c /etc/envoy/envoy.demo.yaml
     volumes:
-      - ./envoy:/etc/data
+      - ./envoy:/etc/envoy
+      - ../test/support/certs:/etc/certs
     ports:
       - "9901:9901" # admin port
       - "8080:8080"
@@ -11,16 +18,18 @@ services:
     image: ghcr.io/proxyconf/proxyconf:latest
     command: start
     volumes:
-      - ./proxyconf:/etc/data
+      - ../test/support/certs:/etc/certs
     environment:
       RELEASE_COOKIE: "proxyconf-cookie"
-      PROXYCONF_GRPC_ENDPOINT_PORT: "18000"
-      PROXYCONF_CONFIG_DIRS: "/etc/data/oas3specs"
-      PROXYCONF_SERVER_DOWNSTREAM_TLS_PATH: "/etc/data"
-      PROXYCONF_CA_CERTIFICATE: "/etc/data/ca.crt"
-      PROXYCONF_CA_PRIVATE_KEY: "/etc/data/server.key"
-      PROXYCONF_CONTROL_PLANE_CERTIFICATE: "/etc/data/server.crt"
-      PROXYCONF_CONTROL_PLANE_PRIVATE_KEY: "/etc/data/server.key"
+      PROXYCONF_HOSTNAME: "localhost"
+      PROXYCONF_DATABASE_URL: ecto://postgres:postgres@localhost:5432/proxyconf_demo
+      PROXYCONF_CA_CERTIFICATE: /etc/certs/snakeoil-ca.crt
+      PROXYCONF_MGMT_API_CERTIFICATE: /etc/certs/snakeoil-server.crt
+      PROXYCONF_MGMT_API_PRIVATE_KEY: /etc/certs/snakeoil-server.key
+      PROXYCONF_CONTROL_PLANE_CERTIFICATE: /etc/certs/snakeoil-server.crt
+      PROXYCONF_UPSTREAM_CA_BUNDLE: /etc/certs/snakeoil-ca.crt
+      PROXYCONF_CERTIFICATE_ISSUER_CERT: /etc/certs/snakeoil-ca.crt
+      PROXYCONF_CERTIFICATE_ISSUER_KEY: /etc/certs/snakeoil-ca.key
   petstore:
     image: swaggerapi/petstore3:unstable
     ports:
