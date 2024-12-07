@@ -1,0 +1,10 @@
+overlay: 1.0.0
+info:
+  title: Overlay for all examples
+  version: 1.0.0
+extends: '*'
+actions:
+  - target: $.servers
+    update:
+      - url: https://127.0.0.1:{{api-port}}/api/echo
+

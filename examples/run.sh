@@ -14,12 +14,22 @@ wait_for_envoy () {
     return 0
 }
 
+
 BASEDIR=$(dirname "$0")
-envoy -c $BASEDIR/envoy.server.yaml &
+envoy -c $BASEDIR/envoy.server.yaml --service-cluster $ENVOY_CLUSTER &
 
 # poll the admin ui address
 wait_for_envoy "http://localhost:9901" 60
 
+ADMIN_ACCESS_TOKEN=$(curl -X POST "https://localhost:4002/api/access-token?client_id=$OAUTH_CLIENT_ID&client_secret=$OAUTH_CLIENT_SECRET&grant_type=client_credentials" --cacert test/support/certs/snakeoil-ca.crt | jq -r ".access_token")
+
 
 # reusing the client certs that were bootstrapped for envoy
-hurl $BASEDIR/*.hurl --file-root $BASEDIR --cacert /tmp/proxyconf/ca-cert.pem
+hurl $BASEDIR/*.hurl --file-root $BASEDIR --cacert test/support/certs/snakeoil-ca.crt\
+    --variable port=4002 \
+    --variable admin-access-token=$ADMIN_ACCESS_TOKEN \
+    --variable envoy-cluster=$ENVOY_CLUSTER \
+    --variable oauth-client-id=$OAUTH_CLIENT_ID \
+    --variable oauth-client-secret=$OAUTH_CLIENT_SECRET \
+    --variable oauth-client-id-other=$OAUTH_CLIENT_ID_OTHER \
+    --variable oauth-client-secret-other=$OAUTH_CLIENT_SECRET_OTHER

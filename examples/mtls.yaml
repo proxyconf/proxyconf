@@ -1,4 +1,5 @@
 x-proxyconf:
+  cluster: {{envoy-cluster}}
   url: https://localhost:44444/mtls
   listener:
     address: "127.0.0.1"
@@ -7,10 +8,10 @@ x-proxyconf:
     auth:
       downstream:
         type: mtls
-        trusted-ca: /tmp/proxyconf/ca-cert.pem
+        trusted-ca: test/support/certs/snakeoil-ca.crt
         clients:
           test_client:
-            - exunit-good
+            - "CN=demo-client-a,OU=Snakeoil Client,O=ProxyConf,L=Basel,ST=Basel,C=CH"
 
 openapi: 3.0.3
 info:
@@ -20,7 +21,7 @@ info:
     Authenticate using TLS client certificates (mTLS).
   version: 0.1.0
 servers:
-  - url: http://127.0.0.1:4040/echo
+  - url: https://127.0.0.1:{{api-port}}/api/echo
 paths:
   /test:
     get:

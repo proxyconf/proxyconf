@@ -1,3 +1,2 @@
-Application.load(:proxyconf)
 ExUnit.start()
-Application.ensure_all_started(:proxyconf)
+Ecto.Adapters.SQL.Sandbox.mode(ProxyConf.Repo, :manual)

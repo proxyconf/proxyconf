@@ -1,4 +1,6 @@
-POST http://localhost:4040/upload/routing-misc.yaml
+POST https://localhost:{{port}}/api/upload/routing-misc?api-port={{port}}&envoy-cluster={{envoy-cluster}}
+Content-Type: application/yaml
+Authorization: Bearer {{admin-access-token}}
 file,routing-misc.yaml;
 HTTP 200
 

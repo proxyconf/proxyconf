@@ -16,8 +16,9 @@ paths:
         '200':
           description: OK
 servers:
-  - url: http://127.0.0.1:4040/echo
+  - url: http://127.0.0.1:/api/echo
 x-proxyconf:
+  cluster: demo
   cors:
     access-control-allow-methods:
       - GET
@@ -38,7 +39,9 @@ x-proxyconf:
 ```
 
 <h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
-<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:4040/upload/cors.yaml</span></span>
+<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:{{port}}/api/upload/cors?api-port={{port}}&amp;envoy-cluster={{envoy-cluster}}</span></span>
+<span class="line"><span class="string">Content-Type</span>: <span class="string">application/yaml</span></span>
+<span class="line"><span class="string">Authorization</span>: <span class="string">Bearer {{admin-access-token}}</span></span>
 <span class="line">file,<span class="filename">cors.yaml</span>;</span>
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
@@ -98,8 +101,9 @@ paths:
             application/json: {}
           description: OK
 servers:
-  - url: http://127.0.0.1:4040/echo
+  - url: http://127.0.0.1:/api/echo
 x-proxyconf:
+  cluster: demo
   listener:
     address: 127.0.0.1
     port: 8443
@@ -111,7 +115,9 @@ x-proxyconf:
 ```
 
 <h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
-<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:4040/upload/downstream-tls.yaml</span></span>
+<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:{{port}}/api/upload/downstream-tls?api-port={{port}}&amp;envoy-cluster={{envoy-cluster}}</span></span>
+<span class="line"><span class="string">Content-Type</span>: <span class="string">application/yaml</span></span>
+<span class="line"><span class="string">Authorization</span>: <span class="string">Bearer {{admin-access-token}}</span></span>
 <span class="line">file,<span class="filename">downstream-tls.yaml</span>;</span>
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>

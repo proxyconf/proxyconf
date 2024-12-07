@@ -28,10 +28,14 @@ defmodule Mix.Tasks.GenMarkdown do
     hurl_examples_to_md()
   end
 
+  @templatevars %{~c"envoy-cluster" => "demo"}
+
   def hurl_examples_to_md do
     Path.wildcard("examples/*.yaml")
     |> Enum.flat_map(fn example ->
-      case YamlElixir.read_from_file!(example) do
+      case File.read!(example)
+           |> :bbmustache.render(@templatevars)
+           |> YamlElixir.read_from_string!() do
         %{"openapi" => _, "info" => %{"title" => title} = info} = spec ->
           summary = Map.get(info, "summary", "no-category")
 

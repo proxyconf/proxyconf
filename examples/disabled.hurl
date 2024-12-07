@@ -1,5 +1,7 @@
 # see routing-misc.hurl for more examples that use "disabled" auth
-POST http://localhost:4040/upload/disabled.yaml
+POST https://localhost:{{port}}/api/upload/disabled?api-port={{port}}&envoy-cluster={{envoy-cluster}}
+Content-Type: application/yaml
+Authorization: Bearer {{admin-access-token}}
 file,disabled.yaml;
 HTTP 200
 

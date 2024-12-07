@@ -1,4 +1,6 @@
-POST http://localhost:4040/upload/cors.yaml
+POST https://localhost:{{port}}/api/upload/cors?api-port={{port}}&envoy-cluster={{envoy-cluster}}
+Content-Type: application/yaml
+Authorization: Bearer {{admin-access-token}}
 file,cors.yaml;
 HTTP 200
 

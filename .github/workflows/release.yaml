@@ -20,7 +20,13 @@ jobs:
           password: ${{secrets.GITHUB_TOKEN}}
       - uses: DeterminateSystems/nix-installer-action@v10
       - uses: DeterminateSystems/magic-nix-cache-action@v4
+      - name: Run Processes
+        run: |
+          nix develop --impure --command -- devenv up &
       - name: Run CI
-        run: nix develop --command -- run-ci
+        run: |
+          cp demo/.proxyconf.env .
+          export DB_ENCRYPTION_KEY=$(openssl rand 32 | base64)
+          nix develop --impure --command -- run-ci
       - name: Build and push container
         run: nix run .#image.copyTo docker://ghcr.io/proxyconf/proxyconf:latest

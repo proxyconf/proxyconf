@@ -21,8 +21,9 @@ paths:
         '200':
           description: OK
 servers:
-  - url: http://127.0.0.1:4040/echo
+  - url: http://127.0.0.1:/api/echo
 x-proxyconf:
+  cluster: demo
   security:
     auth:
       downstream:
@@ -36,7 +37,9 @@ x-proxyconf:
 ```
 
 <h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
-<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:4040/upload/api-key-in-query.yaml</span></span>
+<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:{{port}}/api/upload/api-key-in-query?api-port={{port}}&amp;envoy-cluster={{envoy-cluster}}</span></span>
+<span class="line"><span class="string">Content-Type</span>: <span class="string">application/yaml</span></span>
+<span class="line"><span class="string">Authorization</span>: <span class="string">Bearer {{admin-access-token}}</span></span>
 <span class="line">file,<span class="filename">api-key-in-query.yaml</span>;</span>
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
@@ -78,8 +81,9 @@ paths:
         '200':
           description: OK
 servers:
-  - url: http://127.0.0.1:4040/echo
+  - url: http://127.0.0.1:/api/echo
 x-proxyconf:
+  cluster: demo
   security:
     auth:
       downstream:
@@ -93,7 +97,9 @@ x-proxyconf:
 ```
 
 <h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
-<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:4040/upload/api-key.yaml</span></span>
+<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:{{port}}/api/upload/api-key?api-port={{port}}&amp;envoy-cluster={{envoy-cluster}}</span></span>
+<span class="line"><span class="string">Content-Type</span>: <span class="string">application/yaml</span></span>
+<span class="line"><span class="string">Authorization</span>: <span class="string">Bearer {{admin-access-token}}</span></span>
 <span class="line">file,<span class="filename">api-key.yaml</span>;</span>
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
@@ -132,8 +138,9 @@ paths:
         '200':
           description: OK
 servers:
-  - url: http://127.0.0.1:4040/echo
+  - url: http://127.0.0.1:/api/echo
 x-proxyconf:
+  cluster: demo
   security:
     auth:
       downstream:
@@ -146,7 +153,9 @@ x-proxyconf:
 ```
 
 <h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
-<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:4040/upload/basic-auth.yaml</span></span>
+<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:{{port}}/api/upload/basic-auth?api-port={{port}}&amp;envoy-cluster={{envoy-cluster}}</span></span>
+<span class="line"><span class="string">Content-Type</span>: <span class="string">application/yaml</span></span>
+<span class="line"><span class="string">Authorization</span>: <span class="string">Bearer {{admin-access-token}}</span></span>
 <span class="line">file,<span class="filename">basic-auth.yaml</span>;</span>
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
@@ -195,8 +204,9 @@ paths:
         '200':
           description: OK
 servers:
-  - url: http://127.0.0.1:4040/echo
+  - url: http://127.0.0.1:/api/echo
 x-proxyconf:
+  cluster: demo
   security:
     auth:
       downstream: disabled
@@ -206,7 +216,9 @@ x-proxyconf:
 
 <h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
 <div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"></span><span class="comment"># see routing-misc.hurl for more examples that use "disabled" auth</span>
-<span class="line"><span class="method">POST</span> <span class="url">http://localhost:4040/upload/disabled.yaml</span></span>
+<span class="line"><span class="method">POST</span> <span class="url">http://localhost:{{port}}/api/upload/disabled?api-port={{port}}&amp;envoy-cluster={{envoy-cluster}}</span></span>
+<span class="line"><span class="string">Content-Type</span>: <span class="string">application/yaml</span></span>
+<span class="line"><span class="string">Authorization</span>: <span class="string">Bearer {{admin-access-token}}</span></span>
 <span class="line">file,<span class="filename">disabled.yaml</span>;</span>
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
@@ -232,28 +244,31 @@ paths:
         '200':
           description: OK
 servers:
-  - url: http://127.0.0.1:4040/echo
+  - url: http://127.0.0.1:/api/echo
 x-proxyconf:
+  cluster: demo
   security:
     auth:
       downstream:
         provider-config:
           audiences:
-            - hurl-tester
-          issuer: localjwtprovider
+            - demo
+          issuer: proxyconf
           remote_jwks:
             cache_duration:
               seconds: 300
             http_uri:
               timeout: 1s
-              uri: http://127.0.0.1:4040/local-jwt-provider/jwks.json
+              uri: http://127.0.0.1:/api/jwks.json
         type: jwt
   url: http://localhost:8080/jwt
 
 ```
 
 <h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
-<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:4040/upload/jwt.yaml</span></span>
+<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:{{port}}/api/upload/jwt?api-port={{port}}&amp;envoy-cluster={{envoy-cluster}}</span></span>
+<span class="line"><span class="string">Content-Type</span>: <span class="string">application/yaml</span></span>
+<span class="line"><span class="string">Authorization</span>: <span class="string">Bearer {{admin-access-token}}</span></span>
 <span class="line">file,<span class="filename">jwt.yaml</span>;</span>
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
@@ -264,10 +279,14 @@ x-proxyconf:
 <span class="line"><span class="query-type">body</span> <span class="predicate-type">contains</span> <span class="string">"Jwt is missing"</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
 <span class="line"></span><span class="comment"># fetch invalid token (missing correct audience claim)</span>
-<span class="line"><span class="method">GET</span> <span class="url">http://localhost:4040/local-jwt-provider/access-token</span></span>
+<span class="line"><span class="method">POST</span> <span class="url">http://localhost:{{port}}/api/access-token</span></span>
+<span class="line"><span class="section-header">[QueryStringParams]</span></span>
+<span class="line"><span class="string">client_id</span>: <span class="string">{{oauth-client-id-other}}</span></span>
+<span class="line"><span class="string">client_secret</span>: <span class="string">{{oauth-client-secret-other}}</span></span>
+<span class="line"><span class="string">grant_type</span>: <span class="string">client_credentials</span></span>
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
 <span class="line"><span class="section-header">[Captures]</span></span>
-<span class="line"><span class="string">invalid_access_token</span>: <span class="query-type">body</span></span>
+<span class="line"><span class="string">invalid_access_token</span>: <span class="query-type">jsonpath</span> <span class="string">"$['access_token']"</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
 <span class="line"></span><span class="comment"># Invalid JWT is provided</span>
 <span class="line"><span class="method">GET</span> <span class="url">http://localhost:8080/jwt/test</span></span>
@@ -277,10 +296,14 @@ x-proxyconf:
 <span class="line"><span class="query-type">body</span> <span class="predicate-type">contains</span> <span class="string">"Audiences in Jwt are not allowed"</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
 <span class="line"></span><span class="comment"># fetch valid token (including audience specified in downstream auth config)</span>
-<span class="line"><span class="method">GET</span> <span class="url">http://localhost:4040/local-jwt-provider/access-token?aud=hurl-tester</span></span>
+<span class="line"><span class="method">POST</span> <span class="url">http://localhost:{{port}}/api/access-token</span></span>
+<span class="line"><span class="section-header">[QueryStringParams]</span></span>
+<span class="line"><span class="string">client_id</span>: <span class="string">{{oauth-client-id}}</span></span>
+<span class="line"><span class="string">client_secret</span>: <span class="string">{{oauth-client-secret}}</span></span>
+<span class="line"><span class="string">grant_type</span>: <span class="string">client_credentials</span></span>
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
 <span class="line"><span class="section-header">[Captures]</span></span>
-<span class="line"><span class="string">valid_access_token</span>: <span class="query-type">body</span></span>
+<span class="line"><span class="string">valid_access_token</span>: <span class="query-type">jsonpath</span> <span class="string">"$['access_token']"</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
 <span class="line"></span><span class="comment"># Valid JWT is provided</span>
 <span class="line"><span class="method">GET</span> <span class="url">http://localhost:8080/jwt/test</span></span>
@@ -307,8 +330,9 @@ paths:
         '200':
           description: OK
 servers:
-  - url: http://127.0.0.1:4040/echo
+  - url: http://127.0.0.1:/api/echo
 x-proxyconf:
+  cluster: demo
   listener:
     address: 127.0.0.1
     port: 44444
@@ -325,7 +349,9 @@ x-proxyconf:
 ```
 
 <h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
-<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:4040/upload/mtls.yaml</span></span>
+<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">http://localhost:{{port}}/api/upload/mtls?api-port={{port}}&amp;envoy-cluster={{envoy-cluster}}</span></span>
+<span class="line"><span class="string">Content-Type</span>: <span class="string">application/yaml</span></span>
+<span class="line"><span class="string">Authorization</span>: <span class="string">Bearer {{admin-access-token}}</span></span>
 <span class="line">file,<span class="filename">mtls.yaml</span>;</span>
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>

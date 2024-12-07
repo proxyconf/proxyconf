@@ -36,12 +36,12 @@ static_resources:
           common_tls_context:
             tls_certificates:
             - certificate_chain:
-                filename: /etc/data/client.crt
+                filename: /etc/certs/snakeoil-envoy.crt
               private_key:
-                filename: /etc/data/client.key
+                filename: /etc/certs/snakeoil-envoy.key
             validation_context:
               trusted_ca:
-                filename: /etc/data/ca.crt
+                filename: /etc/certs/snakeoil-ca.crt
       load_assignment:
         cluster_name: proxyconf
         endpoints:

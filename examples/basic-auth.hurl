@@ -1,4 +1,6 @@
-POST http://localhost:4040/upload/basic-auth.yaml
+POST https://localhost:{{port}}/api/upload/basic-auth?api-port={{port}}&envoy-cluster={{envoy-cluster}}
+Content-Type: application/yaml
+Authorization: Bearer {{admin-access-token}}
 file,basic-auth.yaml;
 HTTP 200
 

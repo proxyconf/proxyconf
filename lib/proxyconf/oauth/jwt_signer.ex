@@ -1,4 +1,4 @@
-defmodule ProxyConf.LocalJwtProvider do
+defmodule ProxyConf.OAuth.JwtSigner do
   @moduledoc """
     A minimal JWT provider just good enough to issue JWT tokens that can be used for testing
     Never should a Production system rely on this implementation.
@@ -11,10 +11,10 @@ defmodule ProxyConf.LocalJwtProvider do
     use Joken.Config
   end
 
-  @kid "proxyconf"
-  @issuer "localjwtprovider"
-  def start_link(_args) do
-    pem = Application.fetch_env!(:proxyconf, :control_plane_private_key) |> File.read!()
+  def start_link(opts) do
+    pem = Keyword.fetch!(opts, :keyfile) |> File.read!()
+    kid = Keyword.fetch!(opts, :kid)
+    issuer = Keyword.fetch!(opts, :issuer)
 
     alg =
       case X509.PrivateKey.from_pem!(pem) |> elem(0) do
@@ -22,7 +22,6 @@ defmodule ProxyConf.LocalJwtProvider do
         :RSAPrivateKey -> "RS256"
       end
 
-    kid = @kid
     signer = Joken.Signer.create(alg, %{"pem" => pem}, %{"kid" => kid})
     {_, jwk} = JOSE.JWK.to_map(signer.jwk)
 
@@ -34,7 +33,7 @@ defmodule ProxyConf.LocalJwtProvider do
 
     Agent.start_link(
       fn ->
-        %{signer: signer, jwks: jwks}
+        %{signer: signer, jwks: jwks, issuer: issuer}
       end,
       name: __MODULE__
     )
@@ -45,12 +44,12 @@ defmodule ProxyConf.LocalJwtProvider do
     value.jwks
   end
 
-  def token(claims \\ %{}) do
+  def to_jwt(claims \\ %{}) do
     value = Agent.get(__MODULE__, & &1)
 
     {:ok, jwt, _} =
       JWT.generate_and_sign(
-        Map.put_new(claims, "iss", @issuer),
+        Map.put_new(claims, "iss", value.issuer),
         value.signer
       )
 

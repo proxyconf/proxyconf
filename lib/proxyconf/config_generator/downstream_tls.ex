@@ -10,6 +10,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamTls do
 
   def from_spec_gen(
         %Spec{
+          cluster_id: cluster,
           api_url: %URI{scheme: "https", host: host} = _api_url,
           downstream_auth: %DownstreamAuth{auth_type: "mtls", trusted_ca: trusted_ca}
         } = spec
@@ -17,7 +18,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamTls do
     listener_name = Listener.name(spec)
 
     fn ->
-      {crt, key} = LocalCA.server_cert(host).()
+      {crt, key} = LocalCA.server_cert(cluster, host).()
 
       [
         %{
@@ -42,10 +43,11 @@ defmodule ProxyConf.ConfigGenerator.DownstreamTls do
   end
 
   def from_spec_gen(%Spec{
+        cluster_id: cluster,
         api_url: %URI{scheme: "https", host: host} = _api_url
       }) do
     fn ->
-      {crt, key} = LocalCA.server_cert(host).()
+      {crt, key} = LocalCA.server_cert(cluster, host).()
 
       [
         %{

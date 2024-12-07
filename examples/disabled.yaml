@@ -1,4 +1,5 @@
 x-proxyconf:
+  cluster: {{envoy-cluster}}
   url: http://localhost:8080/disabled
   security:
     auth: 
@@ -12,7 +13,7 @@ info:
     Opting out of downstream authentication by setting the [Disabled Flag](../config/DownstreamAuth.md/#disabled).
   version: 0.1.0
 servers:
-  - url: http://127.0.0.1:4040/echo
+  - url: https://127.0.0.1:{{api-port}}/api/echo
 paths:
   /test:
     get:

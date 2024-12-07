@@ -4,12 +4,29 @@ defmodule ProxyConf.Spec do
     containing the ProxyConf specific extensions.
   """
   require Logger
+  alias ProxyConf.Db
   alias ProxyConf.ConfigGenerator.Cors
   alias ProxyConf.ConfigGenerator.DownstreamAuth
   alias ProxyConf.ConfigGenerator.UpstreamAuth
 
+  @external_resource "priv/schemas/proxyconf.json"
+  @ext_schema File.read!("priv/schemas/proxyconf.json") |> Jason.decode!()
+
+  @merge_resolver fn
+    _, l, r when is_list(l) and is_list(r) ->
+      Enum.uniq(l ++ r)
+
+    _, _, _ ->
+      DeepMerge.continue_deep_merge()
+  end
+
+  @external_resource "priv/schemas/oas3_0.json"
+  @oas3_0_schema File.read!("priv/schemas/oas3_0.json")
+                 |> Jason.decode!()
+                 |> DeepMerge.deep_merge(@ext_schema, @merge_resolver)
+                 |> JsonXema.new()
+
   defstruct([
-    :filename,
     :hash,
     :cluster_id,
     :api_url,
@@ -163,61 +180,84 @@ defmodule ProxyConf.Spec do
           x_proxyconf: proxyconf()
         }
 
-  def from_oas3(filename, spec, data) do
-    proxyconf = Map.fetch!(spec, "x-proxyconf")
+  def from_db(cluster_id, api_id) do
+    case Db.get_spec(cluster_id, api_id) do
+      nil ->
+        {:error, :not_found}
 
-    config_from_spec =
-      defaults(filename)
-      |> DeepMerge.deep_merge(proxyconf)
-      |> update_in(["security", "allowed-source-ips"], &to_cidrs/1)
-      |> update_in(["url"], &URI.parse/1)
+      db_spec ->
+        from_oas3(api_id, Jason.decode!(db_spec.data), db_spec.data)
+    end
+  end
 
-    %{
-      "cluster" => cluster_id,
-      "url" => api_url,
-      "api-id" => api_id,
-      "listener" => %{"address" => address, "port" => port},
-      "security" => %{
-        "allowed-source-ips" => allowed_source_ips,
-        "auth" => %{"downstream" => downstream_auth, "upstream" => upstream_auth}
-      },
-      "routing" => %{
-        "fail-fast-on-missing-query-parameter" => fail_fast_on_missing_query_parameter,
-        "fail-fast-on-missing-header-parameter" => fail_fast_on_missing_header_parameter,
-        "fail-fast-on-wrong-request-media_type" => fail_fast_on_wrong_request_media_type
-      },
-      "cors" => cors
-    } = config_from_spec
+  def db_map(mapper_fn) do
+    Db.map(fn db_spec ->
+      {:ok, spec} =
+        from_oas3(db_spec.api_id, Jason.decode!(db_spec.data), db_spec.data)
 
-    {:ok,
-     %ProxyConf.Spec{
-       filename: filename,
-       hash: gen_hash(data),
-       cluster_id: cluster_id,
-       api_url: api_url,
-       api_id: api_id,
-       listener_address: address,
-       listener_port: port,
-       allowed_source_ips: allowed_source_ips,
-       downstream_auth: DownstreamAuth.config_from_json(downstream_auth),
-       upstream_auth: UpstreamAuth.config_from_json(upstream_auth),
-       routing: %{
-         fail_fast_on_missing_query_parameter: fail_fast_on_missing_query_parameter,
-         fail_fast_on_missing_header_parameter: fail_fast_on_missing_header_parameter,
-         fail_fast_on_wrong_request_media_type: fail_fast_on_wrong_request_media_type
-       },
-       cors: Cors.config_from_json(cors),
-       spec: spec
-     }}
+      mapper_fn.(spec)
+    end)
+  end
+
+  @spec from_oas3(String.t(), map(), binary()) :: {:ok, map()} | {:error, String.t()}
+  def from_oas3(api_id, spec, data) do
+    case JsonXema.validate(@oas3_0_schema, spec) do
+      :ok ->
+        proxyconf = Map.fetch!(spec, "x-proxyconf")
+
+        config_from_spec =
+          defaults(api_id)
+          |> DeepMerge.deep_merge(proxyconf)
+          |> update_in(["security", "allowed-source-ips"], &to_cidrs/1)
+          |> update_in(["url"], &URI.parse/1)
+
+        %{
+          "cluster" => cluster_id,
+          "url" => api_url,
+          "api-id" => api_id,
+          "listener" => %{"address" => address, "port" => port},
+          "security" => %{
+            "allowed-source-ips" => allowed_source_ips,
+            "auth" => %{"downstream" => downstream_auth, "upstream" => upstream_auth}
+          },
+          "routing" => %{
+            "fail-fast-on-missing-query-parameter" => fail_fast_on_missing_query_parameter,
+            "fail-fast-on-missing-header-parameter" => fail_fast_on_missing_header_parameter,
+            "fail-fast-on-wrong-request-media_type" => fail_fast_on_wrong_request_media_type
+          },
+          "cors" => cors
+        } = config_from_spec
+
+        {:ok,
+         %ProxyConf.Spec{
+           hash: gen_hash(data),
+           cluster_id: cluster_id,
+           api_url: api_url,
+           api_id: api_id,
+           listener_address: address,
+           listener_port: port,
+           allowed_source_ips: allowed_source_ips,
+           downstream_auth: DownstreamAuth.config_from_json(downstream_auth),
+           upstream_auth: UpstreamAuth.config_from_json(upstream_auth),
+           routing: %{
+             fail_fast_on_missing_query_parameter: fail_fast_on_missing_query_parameter,
+             fail_fast_on_missing_header_parameter: fail_fast_on_missing_header_parameter,
+             fail_fast_on_wrong_request_media_type: fail_fast_on_wrong_request_media_type
+           },
+           cors: Cors.config_from_json(cors),
+           spec: spec
+         }}
+
+      {:error, %JsonXema.ValidationError{} = error} ->
+        {:error, JsonXema.ValidationError.message(error)}
+    end
   end
 
   def gen_hash(data) when is_binary(data) do
     :crypto.hash(:sha256, data) |> Base.encode64()
   end
 
-  defp defaults(filename) do
-    api_id = Path.rootname(filename) |> Path.basename()
-
+  defp defaults(api_id) do
     api_url =
       default(
         :default_api_host,
