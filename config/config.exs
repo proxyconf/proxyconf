@@ -8,7 +8,6 @@
 import Config
 
 config :proxyconf,
-  ash_domains: [ProxyConf.Api],
   ecto_repos: [ProxyConf.Repo],
   generators: [timestamp_type: :utc_datetime]
 

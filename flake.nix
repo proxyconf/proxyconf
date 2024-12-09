@@ -18,11 +18,11 @@
     , ...
     } @ inputs:
     flake-utils.lib.eachDefaultSystem (system:
-    let
-      inherit (pkgs.lib) optional optionals;
-      pkgs = import nixpkgs { inherit system; };
+      let
+        inherit (pkgs.lib) optional optionals;
+        pkgs = import nixpkgs { inherit system; };
 
-      elixir = pkgs.elixir_1_16;
+        elixir = pkgs.elixir_1_16;
       beamPackages = pkgs.beam.packagesWith pkgs.beam.interpreters.erlang;
       nix2containerPkgs = nix2container.packages.${system};
 
@@ -163,11 +163,17 @@
 
       };
 
+      entrypoint = pkgs.writeShellScriptBin "entrypoint.sh" ''
+        set -euxo pipefail
+        ${pkg}/bin/${pname} eval "ProxyConf.Release.migrate"
+        ${pkg}/bin/${pname} start
+      '';
+
       image = nix2containerPkgs.nix2container.buildImage {
         name = "proxyconf";
         tag = "latest";
         config = {
-          entrypoint = [ "${pkg}/bin/${pname}" ];
+          entrypoint = [ "${entrypoint}/bin/entrypoint.sh" ];
         };
         copyToRoot = pkgs.buildEnv {
           name = "root";

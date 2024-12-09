@@ -1,5 +1,5 @@
 services:
-  postgres:
+  database:
     image: postgres:latest
     environment:
       POSTGRES_PASSWORD: postgres
@@ -22,14 +22,19 @@ services:
     environment:
       RELEASE_COOKIE: "proxyconf-cookie"
       PROXYCONF_HOSTNAME: "localhost"
-      PROXYCONF_DATABASE_URL: ecto://postgres:postgres@localhost:5432/proxyconf_demo
+      PROXYCONF_DATABASE_URL: ecto://postgres:postgres@database:5432/proxyconf_demo
       PROXYCONF_CA_CERTIFICATE: /etc/certs/snakeoil-ca.crt
       PROXYCONF_MGMT_API_CERTIFICATE: /etc/certs/snakeoil-server.crt
       PROXYCONF_MGMT_API_PRIVATE_KEY: /etc/certs/snakeoil-server.key
       PROXYCONF_CONTROL_PLANE_CERTIFICATE: /etc/certs/snakeoil-server.crt
+      PROXYCONF_CONTROL_PLANE_PRIVATE_KEY: /etc/certs/snakeoil-server.key
       PROXYCONF_UPSTREAM_CA_BUNDLE: /etc/certs/snakeoil-ca.crt
       PROXYCONF_CERTIFICATE_ISSUER_CERT: /etc/certs/snakeoil-ca.crt
       PROXYCONF_CERTIFICATE_ISSUER_KEY: /etc/certs/snakeoil-ca.key
+      # !! don't use those secret values in your prod setup, generate them
+      # !! on your own using `openssl rand 32 | base64`
+      SECRET_KEY_BASE: "LsTkBZyi1ZAgEOXv4+6LqdDYb7uw7i5WrUAekuxNjDY="
+      DB_ENCRYPTION_KEY: "vOzcZNx/Ipawvph9sajVhFhoFg2JOBhgtjtDYXkfIbE="
   petstore:
     image: swaggerapi/petstore3:unstable
     ports:
