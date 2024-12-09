@@ -62,7 +62,7 @@ defmodule ProxyConf.MixProject do
       {:dns_cluster, "~> 0.1.1"},
       {:argon2_elixir, "~> 4.1"},
       {:floki, ">= 0.30.0", only: :test},
-      {:cloak_ecto, "~> 1.2.0"},
+      {:cloak_ecto, "~> 1.3.0"},
       {:phoenix_live_reload, "~> 1.2", only: :dev},
       {:esbuild, "~> 0.8", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.2", runtime: Mix.env() == :dev},
