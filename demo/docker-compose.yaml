@@ -17,6 +17,8 @@ services:
   proxyconf:
     image: ghcr.io/proxyconf/proxyconf:latest
     command: start
+    ports:
+      - "4000:4000"
     volumes:
       - ../test/support/certs:/etc/certs
     environment:

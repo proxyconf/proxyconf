@@ -1,55 +1,90 @@
 
 # Environment Variables for Configuring ProxyConf
 
-This section outlines the environment variables used to configure **ProxyConf**. These variables control various aspects such as directory locations, ports, and certificates for the control plane. Ensure to set these correctly based on your deployment needs.
+This section outlines the environment variables used to configure **ProxyConf**. These variables control various aspects such as database setup, ports, and certificates for the control plane. Ensure to set these correctly based on your deployment needs.
 
-## `PROXYCONF_CONFIG_DIRS`
+## `SECRET_KEY_BASE`
 
-Defines a comma-separated list of filesystem directories that **ProxyConf** monitors for OpenAPI specifications (in JSON or YAML format). This allows for dynamic loading and reloading of configurations as new API specs are added or updated.  
+Defines a base secret that is used to sign/encrypt cookies and other secrets.
+You can generate one by calling `openssl rand 32 | base32`
 - **Default**: None (must be specified).
 
-## `PROXYCONF_GRPC_ENDPOINT_PORT`
+## `DB_ENCRYPTION_KEY`
 
-Specifies the TCP port on which the GRPC listener will accept connections from the Envoy proxies. This setting is crucial for the communication between ProxyConf and the Envoy proxies in your architecture.  
+Defines a secret key that is used to encrypt sensitive values stored in the database.
+You can generate one by calling `openssl rand 32 | base32`
 - **Default**: None (must be specified).
 
-## `PROXYCONF_SERVER_DOWNSTREAM_TLS_PATH`
+## `PROXYCONF_HOSTNAME`
 
-Specifies the directory path where **ProxyConf** will look for PEM-encoded TLS certificates and private keys for downstream services. This is essential for enabling HTTPS between Envoy and client requests. ProxyConf expects the following file naming convention:
+Defines the hostname used to serve the mgmt endpoint / ui.
+- **Default**: localhost.
 
-- Certificate: `<domain>.crt` (e.g., `mysubdomain.example.com.crt`)  
-- Private key: `<domain>.key` (e.g., `mysubdomain.example.com.key`)  
+## `RELEASE_COOKIE`
 
-This setup allows ProxyConf to serve the correct TLS certificates based on the virtual host.
+Defines the distributed erlang cookie, required to cluster multiple ProxyConf nodes. 
+- **Default**: generated during build. Ensure to replace it for production usage.
+
+## `PROXYCONF_DATABASE_URL`
+
+Defines a database url used to connect to the database.
+For example: ecto://USER:PASS@HOST/DATABASE
+- **Default**: None (must be specified).
 
 ## `PROXYCONF_CA_CERTIFICATE`
 
-!!! Warning
-    ProxyConf will **automatically issue TLS certificates** if no matching certificate is available for an API. This feature is primarily for **testing purposes**. **Do not rely on these auto-issued certificates in production environments!**
-
-Specifies the path to the PEM-encoded CA certificate used for issuing downstream TLS certificates. This CA will be used when ProxyConf cannot find a matching certificate/private key pair in `PROXYCONF_SERVER_DOWNSTREAM_TLS_PATH`.
-
-- **Example**: `/path/to/ca-certificate.pem`
-
-## `PROXYCONF_CA_PRIVATE_KEY`
-
-Specifies the path to the PEM-encoded private key associated with the CA certificate, used to issue downstream TLS certificates.  
-- **Example**: `/path/to/ca-private-key.pem`
+Defines the path to the PEM encoded CA certificate.
+- **Default**: None (must be specified).
 
 ## `PROXYCONF_CONTROL_PLANE_CERTIFICATE`
 
-Defines the path to the PEM-encoded TLS certificate that the GRPC listener uses for securing communications with Envoy proxies.  
-- **Example**: `/path/to/control-plane-certificate.pem`
+Defines the path to the PEM encoded certificate used by the GRPC endpoint accessed by the Envoy data plane.
+- **Default**: None (must be specified).
 
 ## `PROXYCONF_CONTROL_PLANE_PRIVATE_KEY`
 
-Specifies the path to the PEM-encoded private key for the above control plane certificate. This key is used by the GRPC listener to secure connections.  
-- **Example**: `/path/to/control-plane-private-key.pem`
+Defines the path to the PEM encoded private key used by the GRPC endpoint accessed by the Envoy data plane.
+- **Default**: None (must be specified).
+
+## `PROXYCONF_MGMT_API_CA_CERTIFICATE`
+
+Defines the path to the PEM encoded CA certificate used by the HTTPS management API.
+- **Default**: The certificate defined in `PROXYCONF_CA_CERTIFICATE`.
+
+## `PROXYCONF_MGMT_API_CERTIFICATE`
+
+Defines the path to the PEM encoded certificate used by the HTTPS management API.
+- **Default**: The certificate defined in `PROXYCONF_CONTROL_PLANE_CERTIFICATE`.
+
+## `PROXYCONF_MGMT_API_PRIVATE_KEY`
+
+Defines the path to the PEM encoded private key used by the HTTPS management API.
+- **Default**: The private key defined in `PROXYCONF_CONTROL_PLANE_PRIVATE_KEY`.
+
+## `PROXYCONF_MGMT_API_JWT_SIGNER_KEY`
+
+Defines the path to the PEM encoded private key used by the JWT signer.
+- **Default**: The private key defined in `PROXYCONF_MGMT_API_PRIVATE_KEY`.
+
+## `PROXYCONF_CERTIFICATE_ISSUER_CERT`
+
+Defines the path to the PEM encoded certificate used to automatically issue server certificates if no matching cert is available.
+- **Default**: None (must be specified).
+
+## `PROXYCONF_CERTIFICATE_ISSUER_KEY`
+
+Defines the path to the PEM encoded private key used to automatically issue server certificates if no matching cert is available.
+- **Default**: None (must be specified).
 
 ## `PROXYCONF_UPSTREAM_CA_BUNDLE`
 
 The path to the TLS CA bundle that the Envoy proxies will use for validating upstream connections to API servers. This bundle ensures that ProxyConf can securely route traffic to upstream services.  
 - **Default**: `/etc/ssl/certs/ca-certificates.crt`
+
+## `PROXYCONF_GRPC_ENDPOINT_PORT`
+
+Specifies the TCP port on which the GRPC listener will accept connections from the Envoy proxies. This setting is crucial for the communication between ProxyConf and the Envoy proxies in your architecture.  
+- **Default**: 18000.
 
 ## `PROXYCONF_CRONTAB`
 

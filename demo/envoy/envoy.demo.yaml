@@ -4,7 +4,7 @@ admin:
       address: 0.0.0.0
       port_value: 9901
 node:
-  cluster: proxyconf-cluster
+  cluster: demo
   id: proxyconf
 dynamic_resources:
   ads_config:

@@ -7,6 +7,7 @@
 ##
 ##################################################################
 x-proxyconf:
+  cluster: demo
 # The API URL that is used as the main entrypoint for this API
 #   https --> expose this API using an HTTPS listener
 #   localhost --> vhost based routing that matches the SNI / Host Header 'localhost'
@@ -62,12 +63,6 @@ x-proxyconf:
   #          testUser:
   #          - "CN=demo-client,OU=Demo Client,O=ProxyConf,L=Basel,ST=Basel,C=CH"
 # JWT Token support also exists
-
-# setting  up the listener
-  listener:
-    address: 0.0.0.0
-    port: 8080
-
 
 openapi: 3.0.2
 info:
