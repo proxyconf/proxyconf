@@ -1,4 +1,4 @@
-POST https://localhost:{{port}}/api/upload/mtls?api-port={{port}}&envoy-cluster={{envoy-cluster}}
+POST https://localhost:{{port}}/api/spec/mtls?api-port={{port}}&envoy-cluster={{envoy-cluster}}
 Content-Type: application/yaml
 Authorization: Bearer {{admin-access-token}}
 file,mtls.yaml;

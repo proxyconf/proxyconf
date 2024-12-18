@@ -2,8 +2,59 @@ defmodule ProxyConfWeb.ApiController do
   use ProxyConfWeb, :controller
   alias ProxyConf.Db
   alias ProxyConf.Spec
+  alias ProxyConf.Api.DbSpec
   alias ProxyConf.OaiOverlay
   require Logger
+
+  def get_spec(conn, %{"spec_name" => spec_name} = _params) do
+    access_token =
+      ExOauth2Provider.Plug.current_access_token(conn) |> ProxyConf.Repo.preload([:application])
+
+    cluster_id = access_token.application.name
+    conn = fetch_query_params(conn)
+
+    case Db.get_spec(cluster_id, spec_name) do
+      %DbSpec{data: data} ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(200, data)
+
+      nil ->
+        conn
+        |> put_resp_content_type("application/json")
+        |> send_resp(404, Jason.encode!(%{message: "requested spec doesn't exist"}))
+    end
+  end
+
+  def get_specs(conn, _params) do
+    access_token =
+      ExOauth2Provider.Plug.current_access_token(conn) |> ProxyConf.Repo.preload([:application])
+
+    cluster_id = access_token.application.name
+    conn = fetch_query_params(conn)
+
+    spec_ids = Db.get_spec_ids(cluster_id)
+
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, Jason.encode!(%{cluster: cluster_id, spec_ids: spec_ids}))
+  end
+
+  def delete_spec(conn, %{"spec_name" => spec_name} = _params) do
+    access_token =
+      ExOauth2Provider.Plug.current_access_token(conn) |> ProxyConf.Repo.preload([:application])
+
+    cluster_id = access_token.application.name
+
+    case Db.delete_spec(cluster_id, spec_name) do
+      :ok ->
+        send_resp(conn, 200, "OK")
+
+      {:error, :not_found} ->
+        send_resp(conn, 400, "Spec is not part of cluster")
+        |> halt
+    end
+  end
 
   def upload_spec(conn, %{"spec_name" => spec_name} = _params) do
     access_token =

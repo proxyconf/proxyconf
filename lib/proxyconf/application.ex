@@ -11,7 +11,7 @@ defmodule ProxyConf.Application do
     children = [
       ProxyConf.Vault,
       ProxyConf.Repo,
-      ProxyConf.LocalCA,
+      {ProxyConf.LocalCA, Application.fetch_env!(:proxyconf, ProxyConf.LocalCA)},
       {ProxyConf.OAuth.JwtSigner, Application.fetch_env!(:proxyconf, ProxyConf.OAuth.JwtSigner)},
       ProxyConf.Cron,
       DynamicSupervisor.child_spec(name: ProxyConf.StreamSupervisor),

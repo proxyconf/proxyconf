@@ -70,8 +70,28 @@ defmodule ProxyConf.Db do
     end
   end
 
+  def delete_spec(cluster_id, api_id) do
+    case get_spec(cluster_id, api_id) do
+      nil ->
+        {:error, :not_found}
+
+      %DbSpec{} = spec ->
+        Repo.delete!(spec)
+        ConfigCache.load_events(cluster_id, [{:deleted, api_id}])
+        :ok
+    end
+  end
+
   def get_spec(cluster_id, api_id) do
     Repo.get_by(DbSpec, cluster: cluster_id, api_id: api_id)
+  end
+
+  def get_spec_ids(cluster_id) do
+    from(spec in DbSpec,
+      where: spec.cluster == ^cluster_id,
+      select: spec.api_id
+    )
+    |> Repo.all()
   end
 
   def map(mapper_fn) do

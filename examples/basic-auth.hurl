@@ -1,4 +1,4 @@
-POST https://localhost:{{port}}/api/upload/basic-auth?api-port={{port}}&envoy-cluster={{envoy-cluster}}
+POST https://localhost:{{port}}/api/spec/basic-auth?api-port={{port}}&envoy-cluster={{envoy-cluster}}
 Content-Type: application/yaml
 Authorization: Bearer {{admin-access-token}}
 file,basic-auth.yaml;

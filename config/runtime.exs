@@ -126,6 +126,13 @@ certificate_issuer_key = System.fetch_env!("PROXYCONF_CERTIFICATE_ISSUER_KEY")
 File.exists?(certificate_issuer_key) ||
   raise "File stored in environment variable PROXYCONF_CERTIFICATE_ISSUER_KEY does not exist or is not accessible by ProxyConf"
 
+config :proxyconf, ProxyConf.LocalCA,
+  cache_reload_interval: 300_000,
+  validity_days: 2,
+  rotation_period_hours: 24,
+  issuer_cert: certificate_issuer_cert,
+  issuer_key: certificate_issuer_key
+
 config :proxyconf, ProxyConf.Repo,
   # ssl: true,
   url: database_url,
@@ -170,9 +177,7 @@ config :proxyconf,
   #    |> String.split(",", trim: true)
   #    |> Enum.map(fn module -> {String.to_atom(module), :handle_spec} end),
   # upstream_ca_bundle must point to cert bundle that the envoy process has access to
-  upstream_ca_bundle: upstream_ca_bundle,
-  certificate_issuer_cert: certificate_issuer_cert,
-  certificate_issuer_key: certificate_issuer_key
+  upstream_ca_bundle: upstream_ca_bundle
 
 # config :proxyconf_validator,
 #  http_endpoint_name: System.get_env("PROXYCONF_VALIDATOR_HTTP_ENDPOINT_NAME", "localhost"),

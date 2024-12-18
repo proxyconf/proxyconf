@@ -23,7 +23,10 @@ defmodule ProxyConfWeb.Router do
 
   scope "/api", ProxyConfWeb do
     pipe_through :authenticated_api
-    post "/upload/:spec_name", ApiController, :upload_spec
+    get "/spec/:spec_name", ApiController, :get_spec
+    delete "/spec/:spec_name", ApiController, :delete_spec
+    post "/spec/:spec_name", ApiController, :upload_spec
+    get "/specs", ApiController, :get_specs
     post "/upload_bundle", ApiController, :upload_bundle
     post "/rotate-client-secret", OAuthController, :rotate_cluster_secret
   end

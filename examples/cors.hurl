@@ -1,4 +1,4 @@
-POST https://localhost:{{port}}/api/upload/cors?api-port={{port}}&envoy-cluster={{envoy-cluster}}
+POST https://localhost:{{port}}/api/spec/cors?api-port={{port}}&envoy-cluster={{envoy-cluster}}
 Content-Type: application/yaml
 Authorization: Bearer {{admin-access-token}}
 file,cors.yaml;
