@@ -28,6 +28,7 @@ defmodule ProxyConfWeb.Router do
     post "/spec/:spec_name", ApiController, :upload_spec
     get "/specs", ApiController, :get_specs
     post "/upload_bundle", ApiController, :upload_bundle
+    post "/secret/:secret_name", ApiController, :create_or_update_secret
     post "/rotate-client-secret", OAuthController, :rotate_cluster_secret
   end
 
@@ -36,7 +37,7 @@ defmodule ProxyConfWeb.Router do
     post "/create-config/:cluster_name", OAuthController, :create_cluster
     post "/access-token", OAuthController, :issue_token
     get "/jwks.json", OAuthController, :jwks
-    match :*, "/echo/:echo", ApiController, :echo
+    match :*, "/echo/*echo", ApiController, :echo
   end
 
   scope "/" do

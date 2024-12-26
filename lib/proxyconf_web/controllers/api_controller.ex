@@ -69,7 +69,7 @@ defmodule ProxyConfWeb.ApiController do
          {:ok, data} <- render_mustache(data, qs_params),
          {:ok, spec} <- decode(content_type, data),
          {:ok, %Spec{cluster_id: ^cluster_id} = spec} <- Spec.from_oas3(spec_name, spec, data),
-         :ok <- Db.create_or_update([spec]) do
+         :ok <- Db.create_or_update_specs([spec]) do
       send_resp(conn, 200, "OK")
     else
       {:ok, %Spec{cluster_id: _invalid_cluster_id}} ->
@@ -95,7 +95,7 @@ defmodule ProxyConfWeb.ApiController do
     with {:ok, data, conn} <- read_all_body(conn),
          qs_params <- Enum.map(conn.query_params, fn {k, v} -> {String.to_charlist(k), v} end),
          {specs, []} <- iterate_zip_contents(data, qs_params, cluster_id),
-         :ok <- Db.create_or_update(specs, sync: cluster_id) do
+         :ok <- Db.create_or_update_specs(specs, sync: cluster_id) do
       send_resp(conn, 200, "OK")
     else
       {:error, reason} ->
@@ -106,7 +106,7 @@ defmodule ProxyConfWeb.ApiController do
 
       {_specs, [{_filename, _reason} | _] = errors} ->
         error_summary =
-          Enum.map(errors |> IO.inspect(), fn {filename, reason} ->
+          Enum.map(errors, fn {filename, reason} ->
             "- #{filename}: #{reason}"
           end)
           |> Enum.join("\n")
@@ -120,6 +120,29 @@ defmodule ProxyConfWeb.ApiController do
         Logger.warning(zip_error)
 
         send_resp(conn, 400, "Bad Request:\n#{zip_error}")
+        |> halt
+    end
+  end
+
+  @doc """
+  The secret can be referenced using %SECRET_NAME% inside the config items
+  that allow dynamic secrets, e.g. upstream credential injection
+  """
+  def create_or_update_secret(conn, %{"secret_name" => secret_name} = _params) do
+    access_token =
+      ExOauth2Provider.Plug.current_access_token(conn) |> ProxyConf.Repo.preload([:application])
+
+    cluster_id = access_token.application.name
+    conn = fetch_query_params(conn)
+
+    with {:ok, data, conn} <- read_all_body(conn),
+         :ok <- Db.create_or_update_secret(cluster_id, secret_name, String.trim(data)) do
+      send_resp(conn, 200, "OK")
+    else
+      {:error, reason} ->
+        Logger.warning(reason)
+
+        send_resp(conn, 400, "Bad Request: #{reason}")
         |> halt
     end
   end
@@ -138,6 +161,7 @@ defmodule ProxyConfWeb.ApiController do
         headers: Map.new(headers),
         query_params: Map.new(query_params),
         body: data,
+        request_path: conn.request_path,
         method: conn.method
       }
       |> Jason.encode!()

@@ -85,6 +85,11 @@ defmodule ProxyConf.ConfigGenerator.Route do
        ) do
     servers = Map.fetch!(path_item_object, "servers")
 
+    websocket_enabled = Map.get(path_item_object, "x-proxyconf-websocket") == "enabled"
+
+    websocket =
+      websocket_route(websocket_enabled)
+
     missing_query_param_check =
       Map.get(
         path_item_object,
@@ -93,11 +98,12 @@ defmodule ProxyConf.ConfigGenerator.Route do
       )
 
     missing_header_param_check =
-      Map.get(
-        path_item_object,
-        "x-proxyconf-fail-fast-on-missing-header-parameter",
-        spec.routing.fail_fast_on_missing_header_parameter
-      )
+      websocket_enabled ||
+        Map.get(
+          path_item_object,
+          "x-proxyconf-fail-fast-on-missing-header-parameter",
+          spec.routing.fail_fast_on_missing_header_parameter
+        )
 
     wrong_request_media_type_check =
       Map.get(
@@ -117,6 +123,13 @@ defmodule ProxyConf.ConfigGenerator.Route do
           %{"in" => loc} = get_in(spec.spec, ref_path)
           loc
       end)
+
+    websocket_upgrade_header_matches =
+      if websocket_enabled do
+        [%{"name" => "upgrade", "present_match" => true}]
+      else
+        []
+      end
 
     required_header_matches =
       if missing_header_param_check do
@@ -223,11 +236,10 @@ defmodule ProxyConf.ConfigGenerator.Route do
     server = URI.parse(server_url)
     server_path = server.path || "/"
 
-    if path_templates == [] do
-      # no path templating
-      {%{
-         "name" => route_id,
-         "match" => %{
+    {%{
+       "name" => route_id,
+       "match" =>
+         %{
            "headers" => [
              %{
                "name" => ":method",
@@ -235,89 +247,90 @@ defmodule ProxyConf.ConfigGenerator.Route do
                  "exact" => String.upcase(operation)
                }
              }
-             | required_header_matches ++ media_type_header_matches
+             | required_header_matches ++
+                 media_type_header_matches ++ websocket_upgrade_header_matches
            ],
-           "query_parameters" => required_query_matches,
-           "path" => Path.join(path_prefix, path)
-         },
-         "metadata" => %{
-           "filter_metadata" => %{
-             "envoy.filters.http.lua" => DownstreamAuth.to_filter_metadata(spec)
-           }
-         },
-         "typed_per_filter_config" =>
-           typed_per_filter_config(%{"envoy.filters.http.cors" => cors}),
-         "route" =>
-           %{
-             "prefix_rewrite" => Path.join(server_path, path),
-             "auto_host_rewrite" => true
-           }
-           |> Map.merge(cluster_route_config)
-       }, clusters}
-    else
-      {%{
-         "name" => route_id,
-         "match" => %{
-           "headers" => [
-             %{
-               "name" => ":method",
-               "string_match" => %{
-                 "exact" => String.upcase(operation)
-               }
-             }
-             | required_header_matches ++ media_type_header_matches
-           ],
-           "query_parameters" => required_query_matches,
-           "path_match_policy" => %{
-             "name" => "envoy.path.match.uri_template.uri_template_matcher",
-             "typed_config" => %{
-               "@type" =>
-                 "type.googleapis.com/envoy.extensions.path.match.uri_template.v3.UriTemplateMatchConfig",
-               "path_template" =>
-                 Enum.reduce(path_templates, {0, Path.join(path_prefix, path)}, fn
-                   [path_template, @path_wildcard], {i, path_acc} ->
-                     {i, String.replace(path_acc, path_template, "{#{@path_wildcard}=**}")}
+           "query_parameters" => required_query_matches
+         }
+         |> Map.merge(path_match_policy(path_templates, path_prefix, path)),
+       "metadata" => %{
+         "filter_metadata" => %{
+           "envoy.filters.http.lua" => DownstreamAuth.to_filter_metadata(spec)
+         }
+       },
+       "typed_per_filter_config" => typed_per_filter_config(%{"envoy.filters.http.cors" => cors}),
+       "route" =>
+         %{
+           "auto_host_rewrite" => true
+         }
+         |> Map.merge(websocket)
+         |> Map.merge(path_rewrite_policy(path_templates, server_path, path))
+         |> Map.merge(cluster_route_config)
+     }, clusters}
+  end
 
-                   [path_template, _path_variable], {i, path_acc} ->
-                     {i + 1, String.replace(path_acc, path_template, "{var#{i}}")}
-                 end)
-                 |> elem(1)
-             }
-           }
-         },
-         "metadata" => %{
-           "filter_metadata" => %{
-             "envoy.filters.http.lua" => DownstreamAuth.to_filter_metadata(spec)
-           }
-         },
-         "typed_per_filter_config" =>
-           typed_per_filter_config(%{"envoy.filters.http.cors" => cors}),
-         "route" =>
-           %{
-             "auto_host_rewrite" => true,
-             "path_rewrite_policy" => %{
-               "name" => "envoy.path.rewrite.uri_template.uri_template_rewriter",
-               "typed_config" => %{
-                 "@type" =>
-                   "type.googleapis.com/envoy.extensions.path.rewrite.uri_template.v3.UriTemplateRewriteConfig",
-                 "path_template_rewrite" =>
-                   Path.join(
-                     server_path,
-                     Enum.reduce(path_templates, {0, path}, fn
-                       [path_template, @path_wildcard], {i, path_acc} ->
-                         {i, String.replace(path_acc, path_template, "{#{@path_wildcard}}")}
+  defp path_match_policy([], path_prefix, path) do
+    %{"path" => Path.join(path_prefix, path)}
+  end
 
-                       [path_template, _path_variable], {i, path_acc} ->
-                         {i + 1, String.replace(path_acc, path_template, "{var#{i}}")}
-                     end)
-                     |> elem(1)
-                   )
-               }
-             }
-           }
-           |> Map.merge(cluster_route_config)
-       }, clusters}
-    end
+  defp path_match_policy(path_templates, path_prefix, path) do
+    %{
+      "path_match_policy" => %{
+        "name" => "envoy.path.match.uri_template.uri_template_matcher",
+        "typed_config" => %{
+          "@type" =>
+            "type.googleapis.com/envoy.extensions.path.match.uri_template.v3.UriTemplateMatchConfig",
+          "path_template" =>
+            Enum.reduce(path_templates, {0, Path.join(path_prefix, path)}, fn
+              [path_template, @path_wildcard], {i, path_acc} ->
+                {i, String.replace(path_acc, path_template, "{#{@path_wildcard}=**}")}
+
+              [path_template, _path_variable], {i, path_acc} ->
+                {i + 1, String.replace(path_acc, path_template, "{var#{i}}")}
+            end)
+            |> elem(1)
+        }
+      }
+    }
+  end
+
+  defp path_rewrite_policy([], server_path, path) do
+    %{"prefix_rewrite" => Path.join(server_path, path)}
+  end
+
+  defp path_rewrite_policy(path_templates, server_path, path) do
+    %{
+      "path_rewrite_policy" => %{
+        "name" => "envoy.path.rewrite.uri_template.uri_template_rewriter",
+        "typed_config" => %{
+          "@type" =>
+            "type.googleapis.com/envoy.extensions.path.rewrite.uri_template.v3.UriTemplateRewriteConfig",
+          "path_template_rewrite" =>
+            Path.join(
+              server_path,
+              Enum.reduce(path_templates, {0, path}, fn
+                [path_template, @path_wildcard], {i, path_acc} ->
+                  {i, String.replace(path_acc, path_template, "{#{@path_wildcard}}")}
+
+                [path_template, _path_variable], {i, path_acc} ->
+                  {i + 1, String.replace(path_acc, path_template, "{var#{i}}")}
+              end)
+              |> elem(1)
+            )
+        }
+      }
+    }
+  end
+
+  defp websocket_route(enabled) do
+    %{
+      "upgrade_configs" => [
+        %{
+          "upgrade_type" => "websocket",
+          "enabled" => enabled
+        }
+      ]
+    }
   end
 
   defp typed_per_filter_config(configs) do

@@ -82,6 +82,7 @@
                 pkgs.envoy
                 pkgs.jq
                 pkgs.hurl
+                pkgs.websocat
                 pkgs.docker-compose
                 pkgs.python312Packages.mkdocs-material
                 pkgs.python312Packages.pillow

@@ -1,0 +1,31 @@
+x-proxyconf:
+  cluster: {{envoy-cluster}}
+  url: http://localhost:8080/websocket
+  security:
+    auth: 
+      downstream: disabled
+
+openapi: 3.0.3
+info:
+  title: ProxyConf Showcasing Websocket Config
+  version: 0.1.0
+servers:
+  - url: https://127.0.0.1:{{api-port}}/api/echo
+paths:
+  /websocket:
+    get:
+      x-proxyconf-websocket: enabled
+      servers:
+        - url: https://127.0.0.1:{{api-port}}/echo
+      responses:
+        '200':
+          description: "OK"
+          content:
+            application/json: {}
+  /test:
+    get:
+      responses:
+        '200':
+          description: "OK"
+          content:
+            application/json: {}

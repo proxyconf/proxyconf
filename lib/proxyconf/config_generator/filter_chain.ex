@@ -28,6 +28,9 @@ defmodule ProxyConf.ConfigGenerator.FilterChain do
           "stat_prefix" => "proxyconf",
           "codec_type" => "AUTO",
           "strip_matching_host_port" => true,
+          "upgrade_configs" => [
+            %{"upgrade_type" => "websocket", "enabled" => false}
+          ],
           "rds" => %{
             "config_source" => %{
               "ads" => %{},

@@ -2,10 +2,12 @@ defmodule ProxyConf.ConfigGenerator.UpstreamAuth do
   @moduledoc """
     This module implements the upstream auth backed by the Envoy credential injector
   """
+  alias ProxyConf.Db
   alias ProxyConf.Spec
 
   defstruct([
     :api_id,
+    :cluster_id,
     :auth_type,
     :auth_field_name,
     :auth_field_value,
@@ -72,7 +74,7 @@ defmodule ProxyConf.ConfigGenerator.UpstreamAuth do
   end
 
   def from_spec_gen(%Spec{upstream_auth: upstream_auth} = spec) do
-    %__MODULE__{upstream_auth | api_id: spec.api_id}
+    %__MODULE__{upstream_auth | api_id: spec.api_id, cluster_id: spec.cluster_id}
     |> wrap_gen()
   end
 
@@ -81,11 +83,14 @@ defmodule ProxyConf.ConfigGenerator.UpstreamAuth do
       Enum.reject(upstream_auth, fn %__MODULE__{auth_type: t} -> t == "disabled" end)
       |> Enum.map(fn %__MODULE__{
                        api_id: api_id,
+                       cluster_id: cluster_id,
                        overwrite: overwrite,
                        auth_field_name: auth_field_name,
                        auth_field_value: auth_field_value
                      } ->
         credential_name = "upstream-auth-#{api_id}"
+
+        secret = Db.maybe_get_secret(cluster_id, auth_field_value)
 
         {{api_id,
           %{
@@ -111,7 +116,7 @@ defmodule ProxyConf.ConfigGenerator.UpstreamAuth do
           }},
          %{
            "name" => credential_name,
-           "generic_secret" => %{"secret" => %{"inline_string" => auth_field_value}}
+           "generic_secret" => %{"secret" => %{"inline_string" => secret}}
          }}
       end)
       |> Enum.unzip()

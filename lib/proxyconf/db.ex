@@ -1,11 +1,12 @@
 defmodule ProxyConf.Db do
   alias ProxyConf.Api.DbSpec
+  alias ProxyConf.Api.DbSecret
   alias ProxyConf.ConfigCache
   alias ProxyConf.Repo
   alias ProxyConf.Spec
   import Ecto.Query, only: [from: 2]
 
-  def create_or_update(specs, opts \\ []) when is_list(specs) do
+  def create_or_update_specs(specs, opts \\ []) when is_list(specs) do
     tx_result =
       Repo.transaction(fn ->
         results =
@@ -93,6 +94,38 @@ defmodule ProxyConf.Db do
     )
     |> Repo.all()
   end
+
+  def create_or_update_secret(cluster_id, name, value) do
+    case Repo.get_by(DbSecret, cluster: cluster_id, name: name) do
+      %DbSecret{value: ^value} ->
+        :ok
+
+      %DbSecret{} = db_secret ->
+        db_secret
+        |> DbSecret.changeset(%{value: value})
+        |> Repo.update!()
+
+      nil ->
+        %DbSecret{}
+        |> DbSecret.changeset(%{cluster: cluster_id, name: name, value: value})
+        |> Repo.insert!()
+    end
+
+    :ok
+  end
+
+  def maybe_get_secret(cluster_id, "%SECRET:" <> _ = secret_name) do
+    case Regex.scan(~r/^%SECRET:(.+)%$/, secret_name) do
+      [[_, secret_name]] ->
+        secret = Repo.get_by!(DbSecret, cluster: cluster_id, name: secret_name)
+        secret.value
+
+      _ ->
+        raise "Invalid cluster secret identifier #{secret_name}"
+    end
+  end
+
+  def maybe_get_secret(_, secret), do: secret
 
   def map(mapper_fn) do
     stream = Repo.stream(DbSpec)
