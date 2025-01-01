@@ -191,16 +191,18 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
     }
   end
 
-  def from_spec_gen(%Spec{downstream_auth: downstream_auth} = spec),
-    do:
-      %__MODULE__{
-        downstream_auth
-        | api_id: spec.api_id,
-          api_url: spec.api_url,
-          allowed_source_ips: spec.allowed_source_ips,
-          cors: spec.cors
-      }
-      |> wrap_gen()
+  def from_spec_gen(%Spec{downstream_auth: downstream_auth} = spec) do
+    {&generate/1,
+     %{
+       downstream_auth: %__MODULE__{
+         downstream_auth
+         | api_id: spec.api_id,
+           api_url: spec.api_url,
+           allowed_source_ips: spec.allowed_source_ips,
+           cors: spec.cors
+       }
+     }}
+  end
 
   def from_spec_gen(spec) do
     raise(
@@ -208,12 +210,14 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
     )
   end
 
-  defp wrap_gen(res), do: fn -> res end
+  defp generate(context) do
+    context.downstream_auth
+  end
 
   def to_filter_metadata(spec) do
     # this function is called by the route generator and injects
     # custom metadata available if a route matches
-    %__MODULE__{} = config = from_spec_gen(spec).()
+    {_generator_fn, %{downstream_auth: %__MODULE__{} = config}} = from_spec_gen(spec)
 
     %{
       "api_id" => spec.api_id,
@@ -300,7 +304,10 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
     end)
   end
 
-  defp rbac_principals(%__MODULE__{auth_type: auth_type, jwt_provider_config: jwt_provider_config})
+  defp rbac_principals(%__MODULE__{
+         auth_type: auth_type,
+         jwt_provider_config: jwt_provider_config
+       })
        when auth_type == "jwt" do
     audiences_principals =
       Enum.map(Map.get(jwt_provider_config, "audiences", []), fn aud ->
@@ -425,7 +432,7 @@ defmodule ProxyConf.ConfigGenerator.DownstreamAuth do
             {put_in(provider_config, ["remote_jwks", "http_uri", "cluster"], cluster_name),
              [
                # reusing logic from Cluster generator to generate JWKS cluster
-               Cluster.from_spec_gen(nil).([{cluster_name, cluster_uri}])
+               elem(Cluster.from_spec_gen(nil), 0).([{cluster_name, cluster_uri}], %{})
                | remote_jwks_acc
              ]}
           end

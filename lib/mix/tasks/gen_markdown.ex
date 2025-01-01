@@ -39,24 +39,30 @@ defmodule Mix.Tasks.GenMarkdown do
         %{"openapi" => _, "info" => %{"title" => title} = info} = spec ->
           summary = Map.get(info, "summary", "no-category")
 
-          {hurl, 0} =
-            System.cmd("hurlfmt", ["--out", "html", String.replace(example, ".yaml", ".hurl")])
+          hurl_file = String.replace(example, ".yaml", ".hurl")
 
-          doc = """
-          ## #{title}
+          if File.exists?(hurl_file) do
+            {hurl, 0} =
+              System.cmd("hurlfmt", ["--out", "html", hurl_file])
+
+            doc = """
+            ## #{title}
 
 
-          #{Map.get(info, "description", "")}
+            #{Map.get(info, "description", "")}
 
-          ```yaml title="OpenAPI Specification"
-          #{Ymlr.document!(Map.put(spec, "info", %{"title" => title})) |> String.replace_prefix("---\n", "")}
-          ```
+            ```yaml title="OpenAPI Specification"
+            #{Ymlr.document!(Map.put(spec, "info", %{"title" => title})) |> String.replace_prefix("---\n", "")}
+            ```
 
-          <h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
-          <div class="hurl">#{hurl}</div>
-          """
+            <h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
+            <div class="hurl">#{hurl}</div>
+            """
 
-          [{summary, doc}]
+            [{summary, doc}]
+          else
+            []
+          end
 
         _ ->
           []

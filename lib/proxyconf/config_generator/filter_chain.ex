@@ -4,6 +4,7 @@ defmodule ProxyConf.ConfigGenerator.FilterChain do
 
     One filter chain per VHost is generated.
   """
+  require Logger
   use ProxyConf.MapTemplate
   alias ProxyConf.ConfigGenerator.DownstreamAuth
   alias ProxyConf.ConfigGenerator.UpstreamAuth
@@ -11,99 +12,109 @@ defmodule ProxyConf.ConfigGenerator.FilterChain do
   alias ProxyConf.ConfigGenerator.VHost
   alias ProxyConf.ConfigGenerator.Listener
   alias ProxyConf.ConfigGenerator.RouteConfiguration
+  alias ProxyConf.ConfigGenerator.HttpConnectionManager
 
   deftemplate(%{
-    "name" => :route_config_name,
+    "name" => :name,
     "transport_socket" => :transport_socket,
     "filter_chain_match" => %{
       "server_names" => :server_names,
       "direct_source_prefix_ranges" => :allowed_source_ip_ranges
     },
-    "filters" => [
-      %{
-        "name" => "envoy.filters.network.http_connection_manager",
-        "typed_config" => %{
-          "@type" =>
-            "type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager",
-          "stat_prefix" => "proxyconf",
-          "codec_type" => "AUTO",
-          "strip_matching_host_port" => true,
-          "upgrade_configs" => [
-            %{"upgrade_type" => "websocket", "enabled" => false}
-          ],
-          "rds" => %{
-            "config_source" => %{
-              "ads" => %{},
-              "resource_api_version" => "V3"
-            },
-            "route_config_name" => :route_config_name
-          },
-          "http_filters" =>
-            [
-              :http_filters,
-              %{
-                "name" => "envoy.filters.http.cors",
-                "typed_config" => %{
-                  "@type" => "type.googleapis.com/envoy.extensions.filters.http.cors.v3.Cors"
-                }
-              },
-              %{
-                "name" => "envoy.filters.http.router",
-                "typed_config" => %{
-                  "@type" => "type.googleapis.com/envoy.extensions.filters.http.router.v3.Router",
-                  "suppress_envoy_headers" => true
-                }
-              }
-            ]
-            |> List.flatten()
-        }
-      }
-    ]
+    "filters" => [:http_connection_manager]
   })
 
   def from_spec_gen(spec) do
     listener_name = Listener.name(spec)
 
-    fn [vhost], source_ip_ranges, downstream_auth, downstream_tls, upstream_auth ->
-      {downstream_auth_filter, downstream_auth_cluster_config} =
-        DownstreamAuth.to_envoy_http_filter(downstream_auth)
+    {&generate/7,
+     %{
+       cluster_id: spec.cluster_id,
+       listener_name: listener_name
+     }}
+  end
 
-      {upstream_auth, upstream_secrets} =
-        UpstreamAuth.to_envoy_api_specific_http_filters(upstream_auth)
+  defp generate(
+         [vhost],
+         source_ip_ranges,
+         http_connection_managers,
+         downstream_auth,
+         downstream_tls,
+         upstream_auth,
+         context
+       ) do
+    http_connection_manager =
+      case http_connection_managers do
+        [http_connection_manager] ->
+          http_connection_manager
 
-      upstream_auth = to_composite(upstream_auth)
+        _multiples ->
+          http_connection_manager =
+            Enum.reduce(http_connection_managers, %{}, fn hcm, acc ->
+              DeepMerge.deep_merge(acc, hcm)
+            end)
 
-      api_specific_filters = [upstream_auth] |> List.flatten()
+          Logger.warning(
+            cluster: context.cluster_id,
+            message:
+              "Merging http-connection-manager configuration resulted in #{inspect(http_connection_manager)}"
+          )
 
-      transport_socket =
-        DownstreamTls.to_envoy_transport_socket(listener_name, downstream_auth, downstream_tls)
+          http_connection_manager
+      end
 
-      server_names = VHost.server_names(vhost)
+    {downstream_auth_filter, downstream_auth_cluster_config} =
+      DownstreamAuth.to_envoy_http_filter(downstream_auth)
 
-      %{"transport_socket" => transport_socket} =
-        filter_chain =
-        %{
-          server_names: [server_names |> List.first()],
-          transport_socket: transport_socket,
-          allowed_source_ip_ranges: source_ip_ranges,
-          http_filters: [downstream_auth_filter, api_specific_filters],
-          route_config_name: RouteConfiguration.name(listener_name, List.first(server_names))
-        }
-        |> eval()
+    {upstream_auth, upstream_secrets} =
+      UpstreamAuth.to_envoy_api_specific_http_filters(upstream_auth)
 
+    upstream_auth = to_composite(upstream_auth)
+
+    api_specific_filters = [upstream_auth] |> List.flatten()
+
+    transport_socket =
+      DownstreamTls.to_envoy_transport_socket(
+        context.listener_name,
+        downstream_auth,
+        downstream_tls
+      )
+
+    server_names = VHost.server_names(vhost)
+
+    http_filters = [downstream_auth_filter, api_specific_filters]
+    route_config_name = RouteConfiguration.name(context.listener_name, List.first(server_names))
+
+    http_connection_manager =
+      HttpConnectionManager.to_envoy_http_connection_manager(
+        http_connection_manager,
+        route_config_name,
+        http_filters
+      )
+
+    %{"transport_socket" => transport_socket} =
       filter_chain =
-        if is_nil(transport_socket) do
-          {_, filter_chain} =
-            Map.delete(filter_chain, "transport_socket")
-            |> pop_in(["filter_chain_match", "server_names"])
+      %{
+        name: route_config_name,
+        server_names: [server_names |> List.first()],
+        transport_socket: transport_socket,
+        allowed_source_ip_ranges: source_ip_ranges,
+        http_connection_manager: http_connection_manager
+      }
+      |> eval()
 
-          filter_chain
-        else
-          filter_chain
-        end
+    filter_chain =
+      if is_nil(transport_socket) do
+        {_, filter_chain} =
+          Map.delete(filter_chain, "transport_socket")
+          |> pop_in(["filter_chain_match", "server_names"])
 
-      {filter_chain, downstream_auth_cluster_config, upstream_secrets}
-    end
+        filter_chain
+      else
+        filter_chain
+      end
+
+    {filter_chain, downstream_auth_cluster_config, upstream_secrets}
   end
 
   defp to_composite(filters) when is_map(filters) and map_size(filters) > 0 do

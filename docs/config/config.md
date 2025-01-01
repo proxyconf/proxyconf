@@ -34,8 +34,8 @@ x-proxyconf:
 | Property | `x-proxyconf` *`(object)`* |
  | --- | --- |
 | **additionalProperties** | `false` |
-| **properties** | [`api-id`](#api-identifier), [`cluster`](#cluster-identifier), [`cors`](#cors-policy), [`listener`](#listener-configuration), [`routing`](#routing), [`security`](#security-configuration), [`url`](#api-url) |
-| **optional** | [`api-id`](#api-identifier), [`cluster`](#cluster-identifier), [`cors`](#cors-policy), [`listener`](#listener-configuration), [`routing`](#routing), [`url`](#api-url) |
+| **properties** | [`api-id`](#api-identifier), [`cluster`](#cluster-identifier), [`cors`](#cors-policy), [`http-connection-manager`](#http-connection-manager-configuration), [`listener`](#listener-configuration), [`oauth`](#t), [`routing`](#routing), [`security`](#security-configuration), [`url`](#api-url) |
+| **optional** | [`api-id`](#api-identifier), [`cluster`](#cluster-identifier), [`cors`](#cors-policy), [`http-connection-manager`](#http-connection-manager-configuration), [`listener`](#listener-configuration), [`oauth`](#t), [`routing`](#routing), [`url`](#api-url) |
 
 The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-specific configurations, enabling ProxyConf to generate the necessary resources to integrate with [Envoy Proxy](https://www.envoyproxy.io/).
 
@@ -67,6 +67,15 @@ The cluster identifier groups APIs for Envoy. This cluster name should also be r
 Defines the Cross-Origin Resource Sharing (CORS) policy configured for this API.
 
 
+### Http Connection Manager Configuration
+
+| Property | `http-connection-manager` *`(object)`* |
+ | --- | --- |
+| **$ref** | [Http Connection Manager Configuration](#http-connection-manager-configuration) |
+
+The `http-connection-manager` object configures the Envoy HttpConnectionManager used to serve this API. ProxyConf automatically configures a filter chain per VHost/Listener, enabling that specific http connection manager configurations can exist per filter chain.
+
+
 ### Listener Configuration
 
 | Property | `listener` *`(object)`* |
@@ -74,6 +83,15 @@ Defines the Cross-Origin Resource Sharing (CORS) policy configured for this API.
 | **$ref** | [Listener Configuration](#listener-configuration) |
 
 The `listener` object configures the Envoy listener used to serve this API. Depending on the specified `url` property a TLS context is configured.
+
+
+### T
+
+| Property | `oauth` *`(object)`* |
+ | --- | --- |
+| **$ref** | [T](#t) |
+
+
 
 
 ### Routing

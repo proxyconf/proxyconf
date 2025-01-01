@@ -34,6 +34,7 @@ defmodule ProxyConf.ConfigGenerator do
     vhosts: %{},
     routes: %{},
     route_configurations: %{},
+    http_connection_managers: %{},
     source_ip_ranges: %{},
     downstream_tls: %{},
     downstream_auth: %{},
@@ -55,6 +56,12 @@ defmodule ProxyConf.ConfigGenerator do
               add_to_group(vhost_unifier, config.filter_chains, FilterChain.from_spec_gen(spec)),
             source_ip_ranges:
               add_to_group(vhost_unifier, config.source_ip_ranges, spec.allowed_source_ips),
+            http_connection_managers:
+              add_to_group(
+                vhost_unifier,
+                config.http_connection_managers,
+                spec.http_connection_manager
+              ),
             vhosts: add_to_group(vhost_unifier, config.vhosts, VHost.from_spec_gen(spec)),
             routes: add_to_group(vhost_unifier, config.routes, Route.from_spec_gen(spec)),
             route_configurations:
@@ -97,6 +104,7 @@ defmodule ProxyConf.ConfigGenerator do
          listeners: listeners,
          filter_chains: filter_chains,
          source_ip_ranges: source_ip_ranges,
+         http_connection_managers: http_connection_managers,
          clusters: clusters,
          vhosts: vhosts,
          routes: routes,
@@ -106,6 +114,7 @@ defmodule ProxyConf.ConfigGenerator do
          upstream_auth: upstream_auth
        }) do
     source_ip_ranges = materialize_group(source_ip_ranges)
+    http_connection_managers = materialize_group(http_connection_managers)
     routes = materialize_group(routes)
     downstream_tls = materialize_group(downstream_tls)
     downstream_auth = materialize_group(downstream_auth)
@@ -127,6 +136,7 @@ defmodule ProxyConf.ConfigGenerator do
       materialize_group(filter_chains, [
         vhosts,
         source_ip_ranges,
+        http_connection_managers,
         downstream_auth,
         downstream_tls,
         upstream_auth
@@ -168,7 +178,7 @@ defmodule ProxyConf.ConfigGenerator do
   # optimizing group_by / uniq_by calls
 
   defp add_to_group(unifier, group, item) do
-    Map.update(group, unifier, [item], fn items -> [item | items] end)
+    Map.update(group, unifier, MapSet.new([item]), fn items -> MapSet.put(items, item) end)
   end
 
   defp materialize_group(group, dependencies \\ []) do
@@ -188,9 +198,10 @@ defmodule ProxyConf.ConfigGenerator do
     Map.update!(group, unifier, fn items ->
       items =
         Enum.flat_map(items, fn
-          item when is_function(item) ->
+          {generator_function, context}
+          when is_function(generator_function) and is_map(context) ->
             try do
-              [apply(item, args)]
+              [apply(generator_function, args ++ [context])]
             rescue
               e ->
                 Logger.error(

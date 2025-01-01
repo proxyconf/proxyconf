@@ -60,17 +60,30 @@ defmodule ProxyConf.ConfigCache do
     {:ok,
      %{
        streams: %{},
-       tref: nil
+       tref: nil,
+       index: nil
      }, {:continue, nil}}
   end
 
   def handle_continue(_continue, state) do
-    {:ok, res} =
-      Spec.db_map(fn %Spec{cluster_id: cluster_id, api_id: api_id} ->
-        update_spec_table(cluster_id, api_id, :init)
-        Logger.info(cluster: cluster_id, api_id: api_id, message: "Spec init")
-        {cluster_id, api_id}
-      end)
+    {:ok, {res, _}} =
+      Spec.db_map_reduce(
+        fn %Spec{
+             cluster_id: cluster_id,
+             api_id: api_id
+           } = spec,
+           acc ->
+          # spec is coming directly from the database layer, it's already validated
+          insert_validated_spec(spec)
+          Logger.info(cluster: cluster_id, api_id: api_id, message: "Spec init")
+
+          {{cluster_id, api_id}, acc}
+        end,
+        # acc
+        [],
+        # where clause
+        []
+      )
 
     Enum.group_by(res, fn {cluster_id, _} -> cluster_id end, fn {_, api_id} -> api_id end)
     |> Enum.each(fn {cluster_id, api_ids} ->

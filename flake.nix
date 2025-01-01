@@ -2,7 +2,7 @@
   description = "ProxyConf";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs?ref=nixos-24.11";
     nix2container.url = "github:nlewo/nix2container";
     flake-utils.url = "github:numtide/flake-utils";
     devenv.url = "github:cachix/devenv";
@@ -22,7 +22,7 @@
         inherit (pkgs.lib) optional optionals;
         pkgs = import nixpkgs { inherit system; };
 
-        elixir = pkgs.elixir_1_16;
+        elixir = pkgs.elixir_1_18;
       beamPackages = pkgs.beam.packagesWith pkgs.beam.interpreters.erlang;
       nix2containerPkgs = nix2container.packages.${system};
 
@@ -77,7 +77,7 @@
           modules = [
             ({ pkgs, config, ...}: {
               packages = [
-                pkgs.elixir
+                pkgs.elixir_1_18
                 pkgs.elixir_ls
                 pkgs.envoy
                 pkgs.jq

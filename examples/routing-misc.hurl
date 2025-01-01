@@ -6,6 +6,8 @@ HTTP 200
 
 GET http://localhost:8080/routing-misc/test
 HTTP 200
+[Asserts]
+header "Server" == "proxyconf"
 
 # We expect a not found as required request body is missing 
 # and therefore no route matches

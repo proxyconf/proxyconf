@@ -10,10 +10,11 @@ defmodule ProxyConf.ConfigGenerator.Route do
   def from_spec_gen(spec) do
     path_prefix = spec.api_url.path || "/"
     route = from_oas3_spec(path_prefix, spec)
+    {&generate/1, %{route: route}}
+  end
 
-    fn ->
-      route
-    end
+  defp generate(context) do
+    context.route
   end
 
   @operations ~w/get put post delete options head patch trace/
@@ -33,6 +34,11 @@ defmodule ProxyConf.ConfigGenerator.Route do
 
         cors =
           Cors.merge_policy(cors, path_level_cors_policy)
+
+        # path_level_oauth_policy =
+        #  OAuth.config_from_json(Map.get(path_item_object, "x-proxyconf-oauth"))
+
+        # oauth = OAuth.merge_policy(oauth, path_level_oauth_policy)
 
         inherited_config =
           Map.merge(%{"servers" => servers}, path_item_object)
@@ -54,6 +60,7 @@ defmodule ProxyConf.ConfigGenerator.Route do
             operation,
             DeepMerge.deep_merge(inherited_config, operation_object),
             cors,
+            # oauth,
             clusters_acc,
             spec
           )
@@ -80,6 +87,7 @@ defmodule ProxyConf.ConfigGenerator.Route do
          operation,
          path_item_object,
          cors,
+         # oauth,
          clusters,
          %Spec{} = spec
        ) do
@@ -258,7 +266,11 @@ defmodule ProxyConf.ConfigGenerator.Route do
            "envoy.filters.http.lua" => DownstreamAuth.to_filter_metadata(spec)
          }
        },
-       "typed_per_filter_config" => typed_per_filter_config(%{"envoy.filters.http.cors" => cors}),
+       "typed_per_filter_config" =>
+         typed_per_filter_config(%{
+           "envoy.filters.http.cors" => cors
+           # "envoy.filters.http.oauth" => oauth
+         }),
        "route" =>
          %{
            "auto_host_rewrite" => true

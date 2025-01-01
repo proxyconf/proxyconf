@@ -73,9 +73,23 @@ defmodule ProxyConf.ConfigGenerator.UpstreamAuth do
     }
   end
 
+  def from_spec_gen(%Spec{upstream_auth: %{auth_type: "disabled"} = upstream_auth}) do
+    {&generate/1, %{upstream_auth: upstream_auth}}
+  end
+
   def from_spec_gen(%Spec{upstream_auth: upstream_auth} = spec) do
-    %__MODULE__{upstream_auth | api_id: spec.api_id, cluster_id: spec.cluster_id}
-    |> wrap_gen()
+    {&generate/1,
+     %{
+       upstream_auth: %__MODULE__{
+         upstream_auth
+         | api_id: spec.api_id,
+           cluster_id: spec.cluster_id
+       }
+     }}
+  end
+
+  defp generate(context) do
+    context.upstream_auth
   end
 
   def to_envoy_api_specific_http_filters(upstream_auth) do
@@ -123,6 +137,4 @@ defmodule ProxyConf.ConfigGenerator.UpstreamAuth do
 
     {Map.new(upstream_auth), upstream_secrets}
   end
-
-  defp wrap_gen(res), do: fn -> res end
 end

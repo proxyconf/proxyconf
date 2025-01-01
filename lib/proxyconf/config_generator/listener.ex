@@ -2,7 +2,6 @@ defmodule ProxyConf.ConfigGenerator.Listener do
   @moduledoc """
     This implements the config generator for the listener resource
   """
-  use ProxyConf.MapTemplate
 
   @typedoc """
       title: IPv4
@@ -41,26 +40,6 @@ defmodule ProxyConf.ConfigGenerator.Listener do
           port: tcp_port()
         }
 
-  deftemplate(%{
-    "name" => :listener_name,
-    "address" => %{
-      "socket_address" => %{
-        "address" => :address,
-        "port_value" => :port
-      }
-    },
-    "listener_filters" => [
-      %{
-        "name" => "envoy.filters.listener.tls_inspector",
-        "typed_config" => %{
-          "@type" =>
-            "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"
-        }
-      }
-    ],
-    "filter_chains" => :filter_chains
-  })
-
   def name(spec) do
     "#{spec.listener_address}:#{spec.listener_port}"
   end
@@ -68,14 +47,33 @@ defmodule ProxyConf.ConfigGenerator.Listener do
   def from_spec_gen(spec) do
     listener_name = name(spec)
 
-    fn filter_chains ->
-      %{
-        listener_name: listener_name,
-        address: spec.listener_address,
-        port: spec.listener_port,
-        filter_chains: filter_chains
-      }
-      |> eval()
-    end
+    {&generate/2,
+     %{
+       listener_name: listener_name,
+       address: spec.listener_address,
+       port: spec.listener_port
+     }}
+  end
+
+  defp generate(filter_chains, context) do
+    %{
+      "name" => context.listener_name,
+      "address" => %{
+        "socket_address" => %{
+          "address" => context.address,
+          "port_value" => context.port
+        }
+      },
+      "listener_filters" => [
+        %{
+          "name" => "envoy.filters.listener.tls_inspector",
+          "typed_config" => %{
+            "@type" =>
+              "type.googleapis.com/envoy.extensions.filters.listener.tls_inspector.v3.TlsInspector"
+          }
+        }
+      ],
+      "filter_chains" => filter_chains
+    }
   end
 end

@@ -7,6 +7,7 @@ defmodule ProxyConf.Spec do
   alias ProxyConf.Db
   alias ProxyConf.ConfigGenerator.Cors
   alias ProxyConf.ConfigGenerator.DownstreamAuth
+  alias ProxyConf.ConfigGenerator.HttpConnectionManager
   alias ProxyConf.ConfigGenerator.UpstreamAuth
 
   @external_resource "priv/schemas/proxyconf.json"
@@ -38,6 +39,8 @@ defmodule ProxyConf.Spec do
     :upstream_auth,
     :routing,
     :cors,
+    :oauth,
+    :http_connection_manager,
     :spec,
     type: :oas3
   ])
@@ -152,7 +155,9 @@ defmodule ProxyConf.Spec do
           url: url(),
           routing: routing(),
           security: security(),
-          cors: ProxyConf.ConfigGenerator.Cors.t()
+          cors: ProxyConf.ConfigGenerator.Cors.t(),
+          oauth: ProxyConf.ConfigGenerator.OAuth.t(),
+          http_connection_manager: ProxyConf.ConfigGenerator.HttpConnectionManager.t()
         }
 
   @typedoc """
@@ -190,13 +195,23 @@ defmodule ProxyConf.Spec do
     end
   end
 
-  def db_map(mapper_fn) do
-    Db.map(fn db_spec ->
-      {:ok, spec} =
-        from_oas3(db_spec.api_id, Jason.decode!(db_spec.data), db_spec.data)
+  def db_map_reduce(mapper_fn, acc, where) do
+    Db.map_reduce(
+      fn db_spec, acc ->
+        case from_oas3(db_spec.api_id, Jason.decode!(db_spec.data), db_spec.data) do
+          {:ok, spec} ->
+            # it's a flat_map_reduce internally, let's conform
+            {v, acc} = mapper_fn.(spec, acc)
+            {[v], acc}
 
-      mapper_fn.(spec)
-    end)
+          {:error, reason} ->
+            Logger.error(cluster: db_spec.cluster, api_id: db_spec.api_id, message: reason)
+            {[], acc}
+        end
+      end,
+      acc,
+      where
+    )
   end
 
   @spec from_oas3(String.t(), map(), binary()) :: {:ok, map()} | {:error, String.t()}
@@ -206,7 +221,7 @@ defmodule ProxyConf.Spec do
         proxyconf = Map.fetch!(spec, "x-proxyconf")
 
         config_from_spec =
-          defaults(api_id)
+          defaults(api_id, proxyconf["url"])
           |> DeepMerge.deep_merge(proxyconf)
           |> update_in(["security", "allowed-source-ips"], &to_cidrs/1)
           |> update_in(["url"], &URI.parse/1)
@@ -225,7 +240,9 @@ defmodule ProxyConf.Spec do
             "fail-fast-on-missing-header-parameter" => fail_fast_on_missing_header_parameter,
             "fail-fast-on-wrong-request-media_type" => fail_fast_on_wrong_request_media_type
           },
-          "cors" => cors
+          "cors" => cors,
+          "oauth" => oauth,
+          "http-connection-manager" => http_connection_manager
         } = config_from_spec
 
         {:ok,
@@ -245,6 +262,9 @@ defmodule ProxyConf.Spec do
              fail_fast_on_wrong_request_media_type: fail_fast_on_wrong_request_media_type
            },
            cors: Cors.config_from_json(cors),
+           oauth: nil,
+           http_connection_manager:
+             HttpConnectionManager.config_from_json(http_connection_manager),
            spec: spec
          }}
 
@@ -257,12 +277,13 @@ defmodule ProxyConf.Spec do
     :crypto.hash(:sha256, data) |> Base.encode64()
   end
 
-  defp defaults(api_id) do
+  defp defaults(api_id, api_url) do
     api_url =
-      default(
-        :default_api_host,
-        "http://localhost:#{Application.get_env(:proxyconf, :default_api_port, 8080)}/#{api_id}"
-      )
+      (api_url ||
+         default(
+           :default_api_host,
+           "http://localhost:#{Application.get_env(:proxyconf, :default_api_port, 8080)}/#{api_id}"
+         ))
       |> URI.parse()
 
     %{
@@ -279,7 +300,9 @@ defmodule ProxyConf.Spec do
         "fail-fast-on-missing-header-parameter" => true,
         "fail-fast-on-wrong-request-media_type" => true
       },
-      "cors" => nil
+      "cors" => nil,
+      "oauth" => nil,
+      "http-connection-manager" => nil
     }
   end
 

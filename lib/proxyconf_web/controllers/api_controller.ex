@@ -69,6 +69,12 @@ defmodule ProxyConfWeb.ApiController do
          {:ok, data} <- render_mustache(data, qs_params),
          {:ok, spec} <- decode(content_type, data),
          {:ok, %Spec{cluster_id: ^cluster_id} = spec} <- Spec.from_oas3(spec_name, spec, data),
+         _ <-
+           Logger.info(
+             cluster: cluster_id,
+             api_id: spec.api_id,
+             message: "Valid spec uploaded for #{spec.api_url}"
+           ),
          :ok <- Db.create_or_update_specs([spec]) do
       send_resp(conn, 200, "OK")
     else

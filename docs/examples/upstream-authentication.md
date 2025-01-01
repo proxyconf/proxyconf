@@ -26,13 +26,22 @@ x-proxyconf:
         name: upstream-api-key
         overwrite: false
         type: header
-        value: upstream-secret
+        value: '%SECRET:upstream-api-key%'
   url: http://localhost:8080/inject-upstream-header
 
 ```
 
 <h3><a href="https://hurl.dev" target="_blank">HURL</a> Examples</h3>
-<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"><span class="method">POST</span> <span class="url">https://localhost:{{port}}/api/spec/inject-upstream-header?api-port={{port}}&amp;envoy-cluster={{envoy-cluster}}</span></span>
+<div class="hurl"><pre><code class="language-hurl"><span class="hurl-entry"><span class="request"><span class="line"></span><span class="comment"># Set secret 'upstream-api-key' used to inject in the header</span>
+<span class="line"><span class="method">POST</span> <span class="url">https://localhost:{{port}}/api/secret/upstream-api-key</span></span>
+<span class="line"><span class="string">Authorization</span>: <span class="string">Bearer {{admin-access-token}}</span></span>
+<span class="multiline"><span class="line">```</span>
+<span class="line">MY-UPSTREAM-SECRET</span>
+<span class="line">```</span></span>
+</span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
+</span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
+<span class="line"></span>
+<span class="line"><span class="method">POST</span> <span class="url">https://localhost:{{port}}/api/spec/inject-upstream-header?api-port={{port}}&amp;envoy-cluster={{envoy-cluster}}</span></span>
 <span class="line"><span class="string">Content-Type</span>: <span class="string">application/yaml</span></span>
 <span class="line"><span class="string">Authorization</span>: <span class="string">Bearer {{admin-access-token}}</span></span>
 <span class="line">file,<span class="filename">inject-upstream-header.yaml</span>;</span>
@@ -44,7 +53,7 @@ x-proxyconf:
 </span><span class="response"><span class="line"><span class="version">HTTP</span> <span class="number">200</span></span>
 <span class="line"><span class="string">Content-Type</span>: <span class="string">application/json</span></span>
 <span class="line"><span class="section-header">[Asserts]</span></span>
-<span class="line"><span class="query-type">jsonpath</span> <span class="string">"$.headers.upstream-api-key"</span> <span class="predicate-type">==</span> <span class="string">"upstream-secret"</span></span>
+<span class="line"><span class="query-type">jsonpath</span> <span class="string">"$.headers.upstream-api-key"</span> <span class="predicate-type">==</span> <span class="string">"MY-UPSTREAM-SECRET"</span></span>
 </span></span><span class="hurl-entry"><span class="request"><span class="line"></span>
 <span class="line"></span>
 <span class="line"></span><span class="comment"># If the client provides the header, it is passed through</span>

@@ -2,25 +2,18 @@ defmodule ProxyConf.ConfigGenerator.VHost do
   @moduledoc """
     This module implements a config generator for the VHost used as part of XDS/LDS
   """
-  use ProxyConf.MapTemplate
-
-  deftemplate(%{
-    "name" => :name,
-    "domains" => :domains,
-    "routes" => :routes
-  })
 
   def from_spec_gen(spec) do
     [host | _] = server_names = to_server_names(spec.api_url)
+    {&generate/2, %{host: host, domains: server_names}}
+  end
 
-    fn routes ->
-      %{
-        name: host,
-        domains: server_names,
-        routes: routes
-      }
-      |> eval()
-    end
+  defp generate(routes, context) do
+    %{
+      "name" => context.host,
+      "domains" => context.domains,
+      "routes" => routes
+    }
   end
 
   def server_names(%{"domains" => domains}) do

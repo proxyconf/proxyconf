@@ -47,24 +47,50 @@ defmodule ProxyConf.Db do
     end
   end
 
-  defp create_or_update_spec(%Spec{cluster_id: cluster_id, api_id: api_id, spec: spec}) do
+  defp create_or_update_spec(%Spec{
+         cluster_id: cluster_id,
+         api_id: api_id,
+         api_url: api_url,
+         listener_address: listener_address,
+         listener_port: listener_port,
+         spec: spec
+       }) do
     data = Jason.encode!(spec)
+    vhost = api_url.host
 
     case get_spec(cluster_id, api_id) do
       nil ->
         db_spec =
           %DbSpec{}
-          |> DbSpec.changeset(%{cluster: cluster_id, api_id: api_id, data: data})
+          |> DbSpec.changeset(%{
+            cluster: cluster_id,
+            api_id: api_id,
+            listener_address: listener_address,
+            listener_port: listener_port,
+            vhost: vhost,
+            data: data
+          })
           |> Repo.insert!()
 
         {:inserted, db_spec.id}
 
-      %DbSpec{id: id, data: ^data} ->
+      %DbSpec{
+        id: id,
+        data: ^data,
+        listener_address: ^listener_address,
+        listener_port: ^listener_port,
+        vhost: ^vhost
+      } ->
         {:unchanged, id}
 
       %DbSpec{id: id} = db_spec ->
         db_spec
-        |> DbSpec.changeset(%{data: data})
+        |> DbSpec.changeset(%{
+          data: data,
+          listener_address: listener_address,
+          listener_port: listener_port,
+          vhost: vhost
+        })
         |> Repo.update!()
 
         {:updated, id}
@@ -127,11 +153,16 @@ defmodule ProxyConf.Db do
 
   def maybe_get_secret(_, secret), do: secret
 
-  def map(mapper_fn) do
-    stream = Repo.stream(DbSpec)
+  def map_reduce(mapper_fn, acc, where) do
+    stream =
+      from(spec in DbSpec,
+        where: ^where,
+        select: spec
+      )
+      |> Repo.stream()
 
     Repo.transaction(fn ->
-      Enum.map(stream, mapper_fn)
+      Enum.flat_map_reduce(stream, acc, mapper_fn)
     end)
   end
 end

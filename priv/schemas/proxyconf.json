@@ -491,6 +491,95 @@
       "description": "Controls the HTTP `Access-Control-Max-Age` response header indicates how long the results of a preflight request (that is, the information contained in the `Access-Control-Allow-Methods` and `Access-Control-Allow-Headers` headers) can be cached.",
       "title": "access-control-max-age"
     },
+    "Elixir.ProxyConf.ConfigGenerator.OAuth_t": {
+      "additionalProperties": false,
+      "properties": {},
+      "title": "T",
+      "type": "object"
+    },
+    "Elixir.ProxyConf.ConfigGenerator.HttpConnectionManager_t": {
+      "additionalProperties": false,
+      "description": "The `http-connection-manager` object configures the Envoy HttpConnectionManager used to serve this API. ProxyConf automatically configures a filter chain per VHost/Listener, enabling that specific http connection manager configurations can exist per filter chain.",
+      "properties": {
+        "server-name": {
+          "$ref": "#/definitions/server_name"
+        },
+        "server-header-transformation": {
+          "$ref": "#/definitions/server_header_transformation"
+        },
+        "common-http-protocol-options": {
+          "$ref": "#/definitions/common_http_protocol_options"
+        }
+      },
+      "title": "Http Connection Manager Configuration",
+      "type": "object"
+    },
+    "duration": {
+      "additionalProperties": false,
+      "properties": {
+        "seconds": {
+          "$ref": "#/definitions/uint_32_value"
+        }
+      },
+      "required": [
+        "seconds"
+      ],
+      "title": "Duration",
+      "type": "object"
+    },
+    "headers_with_underscores_action": {
+      "enum": [
+        "DROP_HEADER",
+        "REJECT_REQUEST",
+        "ALLOW"
+      ],
+      "title": "Headers_with_underscores_action"
+    },
+    "uint_32_value": {
+      "minimum": 0,
+      "title": "Uint_32_value",
+      "type": "integer"
+    },
+    "server_name": {
+      "title": "Server_name",
+      "type": "string"
+    },
+    "server_header_transformation": {
+      "enum": [
+        "PASS_THROUGH",
+        "APPEND_IF_ABSENT",
+        "OVERWRITE"
+      ],
+      "title": "Server_header_transformation"
+    },
+    "common_http_protocol_options": {
+      "additionalProperties": false,
+      "properties": {
+        "idle-timeout": {
+          "$ref": "#/definitions/duration"
+        },
+        "max-connection-duration": {
+          "$ref": "#/definitions/duration"
+        },
+        "max-headers-count": {
+          "$ref": "#/definitions/uint_32_value"
+        },
+        "max-response-headers-kb": {
+          "$ref": "#/definitions/uint_32_value"
+        },
+        "max-stream-duration": {
+          "$ref": "#/definitions/duration"
+        },
+        "headers-with-underscores-action": {
+          "$ref": "#/definitions/headers_with_underscores_action"
+        },
+        "max-requests-per-connection": {
+          "$ref": "#/definitions/uint_32_value"
+        }
+      },
+      "title": "Additional settings for HTTP requests handled by the connection manager. These will be applicable to both HTTP1 and HTTP2 requests.",
+      "type": "object"
+    },
     "proxyconf": {
       "additionalProperties": false,
       "description": "The `x-proxyconf` property extends the OpenAPI specification with ProxyConf-specific configurations, enabling ProxyConf to generate the necessary resources to integrate with [Envoy Proxy](https://www.envoyproxy.io/).",
@@ -515,6 +604,12 @@
         },
         "cors": {
           "$ref": "#/definitions/Elixir.ProxyConf.ConfigGenerator.Cors_t"
+        },
+        "oauth": {
+          "$ref": "#/definitions/Elixir.ProxyConf.ConfigGenerator.OAuth_t"
+        },
+        "http-connection-manager": {
+          "$ref": "#/definitions/Elixir.ProxyConf.ConfigGenerator.HttpConnectionManager_t"
         }
       },
       "required": [

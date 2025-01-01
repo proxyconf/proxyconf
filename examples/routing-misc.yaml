@@ -1,6 +1,14 @@
 x-proxyconf:
   cluster: {{envoy-cluster}}
   url: http://localhost:8080/routing-misc
+  http-connection-manager:
+    server-name: "proxyconf"
+    server-header-transformation: OVERWRITE
+    common-http-protocol-options:
+      idle-timeout:
+        seconds: 10
+      max-requests-per-connection: 1
+      headers-with-underscores-action: REJECT_REQUEST
   security:
     auth: 
       downstream: disabled

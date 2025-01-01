@@ -17,55 +17,60 @@ defmodule ProxyConf.ConfigGenerator.DownstreamTls do
       ) do
     listener_name = Listener.name(spec)
 
-    fn ->
-      {crt, key} = LocalCA.server_cert(cluster, host).()
-
-      [
-        %{
-          "name" => host,
-          "tls_certificate" => %{
-            "private_key" => %{
-              "inline_string" => key
-            },
-            "certificate_chain" => %{
-              "inline_string" => crt
-            }
-          }
-        },
-        %{
-          "name" => "mtls-#{listener_name}",
-          "validation_context" => %{
-            "trusted_ca" => %{"inline_string" => File.read!(trusted_ca)}
-          }
-        }
-      ]
-    end
+    {&generate_mtls/1,
+     %{host: host, cluster: cluster, listener_name: listener_name, trusted_ca: trusted_ca}}
   end
 
   def from_spec_gen(%Spec{
         cluster_id: cluster,
         api_url: %URI{scheme: "https", host: host} = _api_url
       }) do
-    fn ->
-      {crt, key} = LocalCA.server_cert(cluster, host).()
-
-      [
-        %{
-          "name" => host,
-          "tls_certificate" => %{
-            "private_key" => %{
-              "inline_string" => key
-            },
-            "certificate_chain" => %{
-              "inline_string" => crt
-            }
-          }
-        }
-      ]
-    end
+    {&generate/1, %{host: host, cluster: cluster}}
   end
 
-  def from_spec_gen(_spec), do: fn -> [] end
+  def from_spec_gen(_spec), do: {fn _context -> [] end, %{}}
+
+  def generate_mtls(context) do
+    {crt, key} = LocalCA.server_cert(context.cluster, context.host).()
+
+    [
+      %{
+        "name" => context.host,
+        "tls_certificate" => %{
+          "private_key" => %{
+            "inline_string" => key
+          },
+          "certificate_chain" => %{
+            "inline_string" => crt
+          }
+        }
+      },
+      %{
+        "name" => "mtls-#{context.listener_name}",
+        "validation_context" => %{
+          "trusted_ca" => %{"inline_string" => File.read!(context.trusted_ca)}
+        }
+      }
+    ]
+  end
+
+  def generate(context) do
+    {crt, key} = LocalCA.server_cert(context.cluster, context.host).()
+
+    [
+      %{
+        "name" => context.host,
+        "tls_certificate" => %{
+          "private_key" => %{
+            "inline_string" => key
+          },
+          "certificate_chain" => %{
+            "inline_string" => crt
+          }
+        }
+      }
+    ]
+  end
 
   def to_envoy_transport_socket(_listener_name, _downstream_auth, []), do: nil
 
