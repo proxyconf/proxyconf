@@ -1,6 +1,17 @@
 ![ProxyConf](./docs/assets/logow.png)
-
+<h2 align="center">
+    <a href="https://proxyconf.com" target="blank_">
+    <img src="https://raw.githubusercontent.com/proxyconf/proxyconf/main/docs/assets/logow.png" alt="ProxyConf" height="100"/>
+    </a>
+    <br>
 **ProxyConf** is a control plane for [Envoy Proxy](https://www.envoyproxy.io/) that simplifies and secures API management in enterprise environments. It leverages the OpenAPI specification to streamline the configuration of Envoy, providing a powerful yet user-friendly platform for managing, and securing API traffic at scale.
+</h2>
+
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/proxyconf/proxyconf/main/docs/assets/animation.gif" alt="ProxyConf in action" width="100%"/>
+
+</div>
 
 > [!WARNING]
 > ProxyConf is **currently in development** and under active construction ⚠️. While it may already be **usable for some cases**, there’s a good chance you’ll encounter **bugs or incomplete features**.

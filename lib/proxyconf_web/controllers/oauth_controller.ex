@@ -6,7 +6,7 @@ defmodule ProxyConfWeb.OAuthController do
 
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, Jason.encode!(jwks))
+    |> send_resp(200, JSON.encode!(jwks))
   end
 
   def issue_token(conn, _params) do
@@ -20,12 +20,12 @@ defmodule ProxyConfWeb.OAuthController do
       {:ok, access_token} ->
         conn
         |> put_resp_content_type("application/json")
-        |> send_resp(200, Jason.encode!(access_token))
+        |> send_resp(200, JSON.encode!(access_token))
 
       {:error, error, http_status} ->
         conn
         |> put_resp_content_type("application/json")
-        |> send_resp(http_status, Jason.encode!(error))
+        |> send_resp(http_status, JSON.encode!(error))
     end
   end
 
@@ -34,12 +34,12 @@ defmodule ProxyConfWeb.OAuthController do
       {:ok, resp} ->
         conn
         |> put_resp_content_type("application/json")
-        |> send_resp(200, Jason.encode!(resp))
+        |> send_resp(200, JSON.encode!(resp))
 
       {:error, error} ->
         conn
         |> put_resp_content_type("application/json")
-        |> send_resp(400, Jason.encode!(error))
+        |> send_resp(400, JSON.encode!(error))
     end
   end
 
@@ -53,12 +53,12 @@ defmodule ProxyConfWeb.OAuthController do
       {:ok, resp} ->
         conn
         |> put_resp_content_type("application/json")
-        |> send_resp(200, Jason.encode!(resp))
+        |> send_resp(200, JSON.encode!(resp))
 
       {:error, error} ->
         conn
         |> put_resp_content_type("application/json")
-        |> send_resp(400, Jason.encode!(error))
+        |> send_resp(400, JSON.encode!(error))
     end
   end
 

@@ -19,10 +19,10 @@ defmodule Mix.Tasks.GenMarkdown do
       GenJsonSchema.gen(ProxyConf.Spec, :root, case: :to_kebab)
       |> Jason.encode!(pretty: true)
 
-    %JsonXema{} = JsonXema.new(Jason.decode!(schema))
+    %JsonXema{} = JsonXema.new(JSON.decode!(schema))
 
     File.write!(Path.join([:code.priv_dir(:proxyconf), "schemas", "proxyconf.json"]), schema)
-    schema = Jason.decode!(schema)
+    schema = JSON.decode!(schema)
 
     to_md("config", schema, Map.get(schema, "definitions", %{}))
     hurl_examples_to_md()

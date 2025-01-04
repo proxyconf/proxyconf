@@ -11,7 +11,7 @@ defmodule ProxyConf.Spec do
   alias ProxyConf.ConfigGenerator.UpstreamAuth
 
   @external_resource "priv/schemas/proxyconf.json"
-  @ext_schema File.read!("priv/schemas/proxyconf.json") |> Jason.decode!()
+  @ext_schema File.read!("priv/schemas/proxyconf.json") |> JSON.decode!()
 
   @merge_resolver fn
     _, l, r when is_list(l) and is_list(r) ->
@@ -23,7 +23,7 @@ defmodule ProxyConf.Spec do
 
   @external_resource "priv/schemas/oas3_0.json"
   @oas3_0_schema File.read!("priv/schemas/oas3_0.json")
-                 |> Jason.decode!()
+                 |> JSON.decode!()
                  |> DeepMerge.deep_merge(@ext_schema, @merge_resolver)
                  |> JsonXema.new()
 
@@ -182,7 +182,7 @@ defmodule ProxyConf.Spec do
                     - 9a618248b64db62d15b300a07b00580b
   """
   @type root :: %{
-          x_proxyconf: proxyconf()
+          x_proxyconf: nil | proxyconf()
         }
 
   def from_db(cluster_id, api_id) do
@@ -191,14 +191,14 @@ defmodule ProxyConf.Spec do
         {:error, :not_found}
 
       db_spec ->
-        from_oas3(api_id, Jason.decode!(db_spec.data), db_spec.data)
+        from_oas3(api_id, JSON.decode!(db_spec.data), db_spec.data)
     end
   end
 
   def db_map_reduce(mapper_fn, acc, where) do
     Db.map_reduce(
       fn db_spec, acc ->
-        case from_oas3(db_spec.api_id, Jason.decode!(db_spec.data), db_spec.data) do
+        case from_oas3(db_spec.api_id, JSON.decode!(db_spec.data), db_spec.data) do
           {:ok, spec} ->
             # it's a flat_map_reduce internally, let's conform
             {v, acc} = mapper_fn.(spec, acc)
@@ -218,7 +218,7 @@ defmodule ProxyConf.Spec do
   def from_oas3(api_id, spec, data) do
     case JsonXema.validate(@oas3_0_schema, spec) do
       :ok ->
-        proxyconf = Map.fetch!(spec, "x-proxyconf")
+        proxyconf = Map.get(spec, "x-proxyconf", %{})
 
         config_from_spec =
           defaults(api_id, proxyconf["url"])
@@ -241,7 +241,7 @@ defmodule ProxyConf.Spec do
             "fail-fast-on-wrong-request-media_type" => fail_fast_on_wrong_request_media_type
           },
           "cors" => cors,
-          "oauth" => oauth,
+          "oauth" => _oauth,
           "http-connection-manager" => http_connection_manager
         } = config_from_spec
 
@@ -282,19 +282,42 @@ defmodule ProxyConf.Spec do
       (api_url ||
          default(
            :default_api_host,
-           "http://localhost:#{Application.get_env(:proxyconf, :default_api_port, 8080)}/#{api_id}"
+           "https://localhost:#{Application.get_env(:proxyconf, :default_api_port, 8443)}/#{api_id}"
          ))
       |> URI.parse()
 
     %{
       "api-id" => api_id,
       "url" => "#{api_url.scheme}://#{api_url.host}:#{api_url.port}/#{api_id}",
-      "cluster" => default(:default_cluster_id, "proxyconf-cluster"),
+      "cluster" => default(:default_cluster_id, "demo"),
       "listener" => %{
         "address" => "127.0.0.1",
         "port" => api_url.port
       },
-      "security" => %{"allowed-source-ips" => ["127.0.0.1/8"], "auth" => %{"upstream" => nil}},
+      "security" => %{
+        "allowed-source-ips" => ["127.0.0.1/8"],
+        "auth" => %{
+          "upstream" => nil,
+          "downstream" => %{
+            "type" => "jwt",
+            "provider-config" => %{
+              "issuer" => "proxyconf",
+              "audiences" => ["demo"],
+              "forward" => false,
+              "remote_jwks" => %{
+                "http_uri" => %{
+                  "uri" =>
+                    "https://127.0.0.1:#{Application.fetch_env!(:proxyconf, :mgmt_api_port)}/api/jwks.json",
+                  "timeout" => "1s"
+                },
+                "cache_duration" => %{
+                  "seconds" => 300
+                }
+              }
+            }
+          }
+        }
+      },
       "routing" => %{
         "fail-fast-on-missing-query-parameter" => true,
         "fail-fast-on-missing-header-parameter" => true,

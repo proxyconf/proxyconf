@@ -16,7 +16,6 @@ config :proxyconf, ProxyConf.Repo,
 # watchers to your application. For example, we can use it
 # to bundle .js and .css sources.
 config :proxyconf, ProxyConfWeb.Endpoint,
-  https: [port: 4001],
   check_origin: false,
   code_reloader: true,
   debug_errors: true,

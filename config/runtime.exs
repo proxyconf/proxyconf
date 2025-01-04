@@ -21,9 +21,17 @@ end
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically setsthe env var above.
 
+mgmt_api_port =
+  if config_env() == :test do
+    4002
+  else
+    String.to_integer(System.get_env("PROXYCONF_MGMT_API_PORT") || "4000")
+  end
+
 proxyconf_hostname = System.get_env("PROXYCONF_HOSTNAME") || "localhost"
 
 config :proxyconf, :hostname, proxyconf_hostname
+config :proxyconf, :mgmt_api_port, mgmt_api_port
 
 if config_env() == :prod do
   # The secret key base is used to sign/encrypt cookies and other secrets.
@@ -49,7 +57,10 @@ if config_env() == :prod do
   config :proxyconf, ProxyConfWeb.Endpoint,
     url: [host: proxyconf_hostname, port: 443, scheme: "https"],
     https: [
-      port: String.to_integer(System.get_env("HTTP_API_PORT") || "4000")
+      port: mgmt_api_port,
+      protocol_options: [
+        server_name: "ProxyConf"
+      ]
     ],
     secret_key_base: secret_key_base
 end
@@ -143,12 +154,16 @@ config :proxyconf, ProxyConfWeb.Endpoint,
   server: true,
   https: [
     ip: {0, 0, 0, 0},
+    port: mgmt_api_port,
     keyfile: Path.absname(mgmt_api_key),
     certfile: Path.absname(mgmt_api_certificate),
     cacertfile: Path.absname(mgmt_api_ca_certificate),
     cipher_suite: :strong,
     secure_renegotiate: true,
-    reuse_sessions: true
+    reuse_sessions: true,
+    protocol_options: [
+      server_name: "ProxyConf"
+    ]
   ]
 
 config :proxyconf, ProxyConf.GRPC.Credential,
@@ -177,7 +192,8 @@ config :proxyconf,
   #    |> String.split(",", trim: true)
   #    |> Enum.map(fn module -> {String.to_atom(module), :handle_spec} end),
   # upstream_ca_bundle must point to cert bundle that the envoy process has access to
-  upstream_ca_bundle: upstream_ca_bundle
+  upstream_ca_bundle: upstream_ca_bundle,
+  mgmt_api_ca_certificate: mgmt_api_ca_certificate
 
 # config :proxyconf_validator,
 #  http_endpoint_name: System.get_env("PROXYCONF_VALIDATOR_HTTP_ENDPOINT_NAME", "localhost"),

@@ -159,7 +159,7 @@ defmodule ProxyConf.ConfigCache do
     end
   end
 
-  defp parse_doc(".json", data), do: Jason.decode(data)
+  defp parse_doc(".json", data), do: JSON.decode(data)
 
   defp parse_doc(yaml, data) when yaml in [".yaml", ".yml"],
     do: YamlElixir.read_from_string(data)

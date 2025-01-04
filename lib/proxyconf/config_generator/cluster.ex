@@ -38,7 +38,12 @@ defmodule ProxyConf.ConfigGenerator.Cluster do
                 "common_tls_context" => %{
                   "validation_context" => %{
                     "trusted_ca" => %{
-                      "filename" => Application.fetch_env!(:proxyconf, :upstream_ca_bundle)
+                      "filename" =>
+                        if mgmt_api?(cluster_uri) do
+                          Application.fetch_env!(:proxyconf, :mgmt_api_ca_certificate)
+                        else
+                          Application.fetch_env!(:proxyconf, :upstream_ca_bundle)
+                        end
                     }
                   }
                 }
@@ -50,6 +55,15 @@ defmodule ProxyConf.ConfigGenerator.Cluster do
         end
       )
     end)
+  end
+
+  defp mgmt_api?(%URI{host: host, port: port}) do
+    case {Application.fetch_env!(:proxyconf, :mgmt_api_port),
+          Application.fetch_env!(:proxyconf, :hostname)} do
+      {^port, ^host} -> true
+      {^port, "localhost"} when host == "127.0.0.1" -> true
+      _ -> false
+    end
   end
 
   def cluster_uri_from_oas3_server(_api_id, server) do

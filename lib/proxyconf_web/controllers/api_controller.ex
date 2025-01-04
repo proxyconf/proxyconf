@@ -22,7 +22,7 @@ defmodule ProxyConfWeb.ApiController do
       nil ->
         conn
         |> put_resp_content_type("application/json")
-        |> send_resp(404, Jason.encode!(%{message: "requested spec doesn't exist"}))
+        |> send_resp(404, JSON.encode!(%{message: "requested spec doesn't exist"}))
     end
   end
 
@@ -37,7 +37,7 @@ defmodule ProxyConfWeb.ApiController do
 
     conn
     |> put_resp_content_type("application/json")
-    |> send_resp(200, Jason.encode!(%{cluster: cluster_id, spec_ids: spec_ids}))
+    |> send_resp(200, JSON.encode!(%{cluster: cluster_id, spec_ids: spec_ids}))
   end
 
   def delete_spec(conn, %{"spec_name" => spec_name} = _params) do
@@ -170,7 +170,7 @@ defmodule ProxyConfWeb.ApiController do
         request_path: conn.request_path,
         method: conn.method
       }
-      |> Jason.encode!()
+      |> JSON.encode!()
 
     put_resp_header(conn, "Content-Type", "application/json")
     |> send_resp(200, resp)
@@ -230,7 +230,7 @@ defmodule ProxyConfWeb.ApiController do
       Enum.flat_map_reduce(overlayed_spec_data, [], fn {filename, data}, errors ->
         spec_name = Path.basename(filename) |> Path.rootname()
 
-        case Spec.from_oas3(spec_name, data, Jason.encode!(data)) do
+        case Spec.from_oas3(spec_name, data, JSON.encode!(data)) do
           {:ok, %Spec{cluster_id: ^cluster_id} = spec} ->
             {[spec], errors}
 
@@ -250,7 +250,7 @@ defmodule ProxyConfWeb.ApiController do
   def decode(content_type, data) do
     cond do
       String.ends_with?(content_type, "json") ->
-        Jason.decode(data)
+        JSON.decode(data)
 
       String.ends_with?(content_type, "yaml") ->
         YamlElixir.read_from_string(data)

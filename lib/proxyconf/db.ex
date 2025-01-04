@@ -55,7 +55,7 @@ defmodule ProxyConf.Db do
          listener_port: listener_port,
          spec: spec
        }) do
-    data = Jason.encode!(spec)
+    data = JSON.encode!(spec)
     vhost = api_url.host
 
     case get_spec(cluster_id, api_id) do

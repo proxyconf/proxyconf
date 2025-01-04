@@ -654,9 +654,6 @@
       "$ref": "#/definitions/proxyconf"
     }
   },
-  "required": [
-    "x-proxyconf"
-  ],
   "title": "OpenAPI Extension for ProxyConf",
   "type": "object"
 }
