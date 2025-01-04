@@ -1,4 +1,3 @@
-![ProxyConf](./docs/assets/logow.png)
 <h2 align="center">
     <a href="https://proxyconf.com" target="blank_">
     <img src="https://raw.githubusercontent.com/proxyconf/proxyconf/main/docs/assets/logow.png" alt="ProxyConf" height="100"/>
