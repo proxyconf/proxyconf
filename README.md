@@ -3,8 +3,9 @@
     <img src="https://raw.githubusercontent.com/proxyconf/proxyconf/main/docs/assets/logow.png" alt="ProxyConf" height="100"/>
     </a>
     <br>
-**ProxyConf** is a control plane for [Envoy Proxy](https://www.envoyproxy.io/) that simplifies and secures API management in enterprise environments. It leverages the OpenAPI specification to streamline the configuration of Envoy, providing a powerful yet user-friendly platform for managing, and securing API traffic at scale.
 </h2>
+
+**ProxyConf** is a control plane for [Envoy Proxy](https://www.envoyproxy.io/) that simplifies and secures API management in enterprise environments. It leverages the OpenAPI specification to streamline the configuration of Envoy, providing a powerful yet user-friendly platform for managing, and securing API traffic at scale.
 
 <div align="center">
 
