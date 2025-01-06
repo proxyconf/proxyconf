@@ -81,6 +81,8 @@
                 pkgs.elixir_ls
                 pkgs.envoy
                 pkgs.jq
+                pkgs.zig
+                pkgs.xz
                 pkgs.hurl
                 pkgs.websocat
                 pkgs.docker-compose
