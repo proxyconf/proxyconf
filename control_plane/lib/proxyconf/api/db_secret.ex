@@ -3,9 +3,9 @@ defmodule ProxyConf.Api.DbSecret do
   import Ecto.Changeset
 
   schema "api_secret" do
-    field :cluster, :string
-    field :name, :string
-    field :value, ProxyConf.Vault.EncryptedBinary
+    field(:cluster, :string)
+    field(:name, :string)
+    field(:value, ProxyConf.Vault.EncryptedBinary)
 
     timestamps(type: :utc_datetime)
   end

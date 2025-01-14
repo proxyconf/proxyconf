@@ -10,5 +10,5 @@ defmodule ProxyConfWeb.Layouts do
   """
   use ProxyConfWeb, :html
 
-  embed_templates "layouts/*"
+  embed_templates("layouts/*")
 end

@@ -10,17 +10,16 @@ services:
     command: envoy -c /etc/envoy/envoy.demo.yaml
     volumes:
       - ./envoy:/etc/envoy
-      - ../test/support/certs:/etc/certs
+      - ../control_plane/test/support/certs:/etc/certs
     ports:
       - "9901:9901" # admin port
       - "8080:8080"
   proxyconf:
     image: ghcr.io/proxyconf/proxyconf:latest
-    command: start
     ports:
       - "4000:4000"
     volumes:
-      - ../test/support/certs:/etc/certs
+      - ../control_plane/test/support/certs:/etc/certs
     environment:
       RELEASE_COOKIE: "proxyconf-cookie"
       PROXYCONF_HOSTNAME: "localhost"
@@ -35,8 +34,8 @@ services:
       PROXYCONF_CERTIFICATE_ISSUER_KEY: /etc/certs/snakeoil-ca.key
       # !! don't use those secret values in your prod setup, generate them
       # !! on your own using `openssl rand 32 | base64`
+      PROXYCONF_DB_ENCRYPTION_KEY: "vOzcZNx/Ipawvph9sajVhFhoFg2JOBhgtjtDYXkfIbE="
       SECRET_KEY_BASE: "LsTkBZyi1ZAgEOXv4+6LqdDYb7uw7i5WrUAekuxNjDY="
-      DB_ENCRYPTION_KEY: "vOzcZNx/Ipawvph9sajVhFhoFg2JOBhgtjtDYXkfIbE="
   petstore:
     image: swaggerapi/petstore3:unstable
     ports:

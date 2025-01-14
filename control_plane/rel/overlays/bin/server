@@ -2,4 +2,6 @@
 set -eu
 
 cd -P -- "$(dirname -- "$0")"
+
+./proxyconf eval "ProxyConf.Release.migrate"
 PHX_SERVER=true exec ./proxyconf start

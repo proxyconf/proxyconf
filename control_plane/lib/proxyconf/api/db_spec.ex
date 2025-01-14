@@ -3,12 +3,12 @@ defmodule ProxyConf.Api.DbSpec do
   import Ecto.Changeset
 
   schema "api_specs" do
-    field :api_id, :string
-    field :cluster, :string
-    field :listener_address, :string
-    field :listener_port, :integer
-    field :vhost, :string
-    field :data, ProxyConf.Vault.EncryptedBinary
+    field(:api_id, :string)
+    field(:cluster, :string)
+    field(:listener_address, :string)
+    field(:listener_port, :integer)
+    field(:vhost, :string)
+    field(:data, ProxyConf.Vault.EncryptedBinary)
 
     timestamps(type: :utc_datetime)
   end

@@ -7,8 +7,8 @@ defmodule ProxyConf.MixProject do
       version: "0.1.0",
       build_path: "../_build",
       config_path: "config/config.exs",
-      deps_path: "../deps",
-      lockfile: "../mix.lock",
+      deps_path: "deps",
+      lockfile: "mix.lock",
       elixir: "~> 1.18",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
@@ -60,7 +60,7 @@ defmodule ProxyConf.MixProject do
       {:ecto_sql, "~> 3.10"},
       {:postgrex, ">= 0.0.0"},
       # TODO bump on release to {:phoenix_live_view, "~> 1.0.0"},
-      {:phoenix_live_view, "~> 1.0.0-rc.1", override: true},
+      {:phoenix_live_view, "~> 1.0.0", override: true},
       {:phoenix_live_dashboard, "~> 0.8.3"},
       # used for phoenix live dashboard
       {:ecto_psql_extras, "~> 0.6"},
@@ -87,7 +87,7 @@ defmodule ProxyConf.MixProject do
       {:joken, "~> 2.6"},
       #      {:proxyconf_validator, path: "../proxyconf_validator", optional: true},
       {:x509, "~> 0.8.9"},
-      {:credo, "~> 1.7", only: [:test, :dev], runtime: false},
+      {:credo, "~> 1.7", only: [:test, :dev], runtime: false}
     ]
   end
 

@@ -6,5 +6,5 @@ defmodule ProxyConfWeb.PageHTML do
   """
   use ProxyConfWeb, :html
 
-  embed_templates "page_html/*"
+  embed_templates("page_html/*")
 end

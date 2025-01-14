@@ -46,7 +46,9 @@ defmodule ProxyConf.Commons.OaiOverlay do
   end
 
   def overlay(spec_data, overlays) do
-    overlays = Enum.group_by(overlays, fn %ProxyConf.Commons.OaiOverlay{extends: extends} -> extends end)
+    overlays =
+      Enum.group_by(overlays, fn %ProxyConf.Commons.OaiOverlay{extends: extends} -> extends end)
+
     all_overlay = Map.get(overlays, "*", [])
 
     Enum.map(spec_data, fn {filename, data} ->
@@ -60,9 +62,11 @@ defmodule ProxyConf.Commons.OaiOverlay do
   end
 
   def apply_overlay(data, overlays_for_file) do
-    Enum.reduce(overlays_for_file, data, fn %ProxyConf.Commons.OaiOverlay{actions: actions}, acc ->
+    Enum.reduce(overlays_for_file, data, fn %ProxyConf.Commons.OaiOverlay{actions: actions},
+                                            acc ->
       Enum.reduce(actions, acc, fn
-        %ProxyConf.Commons.OaiOverlay.Action{target: target, update: update, remove: false}, acc ->
+        %ProxyConf.Commons.OaiOverlay.Action{target: target, update: update, remove: false},
+        acc ->
           {:ok, data} =
             Warpath.update(acc, target, fn actual -> DeepMerge.deep_merge(actual, update) end)
 

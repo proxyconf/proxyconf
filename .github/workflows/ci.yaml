@@ -16,9 +16,9 @@ jobs:
           nix develop --impure --command -- devenv up &
       - name: Run CI
         run: |
-          cp demo/.proxyconf.env .
-          export DB_ENCRYPTION_KEY=$(openssl rand 32 | base64)
-          nix develop --impure --command -- run-ci
+          nix develop --impure --command -- run-ci commons
+          nix develop --impure --command -- run-ci cli
+          nix develop --impure --command -- run-ci control_plane
       - name: Check release
         run: nix build
       - name: Check fixture derivations
