@@ -43,4 +43,10 @@ npm-debug.log
 
 demo/status
 
-.proxyconf.env
+/.proxyconf.env
+
+/.cache/
+/.devenv/
+/.direnv/
+/.nix-mix/
+TODO.md

@@ -1,0 +1,10 @@
+%{
+  "bbmustache": {:hex, :bbmustache, "1.12.2", "0cabdce0db9fe6d3318131174b9f2b351328a4c0afbeb3e6e99bb0e02e9b621d", [:rebar3], [], "hexpm", "688b33a4d5cc2d51f575adf0b3683fc40a38314a2f150906edcfc77f5b577b3b"},
+  "deep_merge": {:hex, :deep_merge, "1.0.0", "b4aa1a0d1acac393bdf38b2291af38cb1d4a52806cf7a4906f718e1feb5ee961", [:mix], [], "hexpm", "ce708e5f094b9cd4e8f2be4f00d2f4250c4095be93f8cd6d018c753894885430"},
+  "envoy_xds": {:git, "https://github.com/proxyconf/envoy_xds_ex.git", "9e68c9a53f16d71cd9e99dbcc8c537e0280dec15", []},
+  "jason": {:hex, :jason, "1.4.4", "b9226785a9aa77b6857ca22832cffa5d5011a667207eb2a0ad56adb5db443b8a", [:mix], [{:decimal, "~> 1.0 or ~> 2.0", [hex: :decimal, repo: "hexpm", optional: true]}], "hexpm", "c5eb0cab91f094599f94d55bc63409236a8ec69a21a67814529e8d5f6cc90b3b"},
+  "json_xema": {:hex, :json_xema, "0.6.4", "a70ec373f54279369a0bd7c80a8ab2421fb317a68abdf2d9be71b34dbdc1ec78", [:mix], [{:conv_case, "~> 0.2", [hex: :conv_case, repo: "hexpm", optional: false]}, {:xema, "~> 0.16", [hex: :xema, repo: "hexpm", optional: false]}], "hexpm", "ee91cfd6720f8ad13245fa2c438e862e6d8f46e2d700c714d72d259dcac7dfbc"},
+  "recase": {:hex, :recase, "0.8.1", "ab98cd35857a86fa5ca99036f575241d71d77d9c2ab0c39aacf1c9b61f6f7d1d", [:mix], [], "hexpm", "9fd8d63e7e43bd9ea385b12364e305778b2bbd92537e95c4b2e26fc507d5e4c2"},
+  "warpath": {:hex, :warpath, "0.6.3", "269b1598c6437f4bdc3cbf2c22bb0490f3a06c556b2ba02bea58287e53b51118", [:mix], [{:jason, "~> 1.2", [hex: :jason, repo: "hexpm", optional: false]}], "hexpm", "ec85b830e2cf10d63031b4c1b2d24dc483269f9ee75cfcfd2ab7f724a7d721bb"},
+  "yaml_elixir": {:hex, :yaml_elixir, "2.11.0", "9e9ccd134e861c66b84825a3542a1c22ba33f338d82c07282f4f1f52d847bd50", [:mix], [{:yamerl, "~> 0.10", [hex: :yamerl, repo: "hexpm", optional: false]}], "hexpm", "53cc28357ee7eb952344995787f4bb8cc3cecbf189652236e9b163e8ce1bc242"},
+}
