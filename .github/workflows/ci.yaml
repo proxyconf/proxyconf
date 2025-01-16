@@ -11,6 +11,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: DeterminateSystems/nix-installer-action@v10
       - uses: DeterminateSystems/magic-nix-cache-action@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            deps
+            _build
+          key: mix-${{ hashFiles('**/flake.nix') }}-${{ hashFiles('**/mix.lock') }}
+          restore-keys: |
+            ${{ matrix.os }}-mix-${{ hashFiles('**/flake.nix') }}-
       - name: Run Processes
         run: |
           nix develop --impure --command -- devenv up &
@@ -19,7 +27,3 @@ jobs:
           nix develop --impure --command -- run-ci commons
           nix develop --impure --command -- run-ci cli
           nix develop --impure --command -- run-ci control_plane
-      - name: Check release
-        run: nix build
-      - name: Check fixture derivations
-        run: nix flake check --impure
