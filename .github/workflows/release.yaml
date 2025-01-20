@@ -32,7 +32,7 @@ jobs:
             gh release create ${{ github.ref_name }} --draft=true --latest=true --generate-notes ./cli/burrito_out/*
           else
             gh release delete latest --yes | echo
-            gh release create ${{ github.ref_name }} --latest=true --generate-notes ./cli/burrito_out/*
+            gh release create latest --latest=true --generate-notes ./cli/burrito_out/*
           fi
           echo "done"
 

@@ -30,6 +30,16 @@ defmodule ProxyConf.CLI do
         allow_unknown_args: false,
         parse_double_dash: true,
         subcommands: [
+          maintenance: [
+            name: "maintenance",
+            about: "Maintenance commands",
+            args: [
+              command: [
+                value_name: "COMMAND",
+                required: true
+              ]
+            ]
+          ],
           static: [
             name: "static",
             about:
@@ -49,16 +59,16 @@ defmodule ProxyConf.CLI do
                 end,
                 required: true
               ],
-              output_dir: [
+              output: [
                 value_name: "OUTPUT",
                 short: "-o",
-                long: "--output-dir",
-                help: "Output directory with the generated output",
+                long: "--output",
+                help: "Output config file",
                 parser: fn p ->
-                  if File.dir?(p) do
+                  if File.dir?(Path.dirname(p)) do
                     {:ok, p}
                   else
-                    {:error, "invalid output directory"}
+                    {:error, "output directory does not exist"}
                   end
                 end,
                 required: true
@@ -122,7 +132,7 @@ defmodule ProxyConf.CLI do
             config =
               ConfigGenerator.static_config_generation(specs)
 
-            File.write!(args.output_dir, config)
+            File.write!(args.output, config)
             System.halt(0)
 
           {:error, errors} ->

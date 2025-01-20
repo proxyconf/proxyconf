@@ -14,4 +14,4 @@ config :logger, :console,
 
 config :proxyconf_commons,
   default_api_port: 8443,
-  default_downstream_security_config: %{"type" => "disabled"}
+  default_downstream_security_auth: %{"type" => "disabled"}
