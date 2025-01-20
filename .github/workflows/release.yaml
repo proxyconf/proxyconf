@@ -3,13 +3,43 @@ on:
   push:
     branches:
       - main
+    tags:
+      - 'v*.*.*'
   workflow_dispatch:
 permissions:
+  contents: write
   packages: write
 jobs:
-  build:
+  cli-release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@v4
+      - run: nix develop --impure --command -- run-release cli
+      - name: Create Checksum
+        run: |
+          cd ./cli/burrito_out
+          chmod +x ./*
+          shasum -a 256 ./* > proxyconf_cli_checksums.txt
+          cd ..
+      - name: Set release details
+        id: set_release
+        run: |
+          if [[ "${{ github.ref_type }}" == "tag" ]]; then
+            gh release edit ${{ github.ref_name }} --draft=true --repo='proxyconf/proxyconf'
+            gh release upload ${{ github.ref_name }} ./cli/burrito_out/*
+          else
+            gh release edit latest --draft=true --repo='proxyconf/proxyconf'
+            gh release upload latest ./cli/burrito_out/*
+          §fi
+          echo "done"
+
+  image-build:
     name: Build ProxyConf ControlPlane Container Image
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx

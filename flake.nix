@@ -36,6 +36,14 @@
         ${elixir}/bin/mix test
       '';
 
+      run_release = pkgs.writeShellScriptBin "run-release" ''
+        set -euxo pipefail
+        export MIX_ENV=prod
+        cd $1
+        ${elixir}/bin/mix deps.get --only prod
+        ${elixir}/bin/mix release
+      '';
+
       devenvShell = devenv.lib.mkShell {
         inherit inputs pkgs;
         modules = [
@@ -55,6 +63,7 @@
               pkgs.python312Packages.mkdocs-rss-plugin
               pkgs.python312Packages.filelock
               run_ci
+              run_release
             ] ++ optional pkgs.stdenv.isLinux pkgs.inotify-tools
             ++ optional pkgs.stdenv.isDarwin pkgs.terminal-notifier;
 
@@ -120,6 +129,7 @@
         #default = pkg;
         #image = image;
         run_ci = run_ci;
+        run_release = run_release;
         devenv-up = devenvShell.config.procfileScript;
         devenv-test = devenvShell.config.test;
       };
