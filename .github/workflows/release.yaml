@@ -29,11 +29,10 @@ jobs:
         id: set_release
         run: |
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
-            gh release edit ${{ github.ref_name }} --draft=true --repo='proxyconf/proxyconf'
-            gh release upload ${{ github.ref_name }} ./cli/burrito_out/*
+            gh release create ${{ github.ref_name }} --draft=true --latest=true --generate-notes ./cli/burrito_out/*
           else
-            gh release edit latest --draft=true --repo='proxyconf/proxyconf'
-            gh release upload latest ./cli/burrito_out/*
+            gh release delete latest --yes > /dev/null 2>&1
+            gh release create ${{ github.ref_name }} --latest=true --generate-notes ./cli/burrito_out/*
           fi
           echo "done"
 
