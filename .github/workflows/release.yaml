@@ -34,7 +34,7 @@ jobs:
           else
             gh release edit latest --draft=true --repo='proxyconf/proxyconf'
             gh release upload latest ./cli/burrito_out/*
-          §fi
+          fi
           echo "done"
 
   image-build:
