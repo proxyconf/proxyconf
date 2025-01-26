@@ -1,0 +1,33 @@
+x-proxyconf:
+  cluster: {{envoy-cluster}}
+  url: http://localhost:8080/complex-header-auth
+  security:
+    auth:
+      downstream:
+        type: header
+        name: my-complex-header
+        matcher: "issuer=(%w+),.*location=(%w+),.*commonname=(%w+)"
+        clients:
+          testUser:
+            - ["myissuer", "mylocation", "mycommonname"]
+
+openapi: 3.0.3
+info:
+  title: Credentials in Matched Request Header
+  summary: Downstream Authentication
+  description: | 
+    Authentication using an API key request header can be easily configured using the [Authentication with Header or Query Parameter or Header](../config/DownstreamAuth.md/#header-or-query-parameter) configuration.
+  version: 0.1.0
+servers:
+  - url: https://127.0.0.1:{{api-port}}/api/echo
+paths:
+  /test:
+    get:
+      parameters:
+        - name: my-complex-header
+          in: header
+          schema:
+            type: string
+      responses:
+        '200':
+          description: "OK"

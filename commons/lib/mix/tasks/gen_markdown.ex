@@ -305,6 +305,10 @@ defmodule Mix.Tasks.GenMarkdown do
         {"additionalProperties", v} when is_map(v) ->
           generic_property_type =
             case v do
+              %{"enum" => [%{"type" => t} | _ignored]} ->
+                # TODO handle ignored enum cases
+                "`#{t}`"
+
               %{"type" => t} ->
                 "`#{t}`"
 

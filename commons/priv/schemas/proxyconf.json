@@ -22,7 +22,7 @@
       "description": "The `downstream` object configures the authentication mechanism applied to downstream HTTP requests. Defining an authentication mechanism is required, but can be opted-out by explicitely configuring `disabled`.",
       "oneOf": [
         {
-          "$ref": "#/definitions/api_key"
+          "$ref": "#/definitions/generic_auth"
         },
         {
           "$ref": "#/definitions/basic_auth"
@@ -59,9 +59,7 @@
       "type": "string"
     },
     "mtls_clients": {
-      "additionalProperties": {
-        "$ref": "#/definitions/mtls_subjects"
-      },
+      "additionalProperties": true,
       "description": "The clients are matches based on the client certificate subject or SAN",
       "properties": {},
       "title": "Allowed Clients",
@@ -85,18 +83,13 @@
       "title": "Authentication Type"
     },
     "basic_auth_clients": {
-      "additionalProperties": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
+      "additionalProperties": true,
       "description": "The clients are matches based on the md5 hash.",
       "properties": {},
       "title": "Allowed Clients",
       "type": "object"
     },
-    "api_key_type": {
+    "generic_auth_type": {
       "description": "The parameter type that is used to transport the credentials",
       "enum": [
         "query",
@@ -104,22 +97,22 @@
       ],
       "title": "Parameter Type"
     },
-    "api_key_name": {
+    "generic_auth_parameter_name": {
       "description": "The parameter name (header or query string parameter name) where the credentials are provided.",
       "title": "Parameter Name",
       "type": "string"
     },
-    "api_key_clients": {
-      "additionalProperties": {
-        "items": {
-          "type": "string"
-        },
-        "type": "array"
-      },
-      "description": "The clients are matches based on the md5 hash.",
+    "generic_auth_clients": {
+      "additionalProperties": true,
+      "description": "The clients are matches based on the md5 hash or based on the list of match results.",
       "properties": {},
       "title": "Allowed Clients",
       "type": "object"
+    },
+    "generic_auth_matcher": {
+      "description": "Extracts values from the parameter and compares them with the match results provided in the client list.",
+      "title": "Matcher",
+      "type": "string"
     },
     "disabled": {
       "const": "disabled",
@@ -193,24 +186,27 @@
       "title": "Basic Authentication",
       "type": "object"
     },
-    "api_key": {
+    "generic_auth": {
       "additionalProperties": false,
       "description": "Enabling authentication for all clients that access this API using a header or query string parameter. The header or query string parameter is matched against the md5 hashes provided in the `clients` property.",
       "properties": {
         "type": {
-          "$ref": "#/definitions/api_key_type"
+          "$ref": "#/definitions/generic_auth_type"
         },
         "name": {
-          "$ref": "#/definitions/api_key_name"
+          "$ref": "#/definitions/generic_auth_parameter_name"
         },
         "clients": {
-          "$ref": "#/definitions/api_key_clients"
+          "$ref": "#/definitions/generic_auth_clients"
+        },
+        "matcher": {
+          "$ref": "#/definitions/generic_auth_matcher"
         }
       },
       "required": [
-        "clients",
+        "type",
         "name",
-        "type"
+        "clients"
       ],
       "title": "Header or Query Parameter",
       "type": "object"

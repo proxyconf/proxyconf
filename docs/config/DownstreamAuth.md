@@ -13,7 +13,8 @@ The `downstream` object configures the authentication mechanism applied to downs
 | Choice Option | `DownstreamAuth` *`(object)`* |
  | --- | --- |
 | **additionalProperties** | `false` |
-| **properties** | [`clients`](#allowed-clients), [`name`](#parameter-name), [`type`](#parameter-type) |
+| **properties** | [`clients`](#allowed-clients), [`matcher`](#matcher), [`name`](#parameter-name), [`type`](#parameter-type) |
+| **optional** | [`matcher`](#matcher) |
 
 Enabling authentication for all clients that access this API using a header or query string parameter. The header or query string parameter is matched against the md5 hashes provided in the `clients` property.
 
@@ -22,18 +23,17 @@ Enabling authentication for all clients that access this API using a header or q
 
 | Property | `clients` *`(object)`* |
  | --- | --- |
-| **generic properties** | `array` |
+| **additionalProperties** | `true` |
 
-The clients are matches based on the md5 hash.
+The clients are matches based on the md5 hash or based on the list of match results.
 
 
-#### 
+### Matcher
 
-| Generic Property | *`array`* |
+| Property | `matcher` *`(string)`* |
  | --- | --- |
-| **Array Item** | `string` |
 
-
+Extracts values from the parameter and compares them with the match results provided in the client list.
 
 
 ### Parameter Name
@@ -67,18 +67,9 @@ Enabling basic authentication for all clients that access this API. The username
 
 | Property | `clients` *`(object)`* |
  | --- | --- |
-| **generic properties** | `array` |
+| **additionalProperties** | `true` |
 
 The clients are matches based on the md5 hash.
-
-
-#### 
-
-| Generic Property | *`array`* |
- | --- | --- |
-| **Array Item** | `string` |
-
-
 
 
 ### Authentication Type
@@ -139,17 +130,7 @@ Enabling mutual TLS for all clients that access this API. The `subject` or `SAN`
 
 | Property | `clients` *`(object)`* |
  | --- | --- |
-| **generic properties** | [Certificate Subject / SubjectAlternativeName (SAN)](#certificate-subject-subjectalternativename-san) |
-
-The clients are matches based on the client certificate subject or SAN
-
-
-#### Certificate Subject / SubjectAlternativeName (SAN)
-
-| Generic Property | *`array`* |
- | --- | --- |
-| **Array Item** | `string` |
-| **minLength** | `1` |
+| **additionalProperties** | `true` |
 
 The clients are matches based on the client certificate subject or SAN
 

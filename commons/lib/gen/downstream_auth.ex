@@ -17,6 +17,7 @@ defmodule ProxyConf.Commons.Gen.DownstreamAuth do
     :api_url,
     :auth_type,
     :auth_field_name,
+    :auth_field_matcher,
     :clients,
     :allowed_source_ips,
     :jwt_provider_config,
@@ -134,34 +135,46 @@ defmodule ProxyConf.Commons.Gen.DownstreamAuth do
     title: Parameter Type
     description: The parameter type that is used to transport the credentials
   """
-  @type api_key_type :: :header | :query
+  @type generic_auth_type :: :header | :query
 
   @typedoc """
     title: Parameter Name
     description: The parameter name (header or query string parameter name) where the credentials are provided.
   """
-  @type api_key_name :: String.t()
+  @type generic_auth_parameter_name :: String.t()
 
   @typedoc """
     title: Allowed Clients
-    description: The clients are matches based on the md5 hash.
+    description: The clients are matches based on the md5 hash or based on the list of match results.
   """
-  @type api_key_clients :: %{String.t() => [String.t()]}
+  @type generic_auth_clients :: %{String.t() => [String.t()] | [[String.t()]]}
+
+  @typedoc """
+    title: Matcher
+    description: Extracts values from the parameter and compares them with the match results provided in the client list.
+  """
+  @type generic_auth_matcher :: String.t()
+
   @typedoc """
     title: Header or Query Parameter
     description: Enabling authentication for all clients that access this API using a header or query string parameter. The header or query string parameter is matched against the md5 hashes provided in the `clients` property.
+    required:
+      - type
+      - name
+      - clients
   """
-  @type api_key :: %{
-          type: api_key_type(),
-          name: api_key_name(),
-          clients: api_key_clients()
+  @type generic_auth :: %{
+          type: generic_auth_type(),
+          name: generic_auth_parameter_name(),
+          clients: generic_auth_clients(),
+          matcher: generic_auth_matcher()
         }
 
   @typedoc """
     title: Downstream Authentication
     description: The `downstream` object configures the authentication mechanism applied to downstream HTTP requests. Defining an authentication mechanism is required, but can be opted-out by explicitely configuring `disabled`.
   """
-  @type t :: disabled() | mtls() | jwt() | basic_auth() | api_key()
+  @type t :: disabled() | mtls() | jwt() | basic_auth() | generic_auth()
 
   def config_from_json("disabled") do
     %__MODULE__{
@@ -179,6 +192,7 @@ defmodule ProxyConf.Commons.Gen.DownstreamAuth do
         else
           Map.get(json, "name")
         end,
+      auth_field_matcher: Map.get(json, "matcher"),
       clients: Map.get(json, "clients"),
       jwt_provider_config:
         if auth_type == "jwt" do
@@ -222,7 +236,8 @@ defmodule ProxyConf.Commons.Gen.DownstreamAuth do
     %{
       "api_id" => spec.api_id,
       "auth_type" => config.auth_type,
-      "auth_field_name" => config.auth_field_name
+      "auth_field_name" => config.auth_field_name,
+      "auth_field_matcher" => config.auth_field_matcher
     }
   end
 
@@ -470,9 +485,17 @@ defmodule ProxyConf.Commons.Gen.DownstreamAuth do
                     "\n",
                     fn %__MODULE__{} = config ->
                       hashes =
-                        Enum.map_join(config.clients, ",\n ", fn {client_id, hashes} ->
-                          Enum.map_join(hashes, ",\n ", fn hash ->
-                            "[\"#{hash}\"] = {client_id=\"#{client_id}\"}"
+                        Enum.map_join(config.clients, ",\n ", fn {client_id, client_configs} ->
+                          Enum.map_join(client_configs, ",\n ", fn
+                            match_result when is_list(match_result) ->
+                              hash =
+                                :crypto.hash(:md5, Enum.join(match_result, ""))
+                                |> Base.encode16(case: :lower)
+
+                              "[\"#{hash}\"] = {client_id=\"#{client_id}\"}"
+
+                            hash when is_binary(hash) ->
+                              "[\"#{hash}\"] = {client_id=\"#{client_id}\"}"
                           end)
                         end)
 

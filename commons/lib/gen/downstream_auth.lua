@@ -65,6 +65,7 @@ function envoy_on_request(request_handle)
 	local api_id = metadata:get("api_id")
 	local auth_type = metadata:get("auth_type")
 	local auth_field_name = metadata:get("auth_field_name")
+	local auth_field_matcher = metadata:get("auth_field_matcher")
 
 	request_handle:headers():add("x-proxyconf-api-id", api_id)
 
@@ -79,7 +80,16 @@ function envoy_on_request(request_handle)
 		local client_id = nil
 		if auth_type == "header" then
 			local header = request_handle:headers():get(auth_field_name)
-			client_id = validate_hash(header, hashes)
+			if auth_field_matcher == nil then
+				client_id = validate_hash(header, hashes)
+			elseif header ~= nil then
+				local captures = { header:match(auth_field_matcher) }
+				local t = ""
+				for _, v in ipairs(captures) do
+					t = t .. v
+				end
+				client_id = validate_hash(t, hashes)
+			end
 		elseif auth_type == "query" then
 			local path = request_handle:headers():get(":path")
 			local query_param = get_query_parameter(path, auth_field_name)
