@@ -13,7 +13,7 @@ defmodule ProxyConf.Stream do
   require Logger
   alias ProxyConf.ConfigCache
 
-  def ensure_registred(grpc_stream, node_info, type_url) do
+  def ensure_registered(grpc_stream, node_info, type_url) do
     with [] <-
            Registry.lookup(ProxyConf.StreamRegistry, {grpc_stream, node_info.cluster, type_url}),
          {:ok, pid} <-
@@ -52,7 +52,7 @@ defmodule ProxyConf.Stream do
   end
 
   def event(grpc_stream, node_info, type_url, version) do
-    {:ok, pid} = ensure_registred(grpc_stream, node_info, type_url)
+    {:ok, pid} = ensure_registered(grpc_stream, node_info, type_url)
 
     GenServer.call(
       pid,
