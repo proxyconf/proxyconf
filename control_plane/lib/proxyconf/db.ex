@@ -1,7 +1,6 @@
 defmodule ProxyConf.Db do
   alias ProxyConf.Api.DbSpec
   alias ProxyConf.Api.DbSecret
-  alias ProxyConf.ConfigCache
   alias ProxyConf.Repo
   alias ProxyConf.Commons.Spec
   import Ecto.Query, only: [from: 2]
@@ -38,7 +37,7 @@ defmodule ProxyConf.Db do
     case tx_result do
       {:ok, {cluster_id, events}} ->
         events = Enum.reject(events, fn {event, _api_id} -> event == :unchanged end)
-        ConfigCache.load_events(cluster_id, events)
+        ProxyConf.Adapter.load_events(cluster_id, events)
 
         :ok
 
@@ -104,7 +103,7 @@ defmodule ProxyConf.Db do
 
       %DbSpec{} = spec ->
         Repo.delete!(spec)
-        ConfigCache.load_events(cluster_id, [{:deleted, api_id}])
+        ProxyConf.Adapter.load_events(cluster_id, [{:deleted, api_id}])
         :ok
     end
   end

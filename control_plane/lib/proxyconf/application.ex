@@ -7,7 +7,7 @@ defmodule ProxyConf.Application do
   require Logger
 
   @impl true
-  def start(_type, _args) do
+  def start(type, args) do
     children =
       [
         ProxyConf.Vault,
@@ -15,20 +15,15 @@ defmodule ProxyConf.Application do
         {ProxyConf.LocalCA, Application.fetch_env!(:proxyconf, ProxyConf.LocalCA)},
         {ProxyConf.OAuth.JwtSigner,
          Application.fetch_env!(:proxyconf, ProxyConf.OAuth.JwtSigner)},
-        DynamicSupervisor.child_spec(name: ProxyConf.StreamSupervisor),
-        Registry.child_spec(keys: :unique, name: ProxyConf.StreamRegistry),
-        ProxyConf.ConfigCache,
         ProxyConfWeb.Telemetry,
         {DNSCluster, query: Application.get_env(:proxyconf, :dns_cluster_query) || :ignore},
         {Phoenix.PubSub, name: ProxyConf.PubSub},
-        {GRPC.Server.Supervisor,
-         endpoint: ProxyConf.Endpoint,
-         port: Application.fetch_env!(:proxyconf, :grpc_endpoint_port),
-         start_server: true,
-         cred:
-           Application.fetch_env!(:proxyconf, ProxyConf.GRPC.Credential)
-           |> GRPC.Credential.new()},
-        ProxyConfWeb.Endpoint
+        ProxyConfWeb.Endpoint,
+        %{
+          id: ExControlPlane,
+          start: {ExControlPlane.Application, :start, [type, args]},
+          type: :supervisor
+        }
       ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

@@ -171,14 +171,23 @@ config :proxyconf, ProxyConfWeb.Endpoint,
     ]
   ]
 
-config :proxyconf, ProxyConf.GRPC.Credential,
-  ssl: [
-    certfile: Path.absname(control_plane_certificate),
-    keyfile: Path.absname(control_plane_key),
-    cacertfile: Path.absname(control_plane_ca_certificate),
-    verify: :verify_peer,
-    fail_if_no_peer_cert: true
-  ]
+config :ex_control_plane, :adapter_mod, ProxyConf.Adapter
+
+config :ex_control_plane,
+       :grpc_endpoint_port,
+       env!("PROXYCONF_GRPC_ENDPOINT_PORT", :integer, 18000)
+
+config :ex_control_plane, :grpc_server_opts,
+  cred:
+    GRPC.Credential.new(
+      ssl: [
+        certfile: Path.absname(control_plane_certificate),
+        keyfile: Path.absname(control_plane_key),
+        cacertfile: Path.absname(control_plane_ca_certificate),
+        verify: :verify_peer,
+        fail_if_no_peer_cert: true
+      ]
+    )
 
 config :proxyconf, ProxyConf.OAuth.JwtSigner,
   keyfile: Path.absname(mgmt_api_jwt_signer_key),
@@ -186,7 +195,6 @@ config :proxyconf, ProxyConf.OAuth.JwtSigner,
   issuer: "proxyconf"
 
 config :proxyconf,
-  grpc_endpoint_port: env!("PROXYCONF_GRPC_ENDPOINT_PORT", :integer, 18000),
   #  config_extensions:
   #    env!("PROXYCONF_CONFIG_EXTENSIONS", "Elixir.ProxyConfValidator.Store")
   #    |> String.split(",", trim: true)

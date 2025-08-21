@@ -82,6 +82,7 @@ defmodule ProxyConf.MixProject do
       {:tailwind, "~> 0.2", runtime: Mix.env() == :dev},
       ######################################################
       # ProxyConf Deps
+      {:ex_control_plane, github: "proxyconf/ex_control_plane", runtime: false},
       {:ex_oauth2_provider, "~> 0.5.7"},
       {:plug_cowboy, "~> 2.7"},
       {:joken, "~> 2.6"},

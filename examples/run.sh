@@ -24,7 +24,7 @@ ADMIN_ACCESS_TOKEN=$(curl -X POST "https://localhost:4002/api/access-token?clien
 
 
 # reusing the client certs that were bootstrapped for envoy
-hurl $BASEDIR/*.hurl --file-root $BASEDIR --cacert ../control_plane/test/support/certs/snakeoil-ca.crt\
+hurl --test $BASEDIR/*.hurl --file-root $BASEDIR --cacert ../control_plane/test/support/certs/snakeoil-ca.crt\
     --variable port=4002 \
     --variable admin-access-token=$ADMIN_ACCESS_TOKEN \
     --variable envoy-cluster=$ENVOY_CLUSTER \
