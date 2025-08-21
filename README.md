@@ -45,6 +45,8 @@ To quickly explore the capabilities of **ProxyConf**, we provide a demo environm
    Bring up the environment with Docker Compose:
 
    ```bash
+   cd demo
+
    docker-compose up --pull always
    ```
 

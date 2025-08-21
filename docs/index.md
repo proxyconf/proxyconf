@@ -38,6 +38,8 @@ To quickly explore the capabilities of **ProxyConf**, we provide a demo environm
    Bring up the environment with Docker Compose:
 
    ```bash
+   cd demo
+
    docker-compose up --pull always
    ```
 
@@ -46,7 +48,7 @@ To quickly explore the capabilities of **ProxyConf**, we provide a demo environm
 
    ```bash
    curl -X POST https://localhost:4000/api/create-config/demo \
-        --cacert test/support/certs/snakeoil-ca.crt
+        --cacert ../control_plane/test/support/certs/snakeoil-ca.crt
    ```
 
    Example response:
@@ -62,7 +64,7 @@ To quickly explore the capabilities of **ProxyConf**, we provide a demo environm
 
    ```bash
    curl -X POST "https://localhost:4000/api/access-token?client_id=demo&client_secret=<YOUR_CLIENT_SECRET>&grant_type=client_credentials" \
-        --cacert test/support/certs/snakeoil-ca.crt
+        --cacert ../control_plane/test/support/certs/snakeoil-ca.crt
    ```
 
    Example response:
@@ -81,11 +83,11 @@ To quickly explore the capabilities of **ProxyConf**, we provide a demo environm
    Upload the OpenAPI specification of the Swagger Petstore to ProxyConf:
 
    ```bash
-   curl -X POST https://localhost:4000/api/upload/petstore \
+   curl -X POST https://localhost:4000/api/spec/petstore \
         -H "Authorization: Bearer <ACCESS-TOKEN>" \
         -H "Content-Type: application/yaml" \
         --data-binary "@demo/proxyconf/oas3specs/petstore.yaml" \
-        --cacert test/support/certs/snakeoil-ca.crt
+        --cacert ../control_plane/test/support/certs/snakeoil-ca.crt
    ```
 
    Response:
@@ -101,7 +103,7 @@ To quickly explore the capabilities of **ProxyConf**, we provide a demo environm
    ```bash
    curl -X GET "https://localhost:8080/petstore/pet/findByStatus?status=pending" \
         -H "my-api-key: supersecret" \
-        --cacert test/support/certs/snakeoil-ca.crt
+        --cacert ../control_plane/test/support/certs/snakeoil-ca.crt
    ```
 
    Example response:
