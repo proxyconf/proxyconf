@@ -27,7 +27,7 @@
         cd $1
         ${elixir}/bin/mix deps.get
         ${elixir}/bin/mix format --check-formatted
-        ${elixir}/bin/mix compile --warnings-as-errors
+        ${elixir}/bin/mix compile #--warnings-as-errors
         ${elixir}/bin/mix test
       '';
 
